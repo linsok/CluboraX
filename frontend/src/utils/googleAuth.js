@@ -3,8 +3,8 @@
 // Google OAuth configuration - REPLACE WITH YOUR ACTUAL CREDENTIALS
 // Get these from: https://console.cloud.google.com/
 // Go to APIs & Services → Credentials → OAuth 2.0 Client ID
-const GOOGLE_CLIENT_ID = '675410168838-qiu06nn429381gufhn4f2v6jopshi057.apps.googleusercontent.com' // <-- REPLACE THIS
-const GOOGLE_CLIENT_SECRET = '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' // <-- REPLACE THIS
+const GOOGLE_CLIENT_ID = 'your-actual-google-client-id.apps.googleusercontent.com' // <-- REPLACE THIS
+const GOOGLE_CLIENT_SECRET = 'your-actual-google-client-secret' // <-- REPLACE THIS
 
 // Dynamic redirect URI based on current port
 const getCurrentRedirectUri = () => {
