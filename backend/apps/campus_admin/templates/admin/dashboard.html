@@ -1,0 +1,243 @@
+{% extends 'admin/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600">Total Users</p>
+                <p class="text-2xl font-bold text-gray-900">{{ total_users }}</p>
+            </div>
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-users text-blue-600"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <div class="flex items-center text-sm text-green-600">
+                <i class="fas fa-arrow-up mr-1"></i>
+                <span>12% from last month</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600">Active Users</p>
+                <p class="text-2xl font-bold text-gray-900">{{ active_users }}</p>
+            </div>
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-user-check text-green-600"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <div class="flex items-center text-sm text-green-600">
+                <i class="fas fa-arrow-up mr-1"></i>
+                <span>8% from last week</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600">Pending Proposals</p>
+                <p class="text-2xl font-bold text-gray-900">{{ pending_proposals }}</p>
+            </div>
+            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-clock text-yellow-600"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <div class="flex items-center text-sm text-yellow-600">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                <span>Requires attention</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600">Total Proposals</p>
+                <p class="text-2xl font-bold text-gray-900">{{ total_proposals }}</p>
+            </div>
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-file-alt text-purple-600"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <div class="flex items-center text-sm text-green-600">
+                <i class="fas fa-arrow-up mr-1"></i>
+                <span>23% from last month</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- User Growth Chart -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">User Growth</h3>
+        <div class="chart-container">
+            <canvas id="userGrowthChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Proposal Status Chart -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Proposal Status</h3>
+        <div class="chart-container">
+            <canvas id="proposalStatusChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activities & Quick Actions -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Recent Activities -->
+    <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
+        <div class="space-y-4">
+            {% for activity in recent_activities %}
+            <div class="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-user text-blue-600 text-sm"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900">
+                        {{ activity.user.get_full_name|default:activity.user.email }}
+                    </p>
+                    <p class="text-sm text-gray-600">{{ activity.get_action_display }}</p>
+                    <p class="text-xs text-gray-500">{{ activity.created_at|timesince }} ago</p>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-inbox text-4xl mb-4"></i>
+                <p>No recent activities</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div class="space-y-3">
+            <a href="{% url 'admin:user_management' %}" class="block w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                <i class="fas fa-users text-blue-600 mr-3"></i>
+                <span class="text-sm font-medium">Manage Users</span>
+            </a>
+            <a href="{% url 'admin:proposal_management' %}" class="block w-full text-left p-3 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors">
+                <i class="fas fa-file-alt text-yellow-600 mr-3"></i>
+                <span class="text-sm font-medium">Review Proposals</span>
+            </a>
+            <a href="{% url 'admin:announcements' %}" class="block w-full text-left p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+                <i class="fas fa-bullhorn text-purple-600 mr-3"></i>
+                <span class="text-sm font-medium">Create Announcement</span>
+            </a>
+            <a href="{% url 'admin:system_settings' %}" class="block w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                <i class="fas fa-cog text-gray-600 mr-3"></i>
+                <span class="text-sm font-medium">System Settings</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- System Status -->
+<div class="mt-8 bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">System Status</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+            <div class="flex items-center space-x-3">
+                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span class="text-sm font-medium text-gray-900">Database</span>
+            </div>
+            <span class="text-sm text-green-600">Healthy</span>
+        </div>
+        <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+            <div class="flex items-center space-x-3">
+                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span class="text-sm font-medium text-gray-900">Storage</span>
+            </div>
+            <span class="text-sm text-green-600">Healthy</span>
+        </div>
+        <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+            <div class="flex items-center space-x-3">
+                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span class="text-sm font-medium text-gray-900">Cache</span>
+            </div>
+            <span class="text-sm text-green-600">Healthy</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // User Growth Chart
+    const userGrowthCtx = document.getElementById('userGrowthChart').getContext('2d');
+    new Chart(userGrowthCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'New Users',
+                data: [12, 19, 23, 25, 32, 41],
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Proposal Status Chart
+    const proposalStatusCtx = document.getElementById('proposalStatusChart').getContext('2d');
+    new Chart(proposalStatusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pending', 'Approved', 'Rejected', 'Under Review'],
+            datasets: [{
+                data: [{{ pending_proposals }}, 45, 23, 12],
+                backgroundColor: [
+                    'rgb(251, 191, 36)',
+                    'rgb(34, 197, 94)',
+                    'rgb(239, 68, 68)',
+                    'rgb(59, 130, 246)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends 'admin/base.html' %}
+{% load static %}
+
+{% block title %}Proposal Management{% endblock %}
+
+{% block page_title %}Proposal Management{% endblock %}
+
+{% block content %}
+<!-- Filters and Search -->
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <form method="get" class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="flex flex-col sm:flex-row gap-4">
+            <div class="relative">
+                <input type="text" 
+                       name="search" 
+                       value="{{ search }}" 
+                       placeholder="Search proposals..." 
+                       class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+            
+            <select name="type" class="px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                <option value="">All Types</option>
+                {% for type, display in type_choices %}
+                <option value="{{ type }}" {% if type_filter == type %}selected{% endif %}>{{ display }}</option>
+                {% endfor %}
+            </select>
+            
+            <select name="status" class="px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                <option value="">All Status</option>
+                {% for status, display in status_choices %}
+                <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>{{ display }}</option>
+                {% endfor %}
+            </select>
+            
+            <select name="priority" class="px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                <option value="">All Priorities</option>
+                {% for priority, display in priority_choices %}
+                <option value="{{ priority }}" {% if priority_filter == priority %}selected{% endif %}>{{ display }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-filter mr-2"></i>Apply Filters
+        </button>
+    </form>
+</div>
+
+<!-- Proposals Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for proposal in page_obj %}
+    <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-300">
+        <div class="p-6">
+            <!-- Header -->
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ proposal.title }}</h3>
+                    <p class="text-sm text-gray-600 line-clamp-2">{{ proposal.description }}</p>
+                </div>
+                <div class="flex flex-col items-end space-y-2">
+                    <span class="px-2 py-1 text-xs rounded-full 
+                        {% if proposal.priority == 'urgent' %}bg-red-100 text-red-800
+                        {% elif proposal.priority == 'high' %}bg-orange-100 text-orange-800
+                        {% elif proposal.priority == 'medium' %}bg-yellow-100 text-yellow-800
+                        {% elif proposal.priority == 'low' %}bg-green-100 text-green-800
+                        {% endif %}">
+                        {{ proposal.get_priority_display }}
+                    </span>
+                    <span class="px-2 py-1 text-xs rounded-full 
+                        {% if proposal.status == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% elif proposal.status == 'approved' %}bg-green-100 text-green-800
+                        {% elif proposal.status == 'rejected' %}bg-red-100 text-red-800
+                        {% elif proposal.status == 'under_review' %}bg-blue-100 text-blue-800
+                        {% elif proposal.status == 'implemented' %}bg-purple-100 text-purple-800
+                        {% elif proposal.status == 'cancelled' %}bg-gray-100 text-gray-800
+                        {% endif %}">
+                        {{ proposal.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Metadata -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-500">Type:</span>
+                    <span class="font-medium">{{ proposal.get_type_display }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-500">Submitted by:</span>
+                    <span class="font-medium">{{ proposal.submitted_by.get_full_name|default:proposal.submitted_by.email }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-500">Submitted:</span>
+                    <span class="font-medium">{{ proposal.submitted_at|date:"M d, Y" }}</span>
+                </div>
+                {% if proposal.deadline %}
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-500">Deadline:</span>
+                    <span class="font-medium {% if proposal.deadline < today %}text-red-600{% endif %}">
+                        {{ proposal.deadline|date:"M d, Y" }}
+                    </span>
+                </div>
+                {% endif %}
+                {% if proposal.budget %}
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-500">Budget:</span>
+                    <span class="font-medium">${{ proposal.budget|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Actions -->
+            <div class="flex space-x-2 mt-4">
+                <a href="{% url 'admin:proposal_detail' proposal.id %}" 
+                   class="flex-1 text-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-eye mr-2"></i>View Details
+                </a>
+                {% if proposal.status == 'pending' %}
+                <div class="flex space-x-2">
+                    <a href="{% url 'admin:proposal_detail' proposal.id %}?action=approve" 
+                       class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-check"></i>
+                    </a>
+                    <a href="{% url 'admin:proposal_detail' proposal.id %}?action=reject" 
+                       class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center py-12 text-gray-500">
+        <i class="fas fa-file-alt text-4xl mb-4"></i>
+        <p>No proposals found</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="mt-6 bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+    <div class="flex-1 flex justify-between sm:hidden">
+        <a href="?page={{ page_obj.previous_page_number }}" 
+           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md bg-white text-gray-700 hover:bg-gray-50">
+            Previous
+        </a>
+        <a href="?page={{ page_obj.next_page_number }}" 
+           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md bg-white text-gray-700 hover:bg-gray-50">
+            Next
+        </a>
+    </div>
+    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm text-gray-700">
+                Showing
+                <span class="font-medium">{{ page_obj.start_index }}</span>
+                to
+                <span class="font-medium">{{ page_obj.end_index }}</span>
+                of
+                <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                results
+            </p>
+        </div>
+        <div>
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" 
+                   class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                    {{ num }}
+                </span>
+                {% else %}
+                <a href="?page={{ num }}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    {{ num }}
+                </a>
+                {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" 
+                   class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

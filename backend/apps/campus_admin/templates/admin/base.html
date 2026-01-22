@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Panel{% endblock %} - Campus Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-transition {
+            transition: all 0.3s ease;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Sidebar -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white sidebar-transition z-50">
+        <div class="p-4">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">Admin Panel</h1>
+                    <p class="text-xs text-gray-400">Campus Hub</p>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="space-y-2">
+                <a href="{% url 'admin:dashboard' %}" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-tachometer-alt w-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{% url 'admin:user_management' %}" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-users w-5"></i>
+                    <span>User Management</span>
+                </a>
+                <a href="{% url 'admin:proposal_management' %}" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-file-alt w-5"></i>
+                    <span>Proposals</span>
+                </a>
+                <a href="{% url 'admin:analytics' %}" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-chart-line w-5"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="{% url 'admin:announcements' %}" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-bullhorn w-5"></i>
+                    <span>Announcements</span>
+                </a>
+                <a href="{% url 'admin:system_settings' %}" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-cog w-5"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="{% url 'admin:system_logs' %}" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-list-alt w-5"></i>
+                    <span>System Logs</span>
+                </a>
+            </nav>
+        </div>
+        
+        <!-- User Info -->
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                    <i class="fas fa-user text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium">{{ user.get_full_name|default:user.email }}</p>
+                    <p class="text-xs text-gray-400">{{ user.role|title }}</p>
+                </div>
+            </div>
+            <a href="/logout" class="mt-3 block w-full text-center py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                <i class="fas fa-sign-out-alt mr-2"></i>Logout
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64">
+        <!-- Top Bar -->
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h2 class="text-2xl font-semibold text-gray-800">{% block page_title %}Dashboard{% endblock %}</h2>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+                        </button>
+                    </div>
+                    
+                    <!-- System Health -->
+                    <div class="flex items-center space-x-2 text-sm">
+                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span class="text-gray-600">System Healthy</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="p-6">
+            {% if messages %}
+                <div class="mb-4 space-y-2">
+                    {% for message in messages %}
+                        <div class="p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 border border-red-400 text-red-700{% elif message.tags == 'warning' %}bg-yellow-100 border border-yellow-400 text-yellow-700{% elif message.tags == 'success' %}bg-green-100 border border-green-400 text-green-700{% else %}bg-blue-100 border border-blue-400 text-blue-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+
+    <script>
+        // Sidebar toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.ml-64');
+            
+            sidebar.classList.toggle('-translate-x-full');
+            mainContent.classList.toggle('ml-64');
+            mainContent.classList.toggle('ml-0');
+        });
+
+        // Auto-refresh system health
+        setInterval(function() {
+            fetch('/admin/api/system-health/')
+                .then(response => response.json())
+                .then(data => {
+                    const healthIndicator = document.querySelector('.bg-green-500');
+                    if (data.status !== 'healthy') {
+                        healthIndicator.classList.remove('bg-green-500');
+                        healthIndicator.classList.add('bg-red-500');
+                    }
+                })
+                .catch(error => console.error('Error fetching system health:', error));
+        }, 30000); // Check every 30 seconds
+    </script>
+    
+    {% block extra_js %}
+    {% endblock %}
+</body>
+</html>

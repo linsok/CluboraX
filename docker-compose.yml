@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: campus_db
+    environment:
+      MYSQL_DATABASE: campus_management
+      MYSQL_USER: campus_user
+      MYSQL_PASSWORD: campus_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - campus_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: campus_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - campus_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campus_backend
+    environment:
+      - DEBUG=1
+      - DB_HOST=db
+      - DB_NAME=campus_management
+      - DB_USER=campus_user
+      - DB_PASSWORD=campus_password
+      - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+    networks:
+      - campus_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: campus_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - campus_network
+
+volumes:
+  mysql_data:
+
+networks:
+  campus_network:
+    driver: bridge

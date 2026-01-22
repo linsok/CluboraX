@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google OAuth Debug</title>
+</head>
+<body>
+    <h1>Google OAuth Debug</h1>
+    <p>This page will help us debug the redirect URI issue.</p>
+    
+    <button onclick="testGoogleOAuth()">Test Google OAuth</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        function testGoogleOAuth() {
+            const clientId = '675410168838-qiu06nn429381gufhn4f2v6jopshi057.apps.googleusercontent.com';
+            const redirectUri = 'http://localhost:3000/auth/google/callback';
+            const scope = 'openid email profile';
+            const responseType = 'code';
+            
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                `client_id=${clientId}&` +
+                `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+                `scope=${encodeURIComponent(scope)}&` +
+                `response_type=${responseType}&` +
+                `prompt=select_account`;
+            
+            console.log('Generated URL:', authUrl);
+            console.log('Redirect URI:', redirectUri);
+            
+            document.getElementById('result').innerHTML = `
+                <h3>Debug Information:</h3>
+                <p><strong>Client ID:</strong> ${clientId}</p>
+                <p><strong>Redirect URI:</strong> ${redirectUri}</p>
+                <p><strong>Full URL:</strong> <a href="${authUrl}" target="_blank">${authUrl}</a></p>
+                <p><strong>Current URL:</strong> ${window.location.href}</p>
+            `;
+            
+            // Uncomment to test
+            // window.location.href = authUrl;
+        }
+    </script>
+</body>
+</html>
