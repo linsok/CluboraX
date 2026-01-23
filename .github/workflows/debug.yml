@@ -1,0 +1,46 @@
+name: Debug CI/CD
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: List files
+      run: |
+        echo "=== Root directory ==="
+        ls -la
+        echo "=== Backend directory ==="
+        ls -la backend/
+        echo "=== Frontend directory ==="
+        ls -la frontend/
+
+    - name: Check Dockerfiles
+      run: |
+        echo "=== Backend Dockerfile ==="
+        cat backend/Dockerfile
+        echo "=== Frontend Dockerfile ==="
+        cat frontend/Dockerfile
+
+    - name: Test Docker build (backend)
+      run: |
+        cd backend
+        echo "Testing backend Docker build..."
+        docker build -t test-backend .
+
+    - name: Test Docker build (frontend)
+      run: |
+        cd frontend
+        echo "Testing frontend Docker build..."
+        docker build -t test-frontend .
+
+    - name: Success
+      run: |
+        echo "✅ All Docker builds successful!"
+        echo "🚀 Ready to deploy"
