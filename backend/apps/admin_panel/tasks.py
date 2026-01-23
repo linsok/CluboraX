@@ -2,7 +2,11 @@ from celery import shared_task
 from django.utils import timezone
 from django.core.management import call_command
 from django.db import connection
+from django.db.models import Count
 from .models import SystemReport, SystemBackup, SystemMaintenance
+from apps.users.models import User
+from apps.events.models import Event
+from apps.clubs.models import Club
 import logging
 import os
 import subprocess
