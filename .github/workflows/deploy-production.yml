@@ -26,6 +26,14 @@ jobs:
       id: frontend-sha
       run: echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
 
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+        fail_ci_if_error: false
+
     - name: Get backend SHA
       id: backend-sha
       run: echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
@@ -33,7 +41,7 @@ jobs:
   deploy-frontend:
     needs: test-and-build
     runs-on: ubuntu-latest
-    if: success()
+    if: success() && github.ref == 'refs/heads/master'
     environment: production
 
     steps:
@@ -90,7 +98,7 @@ jobs:
   deploy-backend:
     needs: test-and-build
     runs-on: ubuntu-latest
-    if: success()
+    if: success() && github.ref == 'refs/heads/master'
     environment: production
 
     steps:
