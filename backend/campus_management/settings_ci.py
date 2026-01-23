@@ -76,5 +76,12 @@ CSRF_COOKIE_SECURE = False
 # Allow all hosts for testing
 ALLOWED_HOSTS = ['*']
 
+# OAuth2 Provider settings for testing
+OAUTH2_PROVIDER_APPLICATION_MODEL = 'oauth2_provider.Application'
+OAUTH2_PROVIDER_ACCESS_TOKEN_MODEL = 'oauth2_provider.AccessToken'
+OAUTH2_PROVIDER_REFRESH_TOKEN_MODEL = 'oauth2_provider.RefreshToken'
+OAUTH2_PROVIDER_GRANT_MODEL = 'oauth2_provider.Grant'
+OAUTH2_PROVIDER_ID_TOKEN_MODEL = 'oauth2_provider.IDToken'
+
 # CORS settings for testing
 CORS_ALLOW_ALL_ORIGINS = True
