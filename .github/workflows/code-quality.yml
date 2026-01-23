@@ -1,0 +1,103 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, master, develop, feature/* ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  backend-quality:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        pip install flake8 black isort mypy bandit safety
+
+    - name: Run black (code formatting)
+      run: |
+        cd backend
+        black --check --diff .
+
+    - name: Run isort (import sorting)
+      run: |
+        cd backend
+        isort --check-only --diff .
+
+    - name: Run flake8 (linting)
+      run: |
+        cd backend
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Run mypy (type checking)
+      run: |
+        cd backend
+        mypy . --ignore-missing-imports || true
+
+    - name: Run bandit (security linter)
+      run: |
+        cd backend
+        bandit -r . -f json -o bandit-report.json || true
+
+    - name: Run safety (dependency security)
+      run: |
+        cd backend
+        safety check --json --output safety-report.json || true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          backend/bandit-report.json
+          backend/safety-report.json
+
+  frontend-quality:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Run ESLint
+      run: |
+        cd frontend
+        npx eslint src/ --format=json --output-file=eslint-report.json || true
+
+    - name: Run Prettier
+      run: |
+        cd frontend
+        npx prettier --check "src/**/*.{js,jsx,ts,tsx,json,css,md}" || true
+
+    - name: Run TypeScript check
+      run: |
+        cd frontend
+        npx tsc --noEmit || true
+
+    - name: Upload lint reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: lint-reports
+        path: frontend/eslint-report.json

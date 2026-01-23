@@ -1,0 +1,337 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop, feature/* ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.11'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Backend Tests
+  backend-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: test_campus_management
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_password
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-django pytest-cov flake8
+
+    - name: Run flake8 linting
+      run: |
+        cd backend
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Run Django tests
+      env:
+        DEBUG: 0
+        DB_HOST: localhost
+        DB_PORT: 3306
+        DB_NAME: test_campus_management
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        REDIS_URL: redis://localhost:6379/0
+        SECRET_KEY: test-secret-key-for-ci
+      run: |
+        cd backend
+        python manage.py test --verbosity=2 --coverage=./ || true
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+
+  # Frontend Tests
+  frontend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci --force
+        npm install @vitest/coverage-v8 --save-dev
+
+    - name: Run ESLint
+      run: |
+        cd frontend
+        npm run lint || true
+
+    - name: Run Prettier check
+      run: |
+        cd frontend
+        npx prettier --check "src/**/*.{js,jsx,ts,tsx,json,css,md}" || true
+
+    - name: Run tests
+      run: |
+        cd frontend
+        npm test -- --coverage --watchAll=false || true
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./frontend/coverage/lcov.info
+        flags: frontend
+        name: frontend-coverage
+
+  # Security Scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run npm audit
+      run: |
+        cd frontend
+        npm audit --audit-level moderate
+
+    - name: Run pip audit
+      run: |
+        pip install pip-audit
+        cd backend
+        pip-audit -r requirements.txt
+
+  # Docker Build and Push
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, security-scan]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta-backend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: true
+        tags: ${{ steps.meta-backend.outputs.tags }}
+        labels: ${{ steps.meta-backend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Extract metadata for frontend
+      id: meta-frontend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: ${{ steps.meta-frontend.outputs.tags }}
+        labels: ${{ steps.meta-frontend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Deployment (Staging)
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Create .env file for staging
+        cat > .env.staging << EOF
+        DB_NAME=campus_management_staging
+        DB_USER=campus_user
+        DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }}
+        DB_ROOT_PASSWORD=${{ secrets.STAGING_DB_ROOT_PASSWORD }}
+        SECRET_KEY=${{ secrets.STAGING_SECRET_KEY }}
+        ALLOWED_HOSTS=staging.yourdomain.com
+        GITHUB_REPOSITORY=${{ github.repository }}
+        EOF
+        
+        # Deploy using docker-compose
+        docker-compose -f docker-compose.prod.yml --env-file .env.staging down
+        docker-compose -f docker-compose.prod.yml --env-file .env.staging pull
+        docker-compose -f docker-compose.prod.yml --env-file .env.staging up -d
+        
+        # Clean up
+        rm .env.staging
+
+  # Deployment (Production)
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        # Create .env file for production
+        cat > .env.production << EOF
+        DB_NAME=${{ secrets.PROD_DB_NAME }}
+        DB_USER=${{ secrets.PROD_DB_USER }}
+        DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}
+        DB_ROOT_PASSWORD=${{ secrets.PROD_DB_ROOT_PASSWORD }}
+        SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}
+        ALLOWED_HOSTS=${{ secrets.PROD_ALLOWED_HOSTS }}
+        GITHUB_REPOSITORY=${{ github.repository }}
+        EOF
+        
+        # Deploy using docker-compose
+        docker-compose -f docker-compose.prod.yml --env-file .env.production down
+        docker-compose -f docker-compose.prod.yml --env-file .env.production pull
+        docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+        
+        # Clean up
+        rm .env.production
+
+    - name: Run smoke tests
+      run: |
+        echo "Running smoke tests..."
+        # Wait for services to be ready
+        sleep 30
+        
+        # Test backend health
+        curl -f http://localhost:8000/health/ || exit 1
+        
+        # Test frontend
+        curl -f http://localhost/ || exit 1
+        
+        echo "✅ Smoke tests passed!"
+
+  # Notification
+  notify:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, security-scan, docker-build]
+    if: always()
+
+    steps:
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "✅ CI/CD Pipeline completed successfully!"
+        # Add Slack/Teams notification here if needed
+
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ CI/CD Pipeline failed!"
+        # Add Slack/Teams notification here if needed

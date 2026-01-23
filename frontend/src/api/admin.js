@@ -71,9 +71,9 @@ export const getAdminUsers = async () => {
 
 export const getAdminRequests = async () => {
   try {
-    const response = await adminClient.get('/api/admin/requests/')
+    const response = await adminClient.get('/api/admin/proposals/')
     // Handle different response formats
-    return response.data?.data || response.data || []
+    return response.data?.proposals || response.data || []
   } catch (error) {
     throw error.response?.data || error
   }
@@ -90,12 +90,21 @@ export const updateUserStatus = async (userId, status) => {
   }
 }
 
-export const updateRequestStatus = async (requestId, status) => {
+export const updateRequestStatus = async (requestId, status, comment = '') => {
   try {
-    const response = await adminClient.patch(`/api/admin/requests/${requestId}/`, { status })
-    return response.data?.data || response.data
+    let endpoint;
+    if (status === 'approved') {
+      endpoint = `/api/admin/proposals/${requestId}/approve/`;
+    } else if (status === 'rejected') {
+      endpoint = `/api/admin/proposals/${requestId}/reject/`;
+    } else {
+      throw new Error('Invalid status update');
+    }
+    
+    const response = await adminClient.post(endpoint, { comment });
+    return response.data?.data || response.data;
   } catch (error) {
-    throw error.response?.data || error
+    throw error.response?.data || error;
   }
 }
 

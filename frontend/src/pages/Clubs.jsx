@@ -3,9 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { UserGroupIcon, PlusIcon, MagnifyingGlassIcon, CalendarIcon, XMarkIcon, CheckCircleIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
+import { useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 
 const Clubs = () => {
   const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showJoinModal, setShowJoinModal] = useState(false)
@@ -224,7 +228,7 @@ const Clubs = () => {
     setSelectedClub(null)
   }
 
-  const handleCreateClub = () => {
+  const handleCreateClub = async () => {
     // Check if user is a student
     if (user?.role !== 'student') {
       toast.error('Only students can create clubs')
@@ -257,49 +261,126 @@ const Clubs = () => {
       return
     }
     
-    // Create new club object
-    const newClub = {
-      id: Date.now(),
-      ...clubForm,
-      members: 1,
-      image: '/api/placeholder/300/200',
-      events: 0,
-      status: 'pending_approval',
-      createdAt: new Date().toISOString(),
-      createdBy: user?.name || 'Student'
-    }
-    
-    console.log('Creating club:', newClub)
-    
-    // Show success message
-    toast.success('Club creation request submitted! Your club is pending approval.')
-    
-    // Reset form and close modal
-    setClubForm({
-      name: '',
-      category: 'Academic',
-      description: '',
-      longDescription: '',
-      meetingTime: '',
-      locationType: 'physical',
-      location: '',
-      physicalLocation: '',
-      onlinePlatform: '',
-      meetingLink: '',
-      requirements: '',
-      goals: '',
-      leaderName: '',
-      capacity: 10,
-      memberEmails: '',
-      president: user?.name || '',
-      contactEmail: user?.email || '',
-      socialMedia: {
-        instagram: '',
-        linkedin: '',
-        github: ''
+    try {
+      // Get authentication token
+      const token = localStorage.getItem('access_token')
+      if (!token) {
+        toast.error('You must be logged in to submit a club proposal')
+        return
       }
-    })
-    setShowCreateClubModal(false)
+
+      // Create proposal data
+      const proposalData = {
+        title: `New Club: ${clubForm.name}`,
+        description: clubForm.description,
+        type: 'club',
+        priority: 'medium',
+        budget: null,
+        deadline: null,
+        tags: ['club', clubForm.category.toLowerCase(), 'student-organization'],
+        // Additional club-specific data in description
+        long_description: `
+**Club Details:**
+- Name: ${clubForm.name}
+- Category: ${clubForm.category}
+- Leader: ${clubForm.leaderName}
+- Capacity: ${clubForm.capacity} members
+- Meeting Time: ${clubForm.meetingTime}
+- Location: ${clubForm.location}
+
+**Description:**
+${clubForm.description}
+
+**Long Description:**
+${clubForm.longDescription || 'No additional description provided'}
+
+**Goals & Objectives:**
+${clubForm.goals || 'No specific goals provided'}
+
+**Requirements:**
+${clubForm.requirements || 'No specific requirements provided'}
+
+**Meeting Details:**
+- Platform: ${clubForm.locationType === 'online' ? 'Online' : 'Physical'}
+${clubForm.locationType === 'online' ? `- Online Platform: ${clubForm.onlinePlatform}` : `- Physical Location: ${clubForm.physicalLocation}`}
+${clubForm.meetingLink ? `- Meeting Link: ${clubForm.meetingLink}` : ''}
+
+**Social Media:**
+- Instagram: ${clubForm.socialMedia.instagram || 'Not provided'}
+- LinkedIn: ${clubForm.socialMedia.linkedin || 'Not provided'}
+- GitHub: ${clubForm.socialMedia.github || 'Not provided'}
+
+**Member Invitations:**
+${clubForm.memberEmails ? clubForm.memberEmails.split(',').map(email => email.trim()).filter(email => email).join(', ') : 'No member invitations'}
+
+**Submitted by:** ${user?.name} (${user?.email})
+**Submitted on:** ${new Date().toLocaleDateString()}
+        `.trim()
+      }
+
+      // Submit proposal to backend
+      const response = await fetch('http://localhost:8000/api/admin/proposals/create/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(proposalData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to submit club proposal')
+      }
+
+      const result = await response.json()
+      
+      // Show success message
+      toast.success('Club proposal submitted successfully! It will be reviewed by administrators.')
+      
+      // Invalidate queries to refresh the Dashboard's "My Club Requests"
+      queryClient.invalidateQueries(['user-club-requests'])
+      queryClient.invalidateQueries(['user-club-proposals'])
+      
+      // Navigate to Dashboard to show the new club request
+      setTimeout(() => {
+        navigate('/dashboard?tab=my-clubs')
+      }, 1500)
+      
+      // Reset form
+      setClubForm({
+        name: '',
+        category: 'Academic',
+        description: '',
+        longDescription: '',
+        meetingTime: '',
+        locationType: 'physical',
+        location: '',
+        physicalLocation: '',
+        onlinePlatform: '',
+        meetingLink: '',
+        requirements: '',
+        goals: '',
+        leaderName: '',
+        capacity: 10,
+        memberEmails: '',
+        president: user?.name || '',
+        contactEmail: user?.email || '',
+        socialMedia: {
+          instagram: '',
+          linkedin: '',
+          github: ''
+        }
+      })
+      
+      // Close modal
+      setShowCreateClubModal(false)
+      
+      console.log('Club proposal submitted:', result)
+    } catch (error) {
+      console.error('Error submitting club proposal:', error)
+      toast.error(error.message || 'Failed to submit club proposal. Please try again.')
+    }
   }
 
   const handleClubFormChange = (e) => {

@@ -40,4 +40,12 @@ urlpatterns = [
     
     # System maintenance
     path('maintenance/', views.SystemMaintenanceListCreateView.as_view(), name='maintenance_list_create'),
+    
+    # Proposal management
+    path('proposals/', views.ProposalListView.as_view(), name='proposal_list'),
+    path('proposals/create/', views.ProposalCreateView.as_view(), name='proposal_create'),
+    path('proposals/user/', views.ProposalUserListView.as_view(), name='user_proposal_list'),
+    path('proposals/<uuid:proposal_id>/approve/', views.ProposalActionView.as_view(), name='approve_proposal'),
+    path('proposals/<uuid:proposal_id>/reject/', views.ProposalActionView.as_view(), name='reject_proposal'),
+    path('proposals/<uuid:proposal_id>/delete/', views.ProposalActionView.as_view(), name='delete_proposal'),
 ]
