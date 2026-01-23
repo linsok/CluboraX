@@ -4,9 +4,21 @@ from . import views
 app_name = 'admin_panel'
 
 urlpatterns = [
+    # Authentication
+    path('login/', views.AdminLoginView.as_view(), name='admin_login'),
+    
     # Dashboard
     path('dashboard/', views.DashboardStatsView.as_view(), name='dashboard_stats'),
+    path('stats/', views.DashboardStatsView.as_view(), name='stats'),
     path('quick-actions/', views.QuickActionsView.as_view(), name='quick_actions'),
+    
+    # User Management
+    path('users/', views.AdminUserListView.as_view(), name='user_list'),
+    path('users/<uuid:pk>/', views.AdminUserDetailView.as_view(), name='user_detail'),
+    
+    # Request Management
+    path('requests/', views.AdminRequestListView.as_view(), name='request_list'),
+    path('requests/<uuid:pk>/', views.AdminRequestDetailView.as_view(), name='request_detail'),
     
     # Admin activities
     path('activities/', views.AdminActivityListView.as_view(), name='activity_list'),

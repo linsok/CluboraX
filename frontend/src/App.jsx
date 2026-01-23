@@ -30,6 +30,7 @@ import Clubs from './pages/Clubs'
 import Gallery from './pages/Gallery'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
+import Landing from './pages/Landing'
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import GoogleCallback from './pages/Auth/GoogleCallback'
@@ -37,7 +38,8 @@ import GoogleAccountSelection from './pages/Auth/GoogleAccountSelection'
 import RoleSelection from './pages/Auth/RoleSelection'
 
 // Admin Components
-import EnhancedAdminDashboard from './pages/admin/EnhancedAdminDashboard'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminLogin from './pages/admin/AdminLogin'
 import AdminUI from './pages/admin/AdminUI'
 
 function AppContent() {
@@ -46,15 +48,24 @@ function AppContent() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  // Check if current page is an auth page
+  // Check if current page is an auth page or landing page
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/auth/google/callback' || location.pathname === '/auth/google/select-account' || location.pathname === '/auth/role-selection'
+  const isLandingPage = location.pathname === '/'
+  const isAdminPage = location.pathname.startsWith('/admin')
 
-  // Redirect to login if not authenticated and not on auth page
+  // Redirect to landing if not authenticated and not on auth page
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !isAuthPage) {
-      navigate('/login')
+    if (!isLoading && !isAuthenticated && !isAuthPage && !isLandingPage) {
+      navigate('/')
     }
-  }, [isLoading, isAuthenticated, isAuthPage, navigate])
+  }, [isLoading, isAuthenticated, isAuthPage, isLandingPage, navigate])
+
+  // Redirect admin users to admin dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && !isAuthPage && !isLandingPage && !isAdminPage && user?.role === 'admin') {
+      navigate('/admin')
+    }
+  }, [isLoading, isAuthenticated, isAuthPage, isLandingPage, isAdminPage, user, navigate])
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -69,7 +80,7 @@ function AppContent() {
   }
 
   // Return null while redirecting
-  if (!isAuthenticated && !isAuthPage) {
+  if (!isAuthenticated && !isAuthPage && !isLandingPage) {
     return null
   }
 
@@ -104,8 +115,8 @@ function AppContent() {
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" />
       
-      {/* Show sidebar and navbar only on non-auth pages */}
-      {!isAuthPage && (
+      {/* Show sidebar and navbar only on authenticated pages */}
+      {!isAuthPage && !isLandingPage && !isAdminPage && (
         <div className="flex">
           {/* Sidebar */}
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} user={currentUser} />
@@ -121,7 +132,6 @@ function AppContent() {
                 className="min-h-screen"
               >
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/courses" element={<Dashboard />} />
                   <Route path="/events" element={<Events />} />
@@ -134,9 +144,9 @@ function AppContent() {
                   <Route path="/notifications" element={<Dashboard />} />
                   <Route path="/settings" element={<Settings />} />
                   {/* Admin Routes */}
-                  <Route path="/admin" element={<EnhancedAdminDashboard />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/admin/ui" element={<AdminUI />} />
-                  <Route path="/admin/dashboard" element={<EnhancedAdminDashboard />} />
+                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
                   <Route path="/admin/users" element={<AdminUI />} />
                   <Route path="/admin/proposals" element={<AdminUI />} />
                 </Routes>
@@ -145,6 +155,29 @@ function AppContent() {
             <Footer />
           </div>
         </div>
+      )}
+      
+      {/* Landing Page - no sidebar or navbar */}
+      {isLandingPage && (
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<Landing />} />
+          </Routes>
+        </main>
+      )}
+      
+      {/* Admin pages - no sidebar or navbar */}
+      {isAdminPage && (
+        <main className="flex-1">
+          <Routes>
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/ui" element={<AdminUI />} />
+            <Route path="/admin/users" element={<AdminUI />} />
+            <Route path="/admin/proposals" element={<AdminUI />} />
+          </Routes>
+        </main>
       )}
       
       {/* Auth pages - no sidebar or navbar */}

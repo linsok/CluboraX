@@ -43,9 +43,9 @@ const Login = () => {
           login(response.data.user, response.data.access_token, 'mock_refresh_token')
           toast.success('Login successful!')
           
-          // Navigate will be handled by auth context
+          // Navigate to dashboard after successful login
           setTimeout(() => {
-            navigate('/')
+            navigate('/dashboard')
           }, 100)
         } else {
           toast.error('Login failed: No access token received')
@@ -125,7 +125,7 @@ const Login = () => {
             setIsGoogleLoading(false)
             
             setTimeout(() => {
-              navigate('/')
+              navigate('/dashboard')
             }, 100)
           }, 1500)
           return

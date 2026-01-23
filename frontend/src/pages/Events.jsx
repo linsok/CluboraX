@@ -330,8 +330,12 @@ const Events = () => {
   }
 
   const handleRegister = () => {
-    if (selectedEvent.status !== 'approved') {
-      toast.error('This event is not yet approved for registration')
+    console.log('Event status:', selectedEvent.status)
+    console.log('Event data:', selectedEvent)
+    
+    // Check if event allows registration (more flexible status check)
+    if (selectedEvent.status && selectedEvent.status !== 'approved' && selectedEvent.status !== 'published') {
+      toast.error(`This event is not yet available for registration. Status: ${selectedEvent.status}`)
       return
     }
     
@@ -340,8 +344,9 @@ const Events = () => {
       return
     }
     
-    // Show registration form instead of immediate registration
+    // Show registration form
     setShowRegisterForm(true)
+    toast.success('Opening registration form...')
   }
 
   const handleRegistrationChange = useCallback((e) => {
@@ -852,12 +857,10 @@ const StableRegistrationForm = React.memo(({ registrationData, onChange, onSubmi
                   
                   <button
                     onClick={handleRegister}
-                    disabled={isRegistered || selectedEvent.status !== 'approved' || selectedEvent.currentAttendees >= selectedEvent.maxAttendees}
+                    disabled={isRegistered || selectedEvent.currentAttendees >= selectedEvent.maxAttendees}
                     className={`px-8 py-3 rounded-lg font-medium transition-all duration-300 ${
                       isRegistered
                         ? 'bg-green-100 text-green-700 border border-green-200'
-                        : selectedEvent.status !== 'approved'
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : selectedEvent.currentAttendees >= selectedEvent.maxAttendees
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
@@ -868,12 +871,10 @@ const StableRegistrationForm = React.memo(({ registrationData, onChange, onSubmi
                         <CheckCircleIcon className="w-5 h-5" />
                         <span>Registered</span>
                       </span>
-                    ) : selectedEvent.status !== 'approved' ? (
-                      'Not Available'
                     ) : selectedEvent.currentAttendees >= selectedEvent.maxAttendees ? (
                       'Event Full'
                     ) : (
-                      'Register Now'
+                      'Register'
                     )}
                   </button>
                 </div>

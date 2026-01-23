@@ -23,6 +23,7 @@ from .serializers import (
 from apps.core.permissions import IsAdminUser
 from apps.core.utils import send_notification, log_user_action
 from apps.users.models import User
+from apps.users.serializers import UserListSerializer
 from apps.events.models import Event
 from apps.clubs.models import Club
 import logging
@@ -30,6 +31,350 @@ import psutil
 import os
 
 logger = logging.getLogger(__name__)
+
+
+class AdminLoginView(APIView):
+    """
+    Admin login endpoint.
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        """
+        Login admin user and return JWT token.
+        """
+        try:
+            email = request.data.get('email')
+            password = request.data.get('password')
+            
+            if not email or not password:
+                return Response({
+                    'error': True,
+                    'message': 'Email and password are required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Authenticate user
+            from django.contrib.auth import authenticate
+            user = authenticate(request, username=email, password=password)
+            
+            if not user:
+                return Response({
+                    'error': True,
+                    'message': 'Invalid credentials'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Check if user is admin
+            if not user.is_staff and user.role != 'admin':
+                return Response({
+                    'error': True,
+                    'message': 'Admin access required'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Generate JWT token
+            from apps.users.authentication import generate_jwt_token
+            token = generate_jwt_token(user)
+            
+            # Log user action
+            log_user_action(request, 'admin_login', 'User', user.id)
+            
+            return Response({
+                'success': True,
+                'message': 'Admin login successful',
+                'data': {
+                    'access_token': token,
+                    'user': {
+                        'id': user.id,
+                        'email': user.email,
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                        'role': user.role,
+                        'is_staff': user.is_staff
+                    }
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Admin login error: {e}")
+            return Response({
+                'error': True,
+                'message': 'Login failed'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminLogoutView(APIView):
+    """
+    Admin logout endpoint.
+    """
+    permission_classes = [IsAdminUser]
+    
+    def post(self, request):
+        """
+        Logout admin user.
+        """
+        try:
+            # Log user action
+            log_user_action(request, 'admin_logout', 'User', request.user.id)
+            
+            return Response({
+                'success': True,
+                'message': 'Admin logout successful'
+            })
+            
+        except Exception as e:
+            logger.error(f"Admin logout error: {e}")
+            return Response({
+                'error': True,
+                'message': 'Logout failed'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminUserListView(generics.ListAPIView):
+    """
+    Admin user list view for user management.
+    """
+    serializer_class = UserListSerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['role', 'is_active', 'is_verified']
+    search_fields = ['first_name', 'last_name', 'email', 'username']
+    ordering_fields = ['date_joined', 'last_login', 'email']
+    ordering = ['-date_joined']
+    
+    def get_queryset(self):
+        """
+        Get all users for admin management.
+        """
+        return User.objects.all().order_by('-date_joined')
+
+
+class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Admin user detail view for user management.
+    """
+    serializer_class = UserListSerializer
+    permission_classes = [IsAdminUser]
+    
+    def get_queryset(self):
+        """
+        Get user by ID for admin management.
+        """
+        return User.objects.all()
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Update user status or other fields.
+        """
+        try:
+            instance = self.get_object()
+            
+            # Handle is_active field specifically
+            if 'is_active' in request.data:
+                instance.is_active = request.data['is_active']
+                instance.save()
+                
+                # Log user action
+                log_user_action(
+                    request,
+                    'update',
+                    'User',
+                    instance.id,
+                    new_values={'is_active': instance.is_active}
+                )
+                
+                serializer = self.get_serializer(instance)
+                return Response({
+                    'success': True,
+                    'message': 'User updated successfully',
+                    'data': serializer.data
+                })
+            
+            # For other updates, use the serializer
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            
+            if serializer.is_valid():
+                user = serializer.save()
+                
+                # Log user action
+                log_user_action(
+                    request,
+                    'update',
+                    'User',
+                    user.id,
+                    new_values=serializer.data
+                )
+                
+                return Response({
+                    'success': True,
+                    'message': 'User updated successfully',
+                    'data': serializer.data
+                })
+            
+            return Response({
+                'error': True,
+                'message': 'User update failed',
+                'data': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            logger.error(f"User update error: {e}")
+            return Response({
+                'error': True,
+                'message': 'Failed to update user'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminRequestListView(APIView):
+    """
+    Admin request list view for request management.
+    """
+    permission_classes = [IsAdminUser]
+    
+    def get(self, request):
+        """
+        Get all requests for admin management.
+        """
+        try:
+            # Combine events and clubs as requests
+            from apps.events.models import Event
+            from apps.clubs.models import Club
+            
+            events = Event.objects.all()
+            clubs = Club.objects.all()
+            
+            # Convert to request format
+            requests = []
+            
+            for event in events:
+                requests.append({
+                    'id': str(event.id),
+                    'type': 'event',
+                    'title': event.title,
+                    'description': event.description,
+                    'status': event.status,
+                    'submittedBy': event.organizer.email if event.organizer else 'Unknown',
+                    'submittedDate': event.created_at.strftime('%Y-%m-%d'),
+                    'priority': 'medium',
+                    'details': {
+                        'date': event.start_datetime.strftime('%Y-%m-%d') if event.start_datetime else None,
+                        'time': event.start_datetime.strftime('%H:%M') if event.start_datetime else None,
+                        'location': event.location,
+                        'expectedAttendees': getattr(event, 'max_attendees', None)
+                    }
+                })
+            
+            for club in clubs:
+                requests.append({
+                    'id': str(club.id),
+                    'type': 'club',
+                    'title': club.name,
+                    'description': club.description,
+                    'status': club.status,
+                    'submittedBy': club.organizer.email if club.organizer else 'Unknown',
+                    'submittedDate': club.created_at.strftime('%Y-%m-%d'),
+                    'priority': 'high',
+                    'details': {
+                        'category': club.category,
+                        'meetingTime': getattr(club, 'meeting_time', 'Not specified'),
+                        'location': club.location,
+                        'capacity': getattr(club, 'max_members', None)
+                    }
+                })
+            
+            return Response(requests)
+            
+        except Exception as e:
+            logger.error(f"Admin requests error: {e}")
+            return Response({
+                'error': True,
+                'message': 'Failed to load requests'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
+    """
+    Admin request detail view for request management.
+    """
+    permission_classes = [IsAdminUser]
+    
+    def get_queryset(self):
+        """
+        Get request by ID for admin management.
+        """
+        return []
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Update request status.
+        """
+        try:
+            request_id = kwargs.get('pk')
+            new_status = request.data.get('status')
+            
+            if not new_status:
+                return Response({
+                    'error': True,
+                    'message': 'Status is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Try to update event
+            from apps.events.models import Event
+            try:
+                event = Event.objects.get(id=request_id)
+                event.status = new_status
+                event.save()
+                
+                # Log user action
+                log_user_action(
+                    request,
+                    'update',
+                    'Event',
+                    event.id,
+                    new_values={'status': new_status}
+                )
+                
+                return Response({
+                    'success': True,
+                    'message': 'Request status updated successfully',
+                    'data': {'status': new_status}
+                })
+            except Event.DoesNotExist:
+                pass
+            
+            # Try to update club
+            from apps.clubs.models import Club
+            try:
+                club = Club.objects.get(id=request_id)
+                club.status = new_status
+                club.save()
+                
+                # Log user action
+                log_user_action(
+                    request,
+                    'update',
+                    'Club',
+                    club.id,
+                    new_values={'status': new_status}
+                )
+                
+                return Response({
+                    'success': True,
+                    'message': 'Request status updated successfully',
+                    'data': {'status': new_status}
+                })
+            except Club.DoesNotExist:
+                pass
+            
+            return Response({
+                'error': True,
+                'message': 'Request not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+        except Exception as e:
+            logger.error(f"Request update error: {e}")
+            return Response({
+                'error': True,
+                'message': 'Failed to update request'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class DashboardStatsView(APIView):

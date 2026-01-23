@@ -67,7 +67,7 @@ const Register = () => {
     if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required'
     if (!formData.email.trim()) newErrors.email = 'Email is required'
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid'
-    if (!formData.password) newErrors.password = 'Password is required'
+    else if (!formData.password) newErrors.password = 'Password is required'
     else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters'
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Please confirm your password'
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match'
@@ -86,6 +86,17 @@ const Register = () => {
     return Object.keys(newErrors).length === 0
   }
 
+  const checkEmailExists = async (email) => {
+    try {
+      const response = await fetch(`/api/auth/check-email/?email=${encodeURIComponent(email)}`)
+      const data = await response.json()
+      return data.exists
+    } catch (error) {
+      console.error('Email check error:', error)
+      return false
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     
@@ -94,6 +105,17 @@ const Register = () => {
     setIsLoading(true)
     
     try {
+      // Check if email already exists
+      const emailExists = await checkEmailExists(formData.email)
+      if (emailExists) {
+        setErrors(prev => ({
+          ...prev,
+          email: 'This email address is already registered. Please use a different email or try logging in.'
+        }))
+        setIsLoading(false)
+        return
+      }
+      
       // Prepare registration data matching Django serializer
       const registrationData = {
         first_name: formData.firstName,
