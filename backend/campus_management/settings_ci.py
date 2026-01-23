@@ -28,6 +28,9 @@ class DisableMigrations:
     def __contains__(self, item):
         return True
 
+    def __getitem__(self, key):
+        return None
+
     def get(self, key, default):
         return None
 

@@ -106,7 +106,7 @@ jobs:
     - name: Run frontend tests
       run: |
         cd frontend
-        npm run test -- --run --coverage --watchAll=false
+        npm run test -- --run --coverage
       env:
         CI: true
 
