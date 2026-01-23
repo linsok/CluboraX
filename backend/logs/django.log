@@ -2393,3 +2393,552 @@ WARNING 2026-01-23 12:23:42,528 basehttp 18356 14968 "GET /api/admin/api/proposa
 WARNING 2026-01-23 12:23:42,530 basehttp 18356 7396 "GET /api/admin/api/upcoming-events/ HTTP/1.1" 404 3730
 WARNING 2026-01-23 12:23:42,532 basehttp 18356 15356 "GET /api/admin/api/dashboard-stats/ HTTP/1.1" 404 3730
 WARNING 2026-01-23 12:23:42,534 basehttp 18356 13180 "GET /api/admin/api/system-health/ HTTP/1.1" 404 3724
+WARNING 2026-01-23 12:35:26,913 log 18356 18684 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:35:26,928 log 18356 24680 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:35:26,935 basehttp 18356 18684 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:35:26,964 basehttp 18356 24680 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:35:26,965 basehttp 18356 22536 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:35:26,972 basehttp 18356 13696 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 12:35:26,986 views 18356 12616 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:35:26,988 log 18356 12616 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:35:27,000 basehttp 18356 12616 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:35:27,004 basehttp 18356 13696 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 12:35:27,024 basehttp 18356 13696 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:35:27,033 views 18356 12616 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:35:27,034 log 18356 12616 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:35:27,035 basehttp 18356 12616 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:48:53,464 log 18356 17796 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:48:53,481 basehttp 18356 17796 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:48:53,517 log 18356 17476 Not Found: /api/users/achievements/
+INFO 2026-01-23 12:48:53,518 basehttp 18356 12804 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 12:48:53,540 basehttp 18356 17476 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:48:53,548 basehttp 18356 13104 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 12:48:53,573 basehttp 18356 13104 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 12:48:53,574 views 18356 16212 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:48:53,576 log 18356 16212 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:48:53,576 basehttp 18356 16212 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:48:53,591 basehttp 18356 16212 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:48:53,600 views 18356 13104 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:48:53,601 log 18356 13104 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:48:53,604 basehttp 18356 13104 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:57:18,071 log 18356 15940 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:57:18,078 log 18356 21716 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:57:18,120 basehttp 18356 15940 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:57:18,121 basehttp 18356 16172 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 12:57:18,121 basehttp 18356 21716 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:57:18,122 basehttp 18356 25572 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 12:57:18,133 views 18356 14948 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:57:18,137 log 18356 14948 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:57:18,138 basehttp 18356 14948 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:57:18,148 basehttp 18356 25572 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 12:57:18,162 views 18356 14948 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:57:18,163 log 18356 14948 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:57:18,167 basehttp 18356 14948 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:57:18,168 basehttp 18356 25572 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:59:50,624 basehttp 18356 17236 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 12:59:50,647 basehttp 18356 17236 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 12:59:50,685 basehttp 18356 17236 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 13:00:07,560 basehttp 18356 17236 "OPTIONS /api/auth/login/ HTTP/1.1" 200 0
+ERROR 2026-01-23 13:00:08,671 signals 18356 17236 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:00:08,676 signals 18356 17236 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 13:00:08,702 signals 18356 17236 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 13:00:08,740 signals 18356 17236 Created notification preferences for user soklin1220lin@gmail.com
+ERROR 2026-01-23 13:00:08,742 signals 18356 17236 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 13:00:13,026 utils 18356 17236 Email notification sent to soklin1220lin@gmail.com
+ERROR 2026-01-23 13:00:13,037 signals 18356 17236 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 13:00:13,038 utils 18356 17236 Push notification sent to soklin1220lin@gmail.com: Login Alert
+ERROR 2026-01-23 13:00:13,048 signals 18356 17236 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:00:13,060 signals 18356 17236 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:00:13,063 signals 18356 17236 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 13:00:13,068 basehttp 18356 17236 "POST /api/auth/login/ HTTP/1.1" 200 817
+INFO 2026-01-23 13:00:13,227 basehttp 18356 8680 "GET /api/auth/profile/ HTTP/1.1" 200 438
+WARNING 2026-01-23 13:00:13,242 log 18356 8680 Not Found: /api/users/achievements/
+WARNING 2026-01-23 13:00:13,245 basehttp 18356 8680 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 13:00:13,249 basehttp 18356 17236 "GET /api/events/stats/ HTTP/1.1" 200 186
+WARNING 2026-01-23 13:00:13,257 log 18356 8680 Not Found: /api/users/certificates/
+WARNING 2026-01-23 13:00:13,260 basehttp 18356 8680 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+ERROR 2026-01-23 13:00:13,272 views 18356 17236 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 13:00:13,273 log 18356 17236 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 13:00:13,274 basehttp 18356 17236 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 13:12:43,395 signals 18356 24004 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:12:43,404 signals 18356 24004 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 13:12:43,425 signals 18356 24004 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 13:12:47,343 utils 18356 24004 Email notification sent to soklin1220lin@gmail.com
+ERROR 2026-01-23 13:12:47,354 signals 18356 24004 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 13:12:47,355 utils 18356 24004 Push notification sent to soklin1220lin@gmail.com: Login Alert
+ERROR 2026-01-23 13:12:47,363 signals 18356 24004 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:12:47,372 signals 18356 24004 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:12:47,373 signals 18356 24004 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 13:12:47,403 basehttp 18356 24004 "POST /api/auth/login/ HTTP/1.1" 200 817
+INFO 2026-01-23 13:12:47,614 basehttp 18356 24004 "GET /api/events/stats/ HTTP/1.1" 200 186
+INFO 2026-01-23 13:12:47,629 basehttp 18356 24004 "GET /api/auth/profile/ HTTP/1.1" 200 438
+INFO 2026-01-23 13:12:47,666 basehttp 18356 24004 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+WARNING 2026-01-23 13:12:47,696 log 18356 24004 Not Found: /api/users/certificates/
+WARNING 2026-01-23 13:12:47,697 basehttp 18356 24004 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 13:12:47,710 log 18356 24004 Not Found: /api/users/achievements/
+WARNING 2026-01-23 13:12:47,712 basehttp 18356 24004 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+ERROR 2026-01-23 13:12:47,735 views 18356 24004 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 13:12:47,736 log 18356 24004 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 13:12:47,737 basehttp 18356 24004 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 13:12:47,762 basehttp 18356 24004 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 13:12:47,787 basehttp 18356 24004 "GET /api/auth/profile/ HTTP/1.1" 200 438
+WARNING 2026-01-23 13:14:35,548 log 18356 10768 Not Found: /api/auth/check-email/
+WARNING 2026-01-23 13:14:35,549 basehttp 18356 10768 "GET /api/auth/check-email/?email=soklin123%40gmail.com HTTP/1.1" 404 7145
+INFO 2026-01-23 13:14:35,871 basehttp 18356 25328 "OPTIONS /api/auth/register/ HTTP/1.1" 200 0
+ERROR 2026-01-23 13:14:36,993 signals 18356 25328 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:14:37,010 signals 18356 25328 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:14:37,016 signals 18356 25328 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 13:14:37,042 signals 18356 25328 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:14:37,064 signals 18356 25328 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:14:37,067 signals 18356 25328 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 13:14:37,098 signals 18356 25328 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 13:14:37,102 signals 18356 25328 Audit logging error: Object of type datetime is not JSON serializable
+INFO 2026-01-23 13:14:37,107 basehttp 18356 25328 "POST /api/auth/register/ HTTP/1.1" 201 795
+WARNING 2026-01-23 13:14:37,311 log 18356 6980 Not Found: /api/users/certificates/
+WARNING 2026-01-23 13:14:37,320 log 18356 25328 Not Found: /api/users/achievements/
+WARNING 2026-01-23 13:14:37,321 basehttp 18356 6980 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 13:14:37,322 basehttp 18356 25328 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 13:17:39,674 basehttp 18356 17440 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 13:17:39,689 basehttp 18356 17440 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 13:17:39,711 basehttp 18356 17440 "GET /api/auth/profile/ HTTP/1.1" 200 381
+INFO 2026-01-23 13:30:26,336 autoreload 12596 12812 Watching for file changes with StatReloader
+INFO 2026-01-23 13:31:46,344 basehttp 12596 5376 "OPTIONS /api/events/stats/ HTTP/1.1" 200 0
+INFO 2026-01-23 13:31:46,358 basehttp 12596 11520 "OPTIONS /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 0
+INFO 2026-01-23 13:31:46,359 basehttp 12596 11556 "OPTIONS /api/auth/profile/ HTTP/1.1" 200 0
+INFO 2026-01-23 13:31:46,365 basehttp 12596 19812 "OPTIONS /api/users/achievements/ HTTP/1.1" 200 0
+INFO 2026-01-23 13:31:46,371 basehttp 12596 20520 "OPTIONS /api/users/certificates/ HTTP/1.1" 200 0
+INFO 2026-01-23 13:31:46,518 basehttp 12596 11520 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 13:31:46,524 basehttp 12596 11520 "OPTIONS /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 0
+INFO 2026-01-23 13:31:46,530 basehttp 12596 5376 "GET /api/events/stats/ HTTP/1.1" 200 186
+INFO 2026-01-23 13:31:46,544 basehttp 12596 5376 "OPTIONS /api/clubs/stats/ HTTP/1.1" 200 0
+INFO 2026-01-23 13:31:46,563 basehttp 12596 11520 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 13:31:46,579 views 12596 5376 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 13:31:46,586 log 12596 5376 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 13:31:46,589 basehttp 12596 5376 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 13:31:46,598 basehttp 12596 11556 "GET /api/auth/profile/ HTTP/1.1" 200 381
+INFO 2026-01-23 13:31:46,616 basehttp 12596 11556 "GET /api/auth/profile/ HTTP/1.1" 200 381
+WARNING 2026-01-23 13:31:46,717 log 12596 19812 Not Found: /api/users/achievements/
+WARNING 2026-01-23 13:31:46,718 log 12596 20520 Not Found: /api/users/certificates/
+WARNING 2026-01-23 13:31:46,719 basehttp 12596 19812 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 13:31:46,719 basehttp 12596 20520 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 13:32:31,159 log 12596 20860 Not Found: /api/users/achievements/
+WARNING 2026-01-23 13:32:31,173 log 12596 5668 Not Found: /api/users/certificates/
+WARNING 2026-01-23 13:32:31,182 basehttp 12596 20860 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 13:32:31,188 basehttp 12596 5668 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 13:32:31,195 basehttp 12596 17812 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 13:32:31,383 basehttp 12596 6216 "GET /api/auth/profile/ HTTP/1.1" 200 381
+INFO 2026-01-23 13:32:31,396 basehttp 12596 5668 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 13:32:31,401 basehttp 12596 16908 "GET /api/events/stats/ HTTP/1.1" 200 186
+INFO 2026-01-23 13:32:31,417 basehttp 12596 5668 "GET /api/auth/profile/ HTTP/1.1" 200 381
+ERROR 2026-01-23 13:32:31,428 views 12596 16908 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 13:32:31,429 log 12596 16908 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 13:32:31,430 basehttp 12596 16908 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 13:34:34,798 log 12596 22984 Not Found: /api/users/certificates/
+WARNING 2026-01-23 13:34:34,802 log 12596 15552 Not Found: /api/users/achievements/
+INFO 2026-01-23 13:34:34,811 basehttp 12596 7600 "GET /api/auth/profile/ HTTP/1.1" 200 381
+WARNING 2026-01-23 13:34:34,831 basehttp 12596 22984 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 13:34:34,832 basehttp 12596 5484 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+WARNING 2026-01-23 13:34:34,832 basehttp 12596 15552 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 13:34:34,838 basehttp 12596 21728 "GET /api/events/stats/ HTTP/1.1" 200 186
+INFO 2026-01-23 13:34:34,852 basehttp 12596 15552 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 13:34:34,873 basehttp 12596 15552 "GET /api/auth/profile/ HTTP/1.1" 200 381
+ERROR 2026-01-23 13:34:34,882 views 12596 21728 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 13:34:34,884 log 12596 21728 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 13:34:34,885 basehttp 12596 21728 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 13:41:02,505 basehttp 12596 8064 "OPTIONS /api/admin/users/ HTTP/1.1" 200 0
+INFO 2026-01-23 13:41:02,511 basehttp 12596 21460 "OPTIONS /api/admin/requests/ HTTP/1.1" 200 0
+INFO 2026-01-23 13:41:02,525 basehttp 12596 16884 "OPTIONS /api/admin/stats/ HTTP/1.1" 200 0
+WARNING 2026-01-23 13:41:02,548 log 12596 8064 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:41:02,555 log 12596 21460 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:41:02,562 log 12596 16884 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:41:02,563 basehttp 12596 8064 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:41:02,563 basehttp 12596 21460 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+WARNING 2026-01-23 13:41:02,564 basehttp 12596 16884 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:41:14,435 log 12596 20808 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:41:14,446 log 12596 2772 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:41:14,450 basehttp 12596 2772 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+WARNING 2026-01-23 13:41:14,460 log 12596 268 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:41:14,460 basehttp 12596 20808 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:41:14,462 basehttp 12596 268 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:41:29,443 log 12596 22428 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:41:29,459 log 12596 22816 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:41:29,461 log 12596 5900 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:41:29,462 basehttp 12596 22428 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+WARNING 2026-01-23 13:41:29,464 basehttp 12596 22816 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:41:29,464 basehttp 12596 5900 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:41:41,450 log 12596 4268 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:41:41,459 log 12596 21400 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:41:41,470 log 12596 24396 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:41:41,471 basehttp 12596 4268 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+WARNING 2026-01-23 13:41:41,472 basehttp 12596 21400 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:41:41,473 basehttp 12596 24396 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:42:32,159 log 12596 7072 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:42:32,207 log 12596 15828 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:42:32,208 basehttp 12596 7072 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:42:32,215 log 12596 16172 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:42:32,223 basehttp 12596 16172 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+WARNING 2026-01-23 13:42:32,217 basehttp 12596 15828 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:42:34,231 log 12596 15828 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:42:34,239 log 12596 16172 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:42:34,249 basehttp 12596 15828 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:42:34,249 log 12596 7072 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:42:34,250 basehttp 12596 16172 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:42:34,252 basehttp 12596 7072 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+WARNING 2026-01-23 13:43:04,432 log 12596 23308 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:43:04,440 log 12596 12404 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:43:04,450 log 12596 12012 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:43:04,451 basehttp 12596 23308 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+WARNING 2026-01-23 13:43:04,453 basehttp 12596 12404 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:43:04,453 basehttp 12596 12012 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:43:08,909 log 12596 17320 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:43:08,931 log 12596 5832 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:43:08,948 basehttp 12596 17320 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:43:08,950 log 12596 12396 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:43:08,951 basehttp 12596 5832 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+WARNING 2026-01-23 13:43:08,953 basehttp 12596 12396 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:43:21,473 log 12596 4920 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:43:21,483 log 12596 9948 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:43:21,495 basehttp 12596 4920 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:43:21,501 log 12596 23580 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:43:21,502 basehttp 12596 9948 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:43:21,506 basehttp 12596 23580 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+WARNING 2026-01-23 13:43:30,480 log 12596 22080 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:43:30,495 basehttp 12596 22080 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+WARNING 2026-01-23 13:43:30,481 log 12596 2092 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:43:30,500 basehttp 12596 2092 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:43:30,498 log 12596 21116 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:43:30,502 basehttp 12596 21116 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:44:38,453 log 12596 1384 Not Found: /api/admin/users/
+WARNING 2026-01-23 13:44:38,464 log 12596 14928 Not Found: /api/admin/stats/
+WARNING 2026-01-23 13:44:38,465 basehttp 12596 1384 "GET /api/admin/users/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:44:38,468 basehttp 12596 14928 "GET /api/admin/stats/ HTTP/1.1" 404 3688
+WARNING 2026-01-23 13:44:38,477 log 12596 14904 Not Found: /api/admin/requests/
+WARNING 2026-01-23 13:44:38,478 basehttp 12596 14904 "GET /api/admin/requests/ HTTP/1.1" 404 3697
+INFO 2026-01-23 13:47:53,016 autoreload 12596 12812 D:\DSE\Campus event and club management\backend\campus_management\urls.py changed, reloading.
+INFO 2026-01-23 13:47:56,679 autoreload 9724 13512 Watching for file changes with StatReloader
+INFO 2026-01-23 13:48:04,532 autoreload 9724 13512 D:\DSE\Campus event and club management\backend\apps\admin_panel\urls.py changed, reloading.
+INFO 2026-01-23 13:48:06,029 autoreload 21048 21628 Watching for file changes with StatReloader
+INFO 2026-01-23 13:48:29,443 autoreload 21048 21628 D:\DSE\Campus event and club management\backend\apps\admin_panel\views.py changed, reloading.
+INFO 2026-01-23 13:48:31,071 autoreload 17996 24792 Watching for file changes with StatReloader
+INFO 2026-01-23 13:52:57,137 autoreload 17996 24792 D:\DSE\Campus event and club management\backend\apps\admin_panel\views.py changed, reloading.
+INFO 2026-01-23 13:52:58,724 autoreload 15944 19688 Watching for file changes with StatReloader
+INFO 2026-01-23 13:53:12,145 autoreload 15944 19688 D:\DSE\Campus event and club management\backend\apps\admin_panel\views.py changed, reloading.
+INFO 2026-01-23 13:53:13,736 autoreload 8440 9068 Watching for file changes with StatReloader
+WARNING 2026-01-23 13:57:43,467 log 8440 10880 Forbidden: /api/admin/requests/
+WARNING 2026-01-23 13:57:43,470 log 8440 16972 Forbidden: /api/admin/users/
+WARNING 2026-01-23 13:57:43,471 log 8440 15160 Forbidden: /api/admin/stats/
+WARNING 2026-01-23 13:57:43,486 basehttp 8440 16972 "GET /api/admin/users/ HTTP/1.1" 403 63
+WARNING 2026-01-23 13:57:43,491 basehttp 8440 10880 "GET /api/admin/requests/ HTTP/1.1" 403 63
+WARNING 2026-01-23 13:57:43,491 basehttp 8440 15160 "GET /api/admin/stats/ HTTP/1.1" 403 63
+WARNING 2026-01-23 13:57:45,844 log 8440 24676 Forbidden: /api/admin/users/
+WARNING 2026-01-23 13:57:45,847 log 8440 5268 Forbidden: /api/admin/requests/
+WARNING 2026-01-23 13:57:45,849 basehttp 8440 24676 "GET /api/admin/users/ HTTP/1.1" 403 63
+WARNING 2026-01-23 13:57:45,852 log 8440 20376 Forbidden: /api/admin/stats/
+WARNING 2026-01-23 13:57:45,853 basehttp 8440 5268 "GET /api/admin/requests/ HTTP/1.1" 403 63
+WARNING 2026-01-23 13:57:45,855 basehttp 8440 20376 "GET /api/admin/stats/ HTTP/1.1" 403 63
+WARNING 2026-01-23 13:58:37,488 log 8440 2140 Forbidden: /api/admin/requests/
+WARNING 2026-01-23 13:58:37,491 log 8440 22400 Forbidden: /api/admin/users/
+WARNING 2026-01-23 13:58:37,494 basehttp 8440 2140 "GET /api/admin/requests/ HTTP/1.1" 403 63
+WARNING 2026-01-23 13:58:37,495 basehttp 8440 22400 "GET /api/admin/users/ HTTP/1.1" 403 63
+WARNING 2026-01-23 13:58:37,500 log 8440 2876 Forbidden: /api/admin/stats/
+WARNING 2026-01-23 13:58:37,506 basehttp 8440 2876 "GET /api/admin/stats/ HTTP/1.1" 403 63
+INFO 2026-01-23 13:58:50,768 autoreload 8440 9068 D:\DSE\Campus event and club management\backend\apps\admin_panel\views.py changed, reloading.
+INFO 2026-01-23 13:58:59,404 autoreload 20568 18808 Watching for file changes with StatReloader
+INFO 2026-01-23 13:59:21,177 autoreload 20568 18808 D:\DSE\Campus event and club management\backend\apps\admin_panel\urls.py changed, reloading.
+INFO 2026-01-23 13:59:23,480 autoreload 16192 7128 Watching for file changes with StatReloader
+INFO 2026-01-23 13:59:27,826 autoreload 16192 7128 D:\DSE\Campus event and club management\backend\apps\admin_panel\views.py changed, reloading.
+INFO 2026-01-23 13:59:30,236 autoreload 4048 22196 Watching for file changes with StatReloader
+WARNING 2026-01-23 13:59:58,709 log 4048 13596 Unauthorized: /api/admin/users/
+WARNING 2026-01-23 13:59:58,709 log 4048 24592 Unauthorized: /api/admin/requests/
+WARNING 2026-01-23 13:59:58,710 log 4048 10340 Unauthorized: /api/admin/stats/
+WARNING 2026-01-23 13:59:58,712 basehttp 4048 10340 "GET /api/admin/stats/ HTTP/1.1" 401 27
+WARNING 2026-01-23 13:59:58,712 basehttp 4048 13596 "GET /api/admin/users/ HTTP/1.1" 401 27
+WARNING 2026-01-23 13:59:58,713 basehttp 4048 24592 "GET /api/admin/requests/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:00:23,023 log 4048 18712 Unauthorized: /api/admin/users/
+WARNING 2026-01-23 14:00:23,027 log 4048 7728 Unauthorized: /api/admin/requests/
+WARNING 2026-01-23 14:00:23,034 log 4048 11444 Unauthorized: /api/admin/stats/
+WARNING 2026-01-23 14:00:23,037 basehttp 4048 11444 "GET /api/admin/stats/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:00:23,038 basehttp 4048 18712 "GET /api/admin/users/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:00:23,039 basehttp 4048 7728 "GET /api/admin/requests/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:01:06,937 log 4048 2384 Unauthorized: /api/admin/users/
+WARNING 2026-01-23 14:01:06,942 log 4048 24176 Unauthorized: /api/admin/requests/
+WARNING 2026-01-23 14:01:06,945 log 4048 10808 Unauthorized: /api/admin/stats/
+WARNING 2026-01-23 14:01:06,945 basehttp 4048 2384 "GET /api/admin/users/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:01:06,946 basehttp 4048 24176 "GET /api/admin/requests/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:01:06,950 basehttp 4048 10808 "GET /api/admin/stats/ HTTP/1.1" 401 27
+ERROR 2026-01-23 14:01:54,953 signals 15896 16692 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:01:54,955 signals 15896 16692 Audit logging error: Object of type datetime is not JSON serializable
+WARNING 2026-01-23 14:02:33,630 log 4048 15912 Unauthorized: /api/admin/users/
+WARNING 2026-01-23 14:02:33,635 log 4048 21940 Unauthorized: /api/admin/stats/
+WARNING 2026-01-23 14:02:33,633 log 4048 8376 Unauthorized: /api/admin/requests/
+WARNING 2026-01-23 14:02:33,637 basehttp 4048 15912 "GET /api/admin/users/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:02:33,642 basehttp 4048 8376 "GET /api/admin/requests/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:02:33,643 basehttp 4048 21940 "GET /api/admin/stats/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:03:06,503 log 4048 21028 Unauthorized: /api/admin/users/
+WARNING 2026-01-23 14:03:06,508 log 4048 19116 Unauthorized: /api/admin/requests/
+WARNING 2026-01-23 14:03:06,512 log 4048 13880 Unauthorized: /api/admin/stats/
+WARNING 2026-01-23 14:03:06,513 basehttp 4048 21028 "GET /api/admin/users/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:03:06,514 basehttp 4048 19116 "GET /api/admin/requests/ HTTP/1.1" 401 27
+WARNING 2026-01-23 14:03:06,515 basehttp 4048 13880 "GET /api/admin/stats/ HTTP/1.1" 401 27
+INFO 2026-01-23 14:03:36,325 autoreload 13468 10568 Watching for file changes with StatReloader
+INFO 2026-01-23 14:04:14,398 basehttp 4048 25292 "OPTIONS /api/admin/login/ HTTP/1.1" 200 0
+INFO 2026-01-23 14:04:15,511 basehttp 4048 25292 "POST /api/admin/login/ HTTP/1.1" 200 502
+INFO 2026-01-23 14:04:15,967 basehttp 4048 1652 "GET /api/admin/users/ HTTP/1.1" 200 1595
+ERROR 2026-01-23 14:04:16,345 log 4048 20852 Internal Server Error: /api/admin/requests/
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\rest_framework\generics.py", line 203, in get
+    return self.list(request, *args, **kwargs)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\rest_framework\mixins.py", line 38, in list
+    queryset = self.filter_queryset(self.get_queryset())
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\rest_framework\generics.py", line 154, in filter_queryset
+    queryset = backend().filter_queryset(self.request, queryset, self)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\django_filters\rest_framework\backends.py", line 66, in filter_queryset
+    filterset = self.get_filterset(request, queryset, view)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\django_filters\rest_framework\backends.py", line 18, in get_filterset
+    filterset_class = self.get_filterset_class(view, queryset)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\django_filters\rest_framework\backends.py", line 49, in get_filterset_class
+    class AutoFilterSet(self.filterset_base):
+    ...<2 lines>...
+            fields = filterset_fields
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\django_filters\rest_framework\backends.py", line 50, in AutoFilterSet
+    class Meta(MetaBase):
+        model = queryset.model
+        fields = filterset_fields
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\django_filters\rest_framework\backends.py", line 51, in Meta
+    model = queryset.model
+            ^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'model'
+ERROR 2026-01-23 14:04:16,370 basehttp 4048 20852 "GET /api/admin/requests/ HTTP/1.1" 500 134472
+INFO 2026-01-23 14:04:20,170 basehttp 4048 18272 "GET /api/admin/stats/ HTTP/1.1" 200 1445
+INFO 2026-01-23 14:04:43,166 autoreload 13468 10568 D:\DSE\Campus event and club management\backend\apps\admin_panel\urls.py changed, reloading.
+INFO 2026-01-23 14:04:43,385 autoreload 4048 22196 D:\DSE\Campus event and club management\backend\apps\admin_panel\urls.py changed, reloading.
+INFO 2026-01-23 14:04:44,515 autoreload 15940 20248 Watching for file changes with StatReloader
+INFO 2026-01-23 14:04:44,870 autoreload 25552 10368 Watching for file changes with StatReloader
+INFO 2026-01-23 14:05:06,534 autoreload 25552 10368 D:\DSE\Campus event and club management\backend\apps\admin_panel\views.py changed, reloading.
+INFO 2026-01-23 14:05:07,139 autoreload 15940 20248 D:\DSE\Campus event and club management\backend\apps\admin_panel\views.py changed, reloading.
+INFO 2026-01-23 14:05:07,961 autoreload 11080 16592 Watching for file changes with StatReloader
+INFO 2026-01-23 14:05:08,567 autoreload 22692 14976 Watching for file changes with StatReloader
+INFO 2026-01-23 14:05:16,263 autoreload 22692 14976 D:\DSE\Campus event and club management\backend\apps\admin_panel\views.py changed, reloading.
+INFO 2026-01-23 14:05:16,611 autoreload 11080 16592 D:\DSE\Campus event and club management\backend\apps\admin_panel\views.py changed, reloading.
+INFO 2026-01-23 14:05:17,982 autoreload 25320 22292 Watching for file changes with StatReloader
+INFO 2026-01-23 14:05:18,730 autoreload 17500 12536 Watching for file changes with StatReloader
+INFO 2026-01-23 14:05:44,250 basehttp 17500 21404 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:05:44,267 basehttp 17500 12780 "GET /api/admin/users/ HTTP/1.1" 200 1595
+INFO 2026-01-23 14:05:48,358 basehttp 17500 18788 "GET /api/admin/stats/ HTTP/1.1" 200 1445
+INFO 2026-01-23 14:05:53,226 basehttp 17500 18788 "GET /api/admin/users/ HTTP/1.1" 200 1595
+INFO 2026-01-23 14:05:53,237 basehttp 17500 18788 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:05:57,316 basehttp 17500 18788 "GET /api/admin/stats/ HTTP/1.1" 200 1445
+INFO 2026-01-23 14:06:42,096 basehttp 17500 24004 "GET /api/admin/users/ HTTP/1.1" 200 1595
+INFO 2026-01-23 14:06:42,098 basehttp 17500 20728 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:06:46,177 basehttp 17500 8936 "GET /api/admin/stats/ HTTP/1.1" 200 1443
+INFO 2026-01-23 14:07:09,464 autoreload 20016 16444 Watching for file changes with StatReloader
+WARNING 2026-01-23 14:07:17,114 log 20016 8352 Not Found: /
+WARNING 2026-01-23 14:07:17,120 basehttp 20016 8352 "GET / HTTP/1.1" 404 3775
+WARNING 2026-01-23 14:07:17,204 log 20016 8352 Not Found: /favicon.ico
+WARNING 2026-01-23 14:07:17,207 basehttp 20016 8352 "GET /favicon.ico HTTP/1.1" 404 3826
+INFO 2026-01-23 14:07:22,430 basehttp 20016 8352 "GET /admin/ HTTP/1.1" 302 0
+INFO 2026-01-23 14:07:22,727 basehttp 20016 8352 "GET /admin/login/?next=/admin/ HTTP/1.1" 200 4174
+INFO 2026-01-23 14:07:25,422 basehttp 20016 8352 "POST /admin/login/?next=/admin/ HTTP/1.1" 200 4350
+INFO 2026-01-23 14:07:41,174 basehttp 20016 11604 "POST /admin/login/?next=/admin/ HTTP/1.1" 200 4351
+ERROR 2026-01-23 14:08:55,458 signals 20016 15208 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:08:55,462 signals 20016 15208 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:08:55,471 signals 20016 15208 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:08:55,472 signals 20016 15208 User admin@cluborax.com logged in from 127.0.0.1
+INFO 2026-01-23 14:08:55,472 signals 20016 15208 User admin@cluborax.com logged in from 127.0.0.1
+ERROR 2026-01-23 14:08:55,492 signals 20016 15208 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:08:55,495 signals 20016 15208 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:08:55,504 signals 20016 15208 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:08:55,505 signals 20016 15208 Admin admin@cluborax.com logged in from 127.0.0.1
+INFO 2026-01-23 14:08:55,513 basehttp 20016 15208 "POST /admin/login/?next=/admin/ HTTP/1.1" 302 0
+INFO 2026-01-23 14:08:55,626 basehttp 20016 15208 "GET /admin/ HTTP/1.1" 200 41235
+INFO 2026-01-23 14:08:55,652 basehttp 20016 15208 "GET /static/admin/img/icon-changelink.svg HTTP/1.1" 304 0
+INFO 2026-01-23 14:09:01,309 basehttp 20016 14780 "GET /admin/users/user/ HTTP/1.1" 200 42659
+INFO 2026-01-23 14:09:01,340 basehttp 20016 20444 "GET /static/admin/img/icon-yes.svg HTTP/1.1" 304 0
+INFO 2026-01-23 14:09:01,374 basehttp 20016 14780 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-01-23 14:10:00,535 basehttp 20016 22740 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:10:00,552 basehttp 20016 22148 "GET /api/admin/users/ HTTP/1.1" 200 1595
+INFO 2026-01-23 14:10:04,647 basehttp 20016 22024 "GET /api/admin/stats/ HTTP/1.1" 200 2263
+INFO 2026-01-23 14:10:39,312 basehttp 20016 15320 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:10:39,327 basehttp 20016 3736 "GET /api/admin/users/ HTTP/1.1" 200 1595
+INFO 2026-01-23 14:10:43,279 basehttp 20016 16712 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:10:43,304 basehttp 20016 16376 "GET /api/admin/users/ HTTP/1.1" 200 1595
+INFO 2026-01-23 14:10:43,408 basehttp 20016 2172 - Broken pipe from ('127.0.0.1', 51067)
+INFO 2026-01-23 14:10:47,357 basehttp 20016 15704 "GET /api/admin/stats/ HTTP/1.1" 200 2263
+INFO 2026-01-23 14:11:05,789 basehttp 20016 16844 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:11:05,790 basehttp 20016 8016 "GET /api/admin/users/ HTTP/1.1" 200 1595
+INFO 2026-01-23 14:11:09,873 basehttp 20016 2836 "GET /api/admin/stats/ HTTP/1.1" 200 2263
+INFO 2026-01-23 14:11:34,284 basehttp 20016 23184 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:11:34,286 basehttp 20016 13428 "GET /api/admin/users/ HTTP/1.1" 200 1595
+INFO 2026-01-23 14:11:38,379 basehttp 20016 9732 "GET /api/admin/stats/ HTTP/1.1" 200 2262
+INFO 2026-01-23 14:14:27,924 basehttp 20016 24496 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:14:27,970 basehttp 20016 25044 "GET /api/admin/users/ HTTP/1.1" 200 1595
+INFO 2026-01-23 14:14:32,068 basehttp 20016 23664 "GET /api/admin/stats/ HTTP/1.1" 200 2263
+ERROR 2026-01-23 14:15:04,349 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:15:04,354 signals 20016 22868 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:15:04,376 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:15:08,015 utils 20016 22868 Email notification sent to soklin1220lin@gmail.com
+ERROR 2026-01-23 14:15:08,033 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:15:08,033 utils 20016 22868 Push notification sent to soklin1220lin@gmail.com: Login Alert
+ERROR 2026-01-23 14:15:08,045 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:15:08,059 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:15:08,063 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:15:08,070 basehttp 20016 22868 "POST /api/auth/login/ HTTP/1.1" 200 817
+ERROR 2026-01-23 14:15:20,794 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:15:20,799 signals 20016 22868 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:15:20,820 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:15:24,565 utils 20016 22868 Email notification sent to soklin1220lin@gmail.com
+ERROR 2026-01-23 14:15:24,581 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:15:24,584 utils 20016 22868 Push notification sent to soklin1220lin@gmail.com: Login Alert
+ERROR 2026-01-23 14:15:24,596 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:15:24,609 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:15:24,610 signals 20016 22868 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:15:24,616 basehttp 20016 22868 "POST /api/auth/login/ HTTP/1.1" 200 817
+ERROR 2026-01-23 14:17:22,426 signals 20016 11784 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:17:22,437 signals 20016 11784 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:17:22,464 signals 20016 11784 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:17:26,453 utils 20016 11784 Email notification sent to soklin1220lin@gmail.com
+ERROR 2026-01-23 14:17:26,472 signals 20016 11784 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:17:26,473 utils 20016 11784 Push notification sent to soklin1220lin@gmail.com: Login Alert
+ERROR 2026-01-23 14:17:26,489 signals 20016 11784 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:17:26,500 signals 20016 11784 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:17:26,501 signals 20016 11784 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:17:26,529 basehttp 20016 11784 "POST /api/auth/login/ HTTP/1.1" 200 817
+INFO 2026-01-23 14:17:26,809 basehttp 20016 9252 "GET /api/auth/profile/ HTTP/1.1" 200 438
+INFO 2026-01-23 14:17:26,832 basehttp 20016 11784 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+WARNING 2026-01-23 14:17:26,864 log 20016 9252 Not Found: /api/users/achievements/
+WARNING 2026-01-23 14:17:26,869 basehttp 20016 9252 "GET /api/users/achievements/ HTTP/1.1" 404 3862
+WARNING 2026-01-23 14:17:26,891 log 20016 9252 Not Found: /api/users/certificates/
+WARNING 2026-01-23 14:17:26,898 basehttp 20016 9252 "GET /api/users/certificates/ HTTP/1.1" 404 3862
+INFO 2026-01-23 14:17:26,932 basehttp 20016 11784 "GET /api/events/stats/ HTTP/1.1" 200 186
+INFO 2026-01-23 14:17:26,932 basehttp 20016 9252 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 14:17:26,958 basehttp 20016 11784 "GET /api/auth/profile/ HTTP/1.1" 200 438
+ERROR 2026-01-23 14:17:26,972 views 20016 9252 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 14:17:26,973 log 20016 9252 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 14:17:26,974 basehttp 20016 9252 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 14:18:17,489 basehttp 20016 5932 "GET /admin/ HTTP/1.1" 200 41235
+INFO 2026-01-23 14:18:25,937 basehttp 20016 5932 "GET /admin/events/eventapproval/ HTTP/1.1" 200 36175
+INFO 2026-01-23 14:18:25,993 basehttp 20016 5932 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-01-23 14:20:52,570 basehttp 20016 23940 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 14:20:52,597 basehttp 20016 23940 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 14:20:52,634 basehttp 20016 23940 "GET /api/auth/profile/ HTTP/1.1" 200 438
+WARNING 2026-01-23 14:22:25,898 log 20016 5912 Not Found: /api/auth/check-email/
+WARNING 2026-01-23 14:22:25,901 basehttp 20016 5912 "GET /api/auth/check-email/?email=lin1234%40gmail.com HTTP/1.1" 404 7296
+ERROR 2026-01-23 14:22:27,353 signals 20016 11080 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:22:27,366 signals 20016 11080 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:22:27,372 signals 20016 11080 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:22:27,391 signals 20016 11080 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:22:27,418 signals 20016 11080 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:22:27,422 signals 20016 11080 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:22:27,456 signals 20016 11080 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:22:27,459 signals 20016 11080 Audit logging error: Object of type datetime is not JSON serializable
+INFO 2026-01-23 14:22:27,465 basehttp 20016 11080 "POST /api/auth/register/ HTTP/1.1" 201 782
+ERROR 2026-01-23 14:22:47,437 signals 20016 7096 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:22:47,443 signals 20016 7096 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:22:47,472 signals 20016 7096 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:22:47,507 signals 20016 7096 Created notification preferences for user lin1234@gmail.com
+ERROR 2026-01-23 14:22:47,508 signals 20016 7096 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:22:50,756 utils 20016 7096 Email notification sent to lin1234@gmail.com
+ERROR 2026-01-23 14:22:50,775 signals 20016 7096 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:22:50,776 utils 20016 7096 Push notification sent to lin1234@gmail.com: Login Alert
+ERROR 2026-01-23 14:22:50,791 signals 20016 7096 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:22:50,806 signals 20016 7096 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:22:50,808 signals 20016 7096 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:22:50,813 basehttp 20016 7096 "POST /api/auth/login/ HTTP/1.1" 200 771
+INFO 2026-01-23 14:22:51,013 basehttp 20016 7096 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 14:22:51,036 basehttp 20016 7096 "GET /api/events/stats/ HTTP/1.1" 200 186
+INFO 2026-01-23 14:22:51,049 basehttp 20016 7096 "GET /api/auth/profile/ HTTP/1.1" 200 400
+WARNING 2026-01-23 14:22:51,073 log 20016 7096 Not Found: /api/users/achievements/
+WARNING 2026-01-23 14:22:51,074 basehttp 20016 7096 "GET /api/users/achievements/ HTTP/1.1" 404 3862
+WARNING 2026-01-23 14:22:51,088 log 20016 7096 Not Found: /api/users/certificates/
+WARNING 2026-01-23 14:22:51,089 basehttp 20016 7096 "GET /api/users/certificates/ HTTP/1.1" 404 3862
+INFO 2026-01-23 14:22:51,105 basehttp 20016 7096 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 14:22:51,124 views 20016 7096 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 14:22:51,126 log 20016 7096 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 14:22:51,127 basehttp 20016 7096 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 14:22:51,147 basehttp 20016 7096 "GET /api/auth/profile/ HTTP/1.1" 200 400
+WARNING 2026-01-23 14:26:16,690 log 20016 8904 Not Found: /api/auth/check-email/
+WARNING 2026-01-23 14:26:16,692 basehttp 20016 8904 "GET /api/auth/check-email/?email=dara123%40gmail.com HTTP/1.1" 404 7296
+ERROR 2026-01-23 14:26:18,155 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:26:18,176 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:26:18,180 signals 20016 22440 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:26:18,193 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:26:18,217 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:26:18,222 signals 20016 22440 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:26:18,251 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:26:18,257 signals 20016 22440 Audit logging error: Object of type datetime is not JSON serializable
+INFO 2026-01-23 14:26:18,261 basehttp 20016 22440 "POST /api/auth/register/ HTTP/1.1" 201 791
+ERROR 2026-01-23 14:26:32,032 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:26:32,036 signals 20016 22440 Audit logging error: Object of type datetime is not JSON serializable
+ERROR 2026-01-23 14:26:32,056 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:26:32,080 signals 20016 22440 Created notification preferences for user dara123@gmail.com
+ERROR 2026-01-23 14:26:32,081 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:26:35,936 utils 20016 22440 Email notification sent to dara123@gmail.com
+ERROR 2026-01-23 14:26:35,952 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:26:35,957 utils 20016 22440 Push notification sent to dara123@gmail.com: Login Alert
+ERROR 2026-01-23 14:26:35,970 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:26:35,982 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:26:35,984 signals 20016 22440 Audit logging error: Object of type UUID is not JSON serializable
+INFO 2026-01-23 14:26:35,991 basehttp 20016 22440 "POST /api/auth/login/ HTTP/1.1" 200 779
+INFO 2026-01-23 14:26:36,169 basehttp 20016 16056 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 14:26:36,192 views 20016 22440 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+WARNING 2026-01-23 14:26:36,193 log 20016 16056 Not Found: /api/users/certificates/
+ERROR 2026-01-23 14:26:36,195 log 20016 22440 Internal Server Error: /api/events/stats/
+WARNING 2026-01-23 14:26:36,198 basehttp 20016 16056 "GET /api/users/certificates/ HTTP/1.1" 404 3862
+ERROR 2026-01-23 14:26:36,199 basehttp 20016 22440 "GET /api/events/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 14:26:36,217 log 20016 22440 Not Found: /api/users/achievements/
+WARNING 2026-01-23 14:26:36,221 basehttp 20016 22440 "GET /api/users/achievements/ HTTP/1.1" 404 3862
+INFO 2026-01-23 14:26:36,221 basehttp 20016 16056 "GET /api/auth/profile/ HTTP/1.1" 200 405
+INFO 2026-01-23 14:26:36,245 basehttp 20016 16056 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 14:26:36,254 views 20016 22440 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 14:26:36,258 log 20016 22440 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 14:26:36,263 basehttp 20016 22440 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 14:26:36,264 basehttp 20016 16056 "GET /api/auth/profile/ HTTP/1.1" 200 405
+INFO 2026-01-23 14:29:25,168 basehttp 20016 4660 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 14:29:25,200 basehttp 20016 4660 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 14:29:25,229 basehttp 20016 4660 "GET /api/auth/profile/ HTTP/1.1" 200 405
+INFO 2026-01-23 14:29:45,788 basehttp 20016 4660 "POST /api/admin/login/ HTTP/1.1" 200 502
+INFO 2026-01-23 14:29:45,847 basehttp 20016 1996 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:29:45,867 basehttp 20016 4660 "GET /api/admin/users/ HTTP/1.1" 200 2139
+INFO 2026-01-23 14:29:50,020 basehttp 20016 1996 "GET /api/admin/stats/ HTTP/1.1" 200 2263
+INFO 2026-01-23 14:29:58,390 basehttp 20016 1996 "OPTIONS /api/admin/users/dfc6c0cc-fecc-4567-8032-5f2b39b92300/ HTTP/1.1" 200 0
+ERROR 2026-01-23 14:29:58,438 signals 20016 1996 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:29:58,444 signals 20016 1996 Audit logging error: Object of type datetime is not JSON serializable
+INFO 2026-01-23 14:29:58,459 basehttp 20016 1996 "PATCH /api/admin/users/dfc6c0cc-fecc-4567-8032-5f2b39b92300/ HTTP/1.1" 200 333
+INFO 2026-01-23 14:29:58,510 basehttp 20016 4660 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:29:58,525 basehttp 20016 1996 "GET /api/admin/users/ HTTP/1.1" 200 2140
+INFO 2026-01-23 14:29:58,549 basehttp 20016 4660 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:29:58,563 basehttp 20016 1996 "GET /api/admin/users/ HTTP/1.1" 200 2140
+ERROR 2026-01-23 14:30:01,972 signals 20016 1996 Audit logging error: Object of type UUID is not JSON serializable
+ERROR 2026-01-23 14:30:01,977 signals 20016 1996 Audit logging error: Object of type datetime is not JSON serializable
+INFO 2026-01-23 14:30:01,992 basehttp 20016 1996 "PATCH /api/admin/users/dfc6c0cc-fecc-4567-8032-5f2b39b92300/ HTTP/1.1" 200 332
+INFO 2026-01-23 14:30:02,019 basehttp 20016 1996 "GET /api/admin/users/ HTTP/1.1" 200 2139
+INFO 2026-01-23 14:30:02,019 basehttp 20016 4660 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:30:02,039 basehttp 20016 1996 "GET /api/admin/users/ HTTP/1.1" 200 2139
+INFO 2026-01-23 14:30:02,043 basehttp 20016 4660 "GET /api/admin/requests/ HTTP/1.1" 200 2
+INFO 2026-01-23 14:30:02,601 basehttp 20016 15672 "GET /api/admin/stats/ HTTP/1.1" 200 2263
+INFO 2026-01-23 14:30:06,700 basehttp 20016 15672 "GET /api/admin/stats/ HTTP/1.1" 200 2263
+INFO 2026-01-23 14:30:10,807 basehttp 20016 15672 "GET /api/admin/stats/ HTTP/1.1" 200 2263
+INFO 2026-01-23 14:30:14,909 basehttp 20016 15672 - Broken pipe from ('127.0.0.1', 52883)
+INFO 2026-01-23 14:30:17,090 basehttp 20016 4660 "GET /api/admin/stats/ HTTP/1.1" 200 2263
+INFO 2026-01-23 14:38:24,474 basehttp 20016 23008 "GET /admin/ HTTP/1.1" 200 41235
+INFO 2026-01-23 14:38:59,853 basehttp 20016 16088 "GET /admin/users/user/ HTTP/1.1" 200 44137
+INFO 2026-01-23 14:38:59,919 basehttp 20016 16088 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
