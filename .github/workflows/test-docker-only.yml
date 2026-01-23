@@ -1,0 +1,32 @@
+name: Test Docker Build Only
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  test-docker:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Test backend Docker build
+      run: |
+        cd backend
+        echo "Testing backend Docker build..."
+        docker build -t test-backend .
+        echo "✅ Backend Docker build successful!"
+
+    - name: Test frontend Docker build  
+      run: |
+        cd frontend
+        echo "Testing frontend Docker build..."
+        docker build -t test-frontend .
+        echo "✅ Frontend Docker build successful!"
+
+    - name: Success
+      run: |
+        echo "🎉 All Docker builds successful!"
+        echo "🚀 Ready to proceed with deployment"

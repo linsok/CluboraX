@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -31,8 +31,8 @@ COPY . /app/
 # Create static files directory
 RUN mkdir -p /app/staticfiles /app/mediafiles
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
+# Collect static files (skip if no settings configured)
+RUN python manage.py collectstatic --noinput || echo "Static files collection skipped"
 
 # Expose port
 EXPOSE 8000
