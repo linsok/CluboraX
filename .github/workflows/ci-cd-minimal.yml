@@ -35,7 +35,7 @@ jobs:
       with:
         context: ./backend
         push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
+        tags: ghcr.io/linsok/cluborax-backend:latest
         labels: latest
 
     - name: Build and push frontend image
@@ -43,7 +43,7 @@ jobs:
       with:
         context: ./frontend
         push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
+        tags: ghcr.io/linsok/cluborax-frontend:latest
         labels: latest
 
     - name: Deploy to staging
