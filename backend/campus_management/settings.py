@@ -49,7 +49,8 @@ LOCAL_APPS = [
     'apps.ai_advisor',
 ]
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+# Put users app before allauth apps to ensure proper migration order
+INSTALLED_APPS = DJANGO_APPS + ['apps.users'] + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
