@@ -6,10 +6,14 @@ import {
   LockClosedIcon,
   EyeIcon,
   EyeSlashIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ServerIcon,
+  CogIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
-import { adminLogin } from '../../api/admin'
+import { login } from '../../api/auth'
+import { useAuth } from '../../contexts/AuthContext'
 
 const AdminLogin = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +22,7 @@ const AdminLogin = () => {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const { login: authLogin } = useAuth()
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -32,26 +37,40 @@ const AdminLogin = () => {
     setIsLoading(true)
     
     try {
-      const response = await adminLogin(formData)
+      const response = await login(formData)
       
       if (response.success) {
-        // Store admin session
-        localStorage.setItem('admin_token', response.data.access_token)
-        localStorage.setItem('admin_user', JSON.stringify(response.data.user))
-        
-        toast.success('Admin login successful!')
-        navigate('/admin/dashboard')
+        // Check if user is admin
+        if (response.data.user.role === 'admin') {
+          // Direct admin login
+          localStorage.setItem('admin_token', response.data.access_token)
+          localStorage.setItem('admin_refresh_token', response.data.refresh_token)
+          localStorage.setItem('admin_user', JSON.stringify(response.data.user))
+          
+          // Also set regular tokens for compatibility with other components
+          localStorage.setItem('access_token', response.data.access_token)
+          localStorage.setItem('refresh_token', response.data.refresh_token)
+          localStorage.setItem('user', JSON.stringify(response.data.user))
+          
+          toast.success('Welcome Admin!')
+          
+          // Use React Router navigate instead of window.location.replace
+          setTimeout(() => {
+            navigate('/admin/dashboard')
+          }, 500)
+        } else {
+          // Regular user - use AuthContext
+          authLogin(response.data.user, response.data.access_token, response.data.refresh_token)
+        }
       } else {
         toast.error(response.message || 'Login failed')
       }
     } catch (error) {
       console.error('Admin login error:', error)
-      if (error.response?.data?.message) {
+      if (error.response && error.response.data && error.response.data.message) {
         toast.error(error.response.data.message)
-      } else if (error.response?.data?.error) {
-        toast.error(error.response.data.error)
       } else {
-        toast.error('Login failed. Please try again.')
+        toast.error('Login failed. Please check your credentials.')
       }
     } finally {
       setIsLoading(false)
@@ -59,141 +78,119 @@ const AdminLogin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-black opacity-50">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-purple-600/20"></div>
+      </div>
+      
+      {/* Admin Login Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-md w-full space-y-8"
+        className="relative z-10 w-full max-w-md"
       >
-        <div className="text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring' }}
-            className="mx-auto h-16 w-16 bg-gradient-to-r from-red-600 to-orange-600 rounded-xl flex items-center justify-center shadow-lg"
-          >
-            <ShieldCheckIcon className="w-8 h-8 text-white" />
-          </motion.div>
-          <h2 className="mt-6 text-3xl font-bold text-white">
-            Admin Portal
-          </h2>
-          <p className="mt-2 text-sm text-gray-400">
-            Restricted access for system administrators
-          </p>
-        </div>
+        <div className="bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700 p-8">
+          {/* Logo and Header */}
+          <div className="text-center mb-8">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4">
+              <ShieldCheckIcon className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Admin Portal</h1>
+            <p className="text-gray-400 text-sm">Campus Management System</p>
+          </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700"
-        >
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Admin Email
+                Email Address
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <ShieldCheckIcon className="w-5 h-5 text-gray-400" />
-                </div>
                 <input
+                  type="email"
                   id="email"
                   name="email"
-                  type="email"
-                  required
                   value={formData.email}
                   onChange={handleChange}
-                  className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-700 border border-gray-600 rounded-lg placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="admin@cluborax.com"
+                  required
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  placeholder="admin@campus.edu"
                 />
               </div>
             </div>
 
+            {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Admin Password
+                Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LockClosedIcon className="w-5 h-5 text-gray-400" />
-                </div>
                 <input
+                  type={showPassword ? 'text' : 'password'}
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
                   value={formData.password}
                   onChange={handleChange}
-                  className="appearance-none block w-full pl-10 pr-10 py-3 bg-gray-700 border border-gray-600 rounded-lg placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Enter admin password"
+                  required
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors pr-12"
+                  placeholder="••••••••••"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-300 transition-colors"
                 >
-                  {showPassword ? (
-                    <EyeSlashIcon className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <EyeIcon className="w-5 h-5 text-gray-400" />
-                  )}
+                  {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
-              <div className="flex items-start space-x-3">
-                <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500 mt-0.5" />
-                <div className="text-sm text-gray-300">
-                  <p className="font-medium text-yellow-500">Demo Credentials:</p>
-                  <p className="mt-1">Email: admin@cluborax.com</p>
-                  <p>Password: admin123</p>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Signing in...
                 </div>
+              ) : (
+                'Sign In to Admin Portal'
+              )}
+            </button>
+          </form>
+
+          {/* Admin Features */}
+          <div className="mt-8 pt-6 border-t border-gray-700">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="text-gray-400">
+                <ServerIcon className="w-6 h-6 mx-auto mb-1" />
+                <p className="text-xs">System</p>
+              </div>
+              <div className="text-gray-400">
+                <ChartBarIcon className="w-6 h-6 mx-auto mb-1" />
+                <p className="text-xs">Analytics</p>
+              </div>
+              <div className="text-gray-400">
+                <CogIcon className="w-6 h-6 mx-auto mb-1" />
+                <p className="text-xs">Settings</p>
               </div>
             </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
-              >
-                {isLoading ? (
-                  <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Authenticating...
-                  </div>
-                ) : (
-                  'Access Admin Panel'
-                )}
-              </button>
-            </div>
-          </form>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="text-center"
-        >
-          <p className="text-sm text-gray-400">
-            This is a restricted area. Unauthorized access is prohibited.
-          </p>
-          <div className="mt-4">
-            <a
-              href="/"
-              className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
-            >
-              ← Back to Main Site
-            </a>
           </div>
-        </motion.div>
+
+          {/* Security Notice */}
+          <div className="mt-6 p-3 bg-gray-700/30 rounded-lg border border-gray-600">
+            <div className="flex items-center text-gray-400 text-xs">
+              <ExclamationTriangleIcon className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span>This is a restricted area. Unauthorized access will be logged.</span>
+            </div>
+          </div>
+        </div>
       </motion.div>
     </div>
   )

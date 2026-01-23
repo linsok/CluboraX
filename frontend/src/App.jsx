@@ -40,7 +40,7 @@ import RoleSelection from './pages/Auth/RoleSelection'
 // Admin Components
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminLogin from './pages/admin/AdminLogin'
-import AdminUI from './pages/admin/AdminUI'
+import ProposalManagement from './pages/admin/ProposalManagement'
 
 function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -53,19 +53,40 @@ function AppContent() {
   const isLandingPage = location.pathname === '/'
   const isAdminPage = location.pathname.startsWith('/admin')
 
-  // Redirect to landing if not authenticated and not on auth page
+  // Single authentication and routing logic
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !isAuthPage && !isLandingPage) {
-      navigate('/')
-    }
-  }, [isLoading, isAuthenticated, isAuthPage, isLandingPage, navigate])
+    if (isLoading) return // Don't do anything while loading
 
-  // Redirect admin users to admin dashboard
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && !isAuthPage && !isLandingPage && !isAdminPage && user?.role === 'admin') {
-      navigate('/admin')
+    if (!isAuthenticated) {
+      // Not authenticated
+      if (isAuthPage || isLandingPage) {
+        // Allow access to auth and landing pages
+        return
+      } else {
+        // Redirect unauthenticated users
+        if (isAdminPage) {
+          localStorage.setItem('intended_destination', location.pathname)
+        }
+        navigate('/login')
+        return
+      }
     }
-  }, [isLoading, isAuthenticated, isAuthPage, isLandingPage, isAdminPage, user, navigate])
+
+    // Authenticated user
+    if (isAdminPage && user?.role !== 'admin') {
+      // Non-admin trying to access admin pages
+      navigate('/dashboard')
+      return
+    }
+
+    // Allow admin users to access admin dashboard
+    if (location.pathname.startsWith('/admin/dashboard') && user?.role === 'admin') {
+      return
+    }
+
+    // Authenticated user is on the right page type
+    return
+  }, [isLoading, isAuthenticated, isAuthPage, isLandingPage, isAdminPage, user, navigate, location.pathname])
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -77,11 +98,6 @@ function AppContent() {
         </div>
       </div>
     )
-  }
-
-  // Return null while redirecting
-  if (!isAuthenticated && !isAuthPage && !isLandingPage) {
-    return null
   }
 
   // Mock data for development - in production, this would come from API
@@ -131,7 +147,7 @@ function AppContent() {
                 transition={{ duration: 0.5 }}
                 className="min-h-screen"
               >
-                <Routes>
+                <Routes future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/courses" element={<Dashboard />} />
                   <Route path="/events" element={<Events />} />
@@ -143,12 +159,6 @@ function AppContent() {
                   <Route path="/analytics" element={<Dashboard />} />
                   <Route path="/notifications" element={<Dashboard />} />
                   <Route path="/settings" element={<Settings />} />
-                  {/* Admin Routes */}
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/ui" element={<AdminUI />} />
-                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                  <Route path="/admin/users" element={<AdminUI />} />
-                  <Route path="/admin/proposals" element={<AdminUI />} />
                 </Routes>
               </motion.div>
             </main>
@@ -173,9 +183,8 @@ function AppContent() {
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/ui" element={<AdminUI />} />
-            <Route path="/admin/users" element={<AdminUI />} />
-            <Route path="/admin/proposals" element={<AdminUI />} />
+            <Route path="/admin/users" element={<AdminDashboard />} />
+            <Route path="/admin/proposals" element={<ProposalManagement />} />
           </Routes>
         </main>
       )}

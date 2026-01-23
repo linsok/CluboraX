@@ -391,3 +391,86 @@ class SystemMaintenance(TimeStampedModel):
         elif self.scheduled_start and self.scheduled_end:
             return self.scheduled_end - self.scheduled_start
         return None
+
+
+class Proposal(TimeStampedModel):
+    """Model for user proposals (clubs, events, etc.)"""
+    TYPE_CHOICES = [
+        ('club', 'Club Proposal'),
+        ('event', 'Event Proposal'),
+        ('project', 'Project Proposal'),
+        ('funding', 'Funding Request'),
+        ('complaint', 'Complaint'),
+        ('suggestion', 'Suggestion'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('under_review', 'Under Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('implemented', 'Implemented'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    
+    submitted_by = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='proposals_submitted'
+    )
+    
+    # Optional fields
+    budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    deadline = models.DateTimeField(null=True, blank=True)
+    tags = models.JSONField(default=list, blank=True)
+    
+    # Approval tracking
+    reviewed_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='proposals_reviewed'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_comments = models.TextField(null=True, blank=True)
+    
+    class Meta:
+        db_table = 'proposals'
+        verbose_name = 'Proposal'
+        verbose_name_plural = 'Proposals'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.get_type_display()}"
+
+
+class ProposalComment(TimeStampedModel):
+    """Comments on proposals"""
+    proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    is_internal = models.BooleanField(default=False)  # Internal admin comments vs public comments
+    
+    class Meta:
+        db_table = 'proposal_comments'
+        verbose_name = 'Proposal Comment'
+        verbose_name_plural = 'Proposal Comments'
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"Comment by {self.author.email} on {self.proposal.title}"

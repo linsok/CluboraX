@@ -2,6 +2,7 @@ from rest_framework import status, generics, permissions, filters
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from django.db.models import Q, Count, Sum, Avg
 from django.db import connection
@@ -9,7 +10,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.core.cache import cache
 from .models import (
     SystemOverview, AdminActivity, SystemReport, SystemSetting,
-    SystemAlert, SystemBackup, SystemMaintenance
+    SystemAlert, SystemBackup, SystemMaintenance, Proposal, ProposalComment
 )
 from .serializers import (
     SystemOverviewSerializer, AdminActivitySerializer, SystemReportSerializer,
@@ -961,4 +962,352 @@ class QuickActionsView(APIView):
             return Response({
                 'error': True,
                 'message': 'Failed to load quick actions'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Proposal Management Views
+class ProposalCreateView(APIView):
+    """
+    Create new proposals - accessible by any authenticated user
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            # Get the current user from the token
+            submitted_by = request.user
+            
+            # Create proposal data
+            proposal_data = {
+                'title': request.data.get('title', ''),
+                'description': request.data.get('description', ''),
+                'type': request.data.get('type', 'club'),
+                'priority': request.data.get('priority', 'medium'),
+                'budget': request.data.get('budget'),
+                'deadline': request.data.get('deadline'),
+                'tags': request.data.get('tags', []),
+                'submitted_by': submitted_by
+            }
+            
+            # Validate required fields
+            if not proposal_data['title'].strip():
+                return Response({
+                    'error': True,
+                    'message': 'Title is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            if not proposal_data['description'].strip():
+                return Response({
+                    'error': True,
+                    'message': 'Description is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create the proposal
+            proposal = Proposal.objects.create(**proposal_data)
+            
+            # Add long description as a comment if provided
+            long_description = request.data.get('long_description', '')
+            if long_description.strip():
+                ProposalComment.objects.create(
+                    proposal=proposal,
+                    author=submitted_by,
+                    content=long_description,
+                    is_internal=False
+                )
+            
+            return Response({
+                'success': True,
+                'message': 'Proposal created successfully',
+                'data': {
+                    'id': str(proposal.id),
+                    'title': proposal.title,
+                    'status': proposal.status,
+                    'submitted_at': proposal.created_at.isoformat()
+                }
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Proposal creation error: {e}")
+            return Response({
+                'error': True,
+                'message': 'Failed to create proposal'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ProposalUserListView(APIView):
+    """
+    List proposals submitted by the current user
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Get proposals submitted by the current user
+            proposals = Proposal.objects.filter(
+                submitted_by=request.user
+            ).select_related('submitted_by', 'reviewed_by').order_by('-created_at')
+            
+            # Filter for club proposals only
+            proposals = proposals.filter(type='club')
+            
+            # Serialize
+            proposal_data = []
+            for proposal in proposals:
+                proposal_data.append({
+                    'id': str(proposal.id),
+                    'title': proposal.title,
+                    'description': proposal.description,
+                    'type': proposal.type,
+                    'status': proposal.status,
+                    'priority': proposal.priority,
+                    'budget': float(proposal.budget) if proposal.budget else None,
+                    'deadline': proposal.deadline.isoformat() if proposal.deadline else None,
+                    'tags': proposal.tags or [],
+                    'submitted_by': {
+                        'id': str(proposal.submitted_by.id),
+                        'name': f"{proposal.submitted_by.first_name} {proposal.submitted_by.last_name}",
+                        'email': proposal.submitted_by.email
+                    },
+                    'created_at': proposal.created_at.isoformat(),
+                    'submitted_at': proposal.created_at.isoformat(),
+                })
+            
+            return Response(proposal_data)
+            
+        except Exception as e:
+            logger.error(f"User proposal list error: {e}")
+            return Response({
+                'error': True,
+                'message': 'Failed to load your proposals'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ProposalListView(APIView):
+    """
+    List all proposals with filtering and pagination, and create new proposals
+    """
+    permission_classes = [IsAdminUser]
+    
+    def get(self, request):
+        self.permission_classes = [IsAdminUser]
+        self.check_permissions(request)
+        
+        try:
+            proposals = Proposal.objects.select_related('submitted_by', 'reviewed_by').all()
+            
+            # Filtering
+            search = request.GET.get('search', '')
+            type_filter = request.GET.get('type', '')
+            status_filter = request.GET.get('status', '')
+            priority_filter = request.GET.get('priority', '')
+            
+            if search:
+                proposals = proposals.filter(
+                    Q(title__icontains=search) |
+                    Q(description__icontains=search) |
+                    Q(submitted_by__email__icontains=search)
+                )
+            
+            if type_filter:
+                proposals = proposals.filter(type=type_filter)
+            
+            if status_filter:
+                proposals = proposals.filter(status=status_filter)
+                
+            if priority_filter:
+                proposals = proposals.filter(priority=priority_filter)
+            
+            # Pagination
+            page = int(request.GET.get('page', 1))
+            per_page = 12
+            total = proposals.count()
+            start = (page - 1) * per_page
+            end = start + per_page
+            
+            proposals_page = proposals[start:end]
+            
+            # Serialize
+            proposal_data = []
+            for proposal in proposals_page:
+                proposal_data.append({
+                    'id': str(proposal.id),
+                    'title': proposal.title,
+                    'description': proposal.description,
+                    'type': proposal.type,
+                    'status': proposal.status,
+                    'priority': proposal.priority,
+                    'budget': float(proposal.budget) if proposal.budget else None,
+                    'deadline': proposal.deadline.isoformat() if proposal.deadline else None,
+                    'tags': proposal.tags or [],
+                    'submitted_by': {
+                        'id': str(proposal.submitted_by.id),
+                        'name': f"{proposal.submitted_by.first_name} {proposal.submitted_by.last_name}",
+                        'email': proposal.submitted_by.email
+                    },
+                    'submitted_at': proposal.created_at.isoformat(),
+                    'comments': [
+                        {
+                            'author': comment.author.email,
+                            'content': comment.content,
+                            'created_at': comment.created_at.isoformat()
+                        } for comment in proposal.comments.all()
+                    ]
+                })
+            
+            return Response({
+                'success': True,
+                'proposals': proposal_data,
+                'pagination': {
+                    'currentPage': page,
+                    'totalPages': (total + per_page - 1) // per_page,
+                    'totalItems': total,
+                    'itemsPerPage': per_page
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Proposal list error: {e}")
+            return Response({
+                'error': True,
+                'message': 'Failed to load proposals'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def post(self, request):
+        self.permission_classes = [IsAuthenticated]
+        self.check_permissions(request)
+        
+        try:
+            # Get the current user from the token
+            submitted_by = request.user
+            
+            # Create proposal data
+            proposal_data = {
+                'title': request.data.get('title', ''),
+                'description': request.data.get('description', ''),
+                'type': request.data.get('type', 'club'),
+                'priority': request.data.get('priority', 'medium'),
+                'budget': request.data.get('budget'),
+                'deadline': request.data.get('deadline'),
+                'tags': request.data.get('tags', []),
+                'submitted_by': submitted_by
+            }
+            
+            # Validate required fields
+            if not proposal_data['title'].strip():
+                return Response({
+                    'error': True,
+                    'message': 'Title is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            if not proposal_data['description'].strip():
+                return Response({
+                    'error': True,
+                    'message': 'Description is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create the proposal
+            proposal = Proposal.objects.create(**proposal_data)
+            
+            # Add long description as a comment if provided
+            long_description = request.data.get('long_description', '')
+            if long_description.strip():
+                ProposalComment.objects.create(
+                    proposal=proposal,
+                    author=submitted_by,
+                    content=long_description,
+                    is_internal=False
+                )
+            
+            return Response({
+                'success': True,
+                'message': 'Proposal created successfully',
+                'data': {
+                    'id': str(proposal.id),
+                    'title': proposal.title,
+                    'status': proposal.status,
+                    'submitted_at': proposal.created_at.isoformat()
+                }
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Proposal creation error: {e}")
+            return Response({
+                'error': True,
+                'message': 'Failed to create proposal'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ProposalActionView(APIView):
+    """
+    Handle proposal actions (approve, reject, delete)
+    """
+    permission_classes = [IsAdminUser]
+    
+    def post(self, request, proposal_id, action):
+        try:
+            proposal = Proposal.objects.get(id=proposal_id)
+            comment = request.data.get('comment', '')
+            
+            if action == 'approve':
+                proposal.status = 'approved'
+                proposal.reviewed_by = request.user
+                proposal.reviewed_at = timezone.now()
+                proposal.review_comments = comment
+                proposal.save()
+                
+                # Add comment
+                if comment:
+                    ProposalComment.objects.create(
+                        proposal=proposal,
+                        author=request.user,
+                        content=f"Approved: {comment}",
+                        is_internal=True
+                    )
+                
+                message = 'Proposal approved successfully'
+                
+            elif action == 'reject':
+                proposal.status = 'rejected'
+                proposal.reviewed_by = request.user
+                proposal.reviewed_at = timezone.now()
+                proposal.review_comments = comment
+                proposal.save()
+                
+                # Add comment
+                if comment:
+                    ProposalComment.objects.create(
+                        proposal=proposal,
+                        author=request.user,
+                        content=f"Rejected: {comment}",
+                        is_internal=True
+                    )
+                
+                message = 'Proposal rejected successfully'
+                
+            elif action == 'delete':
+                proposal.delete()
+                message = 'Proposal deleted successfully'
+                
+            else:
+                return Response({
+                    'error': True,
+                    'message': 'Invalid action'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            return Response({
+                'success': True,
+                'message': message
+            })
+            
+        except Proposal.DoesNotExist:
+            return Response({
+                'error': True,
+                'message': 'Proposal not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+        except Exception as e:
+            logger.error(f"Proposal action error: {e}")
+            return Response({
+                'error': True,
+                'message': f'Failed to {action} proposal'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
