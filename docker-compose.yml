@@ -10,7 +10,7 @@ services:
       MYSQL_PASSWORD: campus_password
       MYSQL_ROOT_PASSWORD: root_password
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -25,6 +25,30 @@ services:
     networks:
       - campus_network
 
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campus_celery
+    environment:
+      - DEBUG=1
+      - DJANGO_SETTINGS_MODULE=campus_management.settings
+      - DB_HOST=db
+      - DB_NAME=campus_management
+      - DB_USER=campus_user
+      - DB_PASSWORD=campus_password
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-production-secret-key-change-this
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - CORS_ALLOWED_ORIGINS=http://localhost,http://127.0.0.1
+    command: celery -A campus_management worker --loglevel=info
+    depends_on:
+      - db
+      - redis
+      - backend
+    networks:
+      - campus_network
+
   backend:
     build:
       context: ./backend
@@ -32,18 +56,20 @@ services:
     container_name: campus_backend
     environment:
       - DEBUG=1
+      - DJANGO_SETTINGS_MODULE=campus_management.settings
       - DB_HOST=db
       - DB_NAME=campus_management
       - DB_USER=campus_user
       - DB_PASSWORD=campus_password
       - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-production-secret-key-change-this
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - CORS_ALLOWED_ORIGINS=http://localhost,http://127.0.0.1
     ports:
       - "8000:8000"
     depends_on:
       - db
       - redis
-    volumes:
-      - ./backend:/app
     networks:
       - campus_network
 
@@ -53,12 +79,9 @@ services:
       dockerfile: Dockerfile
     container_name: campus_frontend
     ports:
-      - "3000:3000"
+      - "3000:80"
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     networks:
       - campus_network
 
