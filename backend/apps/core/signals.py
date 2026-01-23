@@ -4,8 +4,25 @@ from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.forms.models import model_to_dict
 from django.utils import timezone
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
+
+# Helper function to convert UUIDs and datetime objects to strings for JSON serialization
+def convert_uuids_to_strings(data):
+    """Recursively convert UUIDs and datetime objects to strings for JSON serialization."""
+    if data is None:
+        return None
+    if isinstance(data, dict):
+        return {key: convert_uuids_to_strings(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_uuids_to_strings(item) for item in data]
+    elif isinstance(data, uuid.UUID):
+        return str(data)
+    elif hasattr(data, 'isoformat'):  # Handle datetime objects
+        return data.isoformat()
+    else:
+        return data
 
 
 @receiver(user_logged_in)
@@ -59,7 +76,6 @@ def post_save_handler(sender, instance, created, **kwargs):
     try:
         from apps.core.models import AuditLog
         from django.contrib.auth import get_user_model
-        from django.forms.models import model_to_dict
         
         User = get_user_model()
         
@@ -69,11 +85,11 @@ def post_save_handler(sender, instance, created, **kwargs):
         if created:
             action = 'create'
             old_values = None
-            new_values = model_to_dict(instance)
+            new_values = convert_uuids_to_strings(model_to_dict(instance))
         else:
             action = 'update'
-            old_values = getattr(instance, '_old_values', None)
-            new_values = model_to_dict(instance)
+            old_values = convert_uuids_to_strings(getattr(instance, '_old_values', None))
+            new_values = convert_uuids_to_strings(model_to_dict(instance))
         
         # Create audit log
         AuditLog.objects.create(
@@ -101,7 +117,6 @@ def post_delete_handler(sender, instance, **kwargs):
     
     try:
         from apps.core.models import AuditLog
-        from django.forms.models import model_to_dict
         
         # Get current user (this is tricky in signals)
         current_user = getattr(instance, '_current_user', None)
@@ -111,7 +126,7 @@ def post_delete_handler(sender, instance, **kwargs):
             action='delete',
             table_name=sender.__name__,
             record_id=str(instance.pk),
-            old_values=model_to_dict(instance),
+            old_values=convert_uuids_to_strings(model_to_dict(instance)),
             new_values=None,
             ip_address=getattr(instance, '_ip_address', None),
             user_agent=getattr(instance, '_user_agent', None)

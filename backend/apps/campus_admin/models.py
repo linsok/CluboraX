@@ -265,7 +265,7 @@ class Backup(models.Model):
     """Database backup records"""
     filename = models.CharField(max_length=255)
     file_path = models.CharField(max_length=500)
-    file_size = models.BigInteger()
+    file_size = models.BigIntegerField()
     backup_type = models.CharField(max_length=20)  # full, incremental, etc.
     status = models.CharField(max_length=20)  # success, failed, in_progress
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -2,10 +2,10 @@
 -- Initial database setup script
 
 -- Create database if not exists
-CREATE DATABASE IF NOT EXISTS campus_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS campus_event_club_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Use the database
-USE campus_management;
+USE campus_event_club_management;
 
 -- Users table
 CREATE TABLE users (

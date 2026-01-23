@@ -1,14 +1,44 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django import forms
 from .models import User, UserProfile, PasswordResetToken, EmailVerificationToken, UserActivity
+
+
+class CustomUserCreationForm(UserCreationForm):
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ('email', 'first_name', 'last_name', 'role')
+        field_classes = {
+            'email': forms.EmailField,
+        }
+
+    def clean_username(self):
+        # Since we use email as username, but don't show username field
+        return self.cleaned_data['email']
+
+
+class CustomUserChangeForm(UserChangeForm):
+    class Meta(UserChangeForm.Meta):
+        model = User
+        fields = ('email', 'first_name', 'last_name', 'role', 'is_active', 'is_staff', 'is_superuser')
+        field_classes = {
+            'email': forms.EmailField,
+        }
+
+    def clean_username(self):
+        # Since we use email as username, but don't show username field
+        return self.cleaned_data['email']
 
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """
-    Custom user admin interface.
+    Custom user admin interface for email-based authentication.
     """
+    form = CustomUserChangeForm
+    add_form = CustomUserCreationForm
     list_display = ['email', 'full_name', 'role', 'is_verified', 'is_active', 'date_joined', 'last_login']
     list_filter = ['role', 'is_verified', 'is_active', 'date_joined']
     search_fields = ['email', 'first_name', 'last_name', 'student_id', 'staff_id']
@@ -25,11 +55,15 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'password1', 'password2', 'role'),
+            'fields': ('email', 'password1', 'password2', 'first_name', 'last_name', 'role'),
         }),
     )
     
     readonly_fields = ['date_joined', 'last_login']
+    
+    def get_username(self, obj):
+        # Return email as username since we use email for authentication
+        return obj.email
     
     def full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 const AuthContext = createContext()
@@ -49,7 +49,16 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('refresh_token', refreshToken)
     localStorage.setItem('user', JSON.stringify(userData))
     
-    toast.success('Login successful!')
+    // Show success message
+    toast.success(userData.role === 'admin' ? 'Welcome Admin!' : 'Login successful!')
+    
+    // Handle redirect - only redirect regular users, not admins
+    if (userData.role !== 'admin') {
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 500)
+    }
+    // Admin redirect is handled by AdminLogin component
   }
 
   const logout = () => {

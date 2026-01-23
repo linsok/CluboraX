@@ -1,23 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { 
-  CalendarIcon,
-  UserGroupIcon,
-  ChartBarIcon,
-  BellIcon,
-  SparklesIcon,
-  ArrowTrendingUpIcon,
+  UserGroupIcon, 
+  CalendarIcon, 
+  ChartBarIcon, 
+  BookOpenIcon,
+  TrophyIcon,
+  StarIcon,
   ClockIcon,
   CheckCircleIcon,
-  ExclamationTriangleIcon,
-  CalendarDaysIcon,
-  PhotoIcon,
-  FireIcon,
-  TrophyIcon,
-  GiftIcon,
-  StarIcon,
-  BookOpenIcon,
+  XCircleIcon,
   AcademicCapIcon,
   ChevronRightIcon,
   PlayIcon,
@@ -29,15 +22,20 @@ import {
   XMarkIcon,
   EyeIcon,
   EnvelopeIcon,
-  BuildingOfficeIcon
+  BuildingOfficeIcon,
+  SparklesIcon,
+  ArrowTrendingUpIcon
 } from '@heroicons/react/24/outline'
 import { getDashboardStats, getRecentActivities, getUserCourses } from '../api/dashboard'
 import { getUserAchievements, getUserCertificates } from '../api/courses'
+import { getUserClubRequests, getUserClubProposals } from '../api/clubs'
 import { useAuth } from '../contexts/AuthContext'
+import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
 const Dashboard = () => {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('overview')
   const [showTicketModal, setShowTicketModal] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState(null)
@@ -70,41 +68,76 @@ const Dashboard = () => {
   // Check if user is organizer
   const isOrganizer = user?.role === 'organizer'
   
-  // Mock data for user's club requests and event registrations
-  const [myClubRequests] = useState([
-    {
-      id: 1,
-      clubName: 'Computer Science Club',
-      clubCategory: 'Academic',
-      status: 'pending',
-      submittedAt: '2024-01-15T10:30:00Z',
-      formData: {
-        name: 'Thoeun Soklin',
-        email: 'soklin1220lin@gmail.com',
-        phone: '0977569023',
-        studentId: 'ST5667',
-        major: 'Computer Science',
-        year: 'Junior',
-        message: 'I am very interested in joining the Computer Science Club to learn more about programming and participate in hackathons.'
+  // Handle URL parameters for tab navigation
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'my-clubs') {
+      setActiveTab('my-clubs')
+    } else if (tabParam === 'my-events') {
+      setActiveTab('my-events')
+    }
+  }, [searchParams])
+  
+  // Fetch user's club requests from API (both memberships and proposals)
+  const { data: myClubRequests = [], isLoading: clubRequestsLoading, error: clubRequestsError } = useQuery({
+    queryKey: ['user-club-requests'],
+    queryFn: async () => {
+      console.log('Dashboard: Fetching user club requests...')
+      
+      // Fetch both club memberships and club proposals
+      try {
+        const [membershipsResponse, proposalsResponse] = await Promise.all([
+          getUserClubRequests(),
+          getUserClubProposals()
+        ])
+        
+        console.log('Dashboard: Memberships response:', membershipsResponse)
+        console.log('Dashboard: Proposals response:', proposalsResponse)
+        
+        // Combine both types of requests
+        const combinedRequests = [
+          // Add club memberships
+          ...(membershipsResponse || []).map(membership => ({
+            id: membership.id,
+            type: 'membership',
+            clubName: membership.club_name,
+            status: membership.status,
+            status_display: membership.status_display,
+            submittedAt: membership.joined_at,
+            user: membership.user,
+            role: membership.role,
+            role_display: membership.role_display,
+            notes: membership.notes
+          })),
+          // Add club creation proposals
+          ...(proposalsResponse || []).map(proposal => ({
+            id: proposal.id,
+            type: 'proposal',
+            clubName: proposal.title.replace('New Club: ', ''),
+            status: proposal.status,
+            status_display: proposal.status,
+            submittedAt: proposal.created_at,
+            user: proposal.submitted_by,
+            description: proposal.description,
+            long_description: proposal.long_description
+          }))
+        ]
+        
+        console.log('Dashboard: Combined requests:', combinedRequests)
+        return combinedRequests
+      } catch (error) {
+        console.error('Dashboard: Error fetching club requests:', error)
+        throw error
       }
     },
-    {
-      id: 2,
-      clubName: 'Photography Club',
-      clubCategory: 'Arts',
-      status: 'approved',
-      submittedAt: '2024-01-10T14:15:00Z',
-      formData: {
-        name: 'Thoeun Soklin',
-        email: 'soklin1220lin@gmail.com',
-        phone: '0977569023',
-        studentId: 'ST5667',
-        major: 'Computer Science',
-        year: 'Junior',
-        message: 'I love photography and would like to learn more about camera techniques and photo editing.'
-      }
+    enabled: !!user,
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    onError: (error) => {
+      console.error('Dashboard: Failed to load club requests:', error)
+      toast.error('Failed to load club requests')
     }
-  ])
+  })
 
   const [myEventRegistrations] = useState([
     {
@@ -862,37 +895,53 @@ const Dashboard = () => {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">{request.clubName}</h3>
-          <p className="text-sm text-gray-500">{request.clubCategory}</p>
+          <p className="text-sm text-gray-500">
+            {request.type === 'proposal' ? 'Club Creation Proposal' : 'Membership Application'}
+          </p>
         </div>
         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-          {request.status}
+          {request.status_display || request.status}
         </span>
       </div>
       
       <div className="space-y-3 mb-4">
         <div className="flex items-center text-sm text-gray-600">
           <EnvelopeIcon className="w-4 h-4 mr-2" />
-          {request.formData.email}
+          {request.user?.email || user?.email}
         </div>
         <div className="flex items-center text-sm text-gray-600">
           <BuildingOfficeIcon className="w-4 h-4 mr-2" />
-          {request.formData.studentId}
+          {request.user?.student_id || 'N/A'}
         </div>
         <div className="flex items-center text-sm text-gray-600">
           <ClockIcon className="w-4 h-4 mr-2" />
-          Submitted: {formatDate(request.submittedAt)}
+          {request.type === 'proposal' ? 'Submitted' : 'Applied'}: {formatDate(request.submittedAt)}
         </div>
       </div>
 
-      {request.formData.message && (
-        <div className="bg-gray-50 rounded-lg p-3 mb-4">
-          <p className="text-sm text-gray-600 line-clamp-2">{request.formData.message}</p>
-        </div>
+      {/* Show different content based on request type */}
+      {request.type === 'proposal' ? (
+        // Club creation proposal content
+        request.description && (
+          <div className="bg-gray-50 rounded-lg p-3 mb-4">
+            <p className="text-sm text-gray-600 line-clamp-2">{request.description}</p>
+          </div>
+        )
+      ) : (
+        // Club membership application content
+        request.notes && (
+          <div className="bg-gray-50 rounded-lg p-3 mb-4">
+            <p className="text-sm text-gray-600 line-clamp-2">{request.notes}</p>
+          </div>
+        )
       )}
 
       <div className="flex items-center justify-between text-sm">
         <span className="text-gray-500">
-          Year: {request.formData.year} • Major: {request.formData.major}
+          {request.type === 'proposal' 
+            ? 'Proposal Status' 
+            : `Role: ${request.role_display || request.role}`
+          }
         </span>
         <button 
           onClick={() => viewClubDetails(request)}
@@ -1089,7 +1138,9 @@ const Dashboard = () => {
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold mb-1">Club Request Details</h2>
+              <h2 className="text-2xl font-bold mb-1">
+                {selectedClubRequest?.type === 'proposal' ? 'Club Proposal Details' : 'Club Request Details'}
+              </h2>
               <p className="text-purple-100">{selectedClubRequest?.clubName}</p>
             </div>
             <button
@@ -1105,62 +1156,105 @@ const Dashboard = () => {
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Status Badge */}
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Request Status</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {selectedClubRequest?.type === 'proposal' ? 'Proposal Status' : 'Request Status'}
+            </h3>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedClubRequest?.status)}`}>
-              {selectedClubRequest?.status}
+              {selectedClubRequest?.status_display || selectedClubRequest?.status}
             </span>
           </div>
 
           {/* Club Information */}
           <div className="bg-gray-50 rounded-lg p-4">
-            <h4 className="font-semibold text-gray-900 mb-3">Club Information</h4>
+            <h4 className="font-semibold text-gray-900 mb-3">
+              {selectedClubRequest?.type === 'proposal' ? 'Proposal Information' : 'Club Information'}
+            </h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Club Name:</span>
+                <span className="text-gray-600">
+                  {selectedClubRequest?.type === 'proposal' ? 'Proposed Club Name:' : 'Club Name:'}
+                </span>
                 <span className="font-medium text-gray-900">{selectedClubRequest?.clubName}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Category:</span>
-                <span className="font-medium text-gray-900">{selectedClubRequest?.clubCategory}</span>
-              </div>
+              {selectedClubRequest?.type === 'proposal' && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Proposal Type:</span>
+                  <span className="font-medium text-gray-900">Club Creation</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Applicant Information */}
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h4 className="font-semibold text-blue-900 mb-3">Applicant Information</h4>
-            <div className="space-y-3 text-sm">
+          {/* Description */}
+          {selectedClubRequest?.type === 'proposal' ? (
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 mb-3">Proposal Description</h4>
+              <p className="text-sm text-gray-700 leading-relaxed">
+                {selectedClubRequest?.description}
+              </p>
+              {selectedClubRequest?.long_description && (
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <h5 className="font-medium text-blue-900 mb-2">Detailed Information:</h5>
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {selectedClubRequest.long_description}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Membership Request Information */
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 mb-3">Applicant Information</h4>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Full Name:</span>
+                  <span className="font-medium text-gray-900">{selectedClubRequest?.formData?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Email:</span>
+                  <span className="font-medium text-gray-900">{selectedClubRequest?.formData?.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Phone:</span>
+                  <span className="font-medium text-gray-900">{selectedClubRequest?.formData?.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Student ID:</span>
+                  <span className="font-medium text-gray-900">{selectedClubRequest?.formData?.studentId}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Major:</span>
+                  <span className="font-medium text-gray-900">{selectedClubRequest?.formData?.major}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Year:</span>
+                  <span className="font-medium text-gray-900">{selectedClubRequest?.formData?.year}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Submitted By */}
+          <div className="bg-green-50 rounded-lg p-4">
+            <h4 className="font-semibold text-green-900 mb-3">Submitted By</h4>
+            <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Full Name:</span>
-                <span className="font-medium text-gray-900">{selectedClubRequest?.formData.name}</span>
+                <span className="text-gray-600">Name:</span>
+                <span className="font-medium text-gray-900">
+                  {selectedClubRequest?.user?.name || selectedClubRequest?.user?.email}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Email:</span>
-                <span className="font-medium text-gray-900">{selectedClubRequest?.formData.email}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Phone:</span>
-                <span className="font-medium text-gray-900">{selectedClubRequest?.formData.phone}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Student ID:</span>
-                <span className="font-medium text-gray-900">{selectedClubRequest?.formData.studentId}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Major:</span>
-                <span className="font-medium text-gray-900">{selectedClubRequest?.formData.major}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Year:</span>
-                <span className="font-medium text-gray-900">{selectedClubRequest?.formData.year}</span>
+                <span className="font-medium text-gray-900">{selectedClubRequest?.user?.email}</span>
               </div>
             </div>
           </div>
 
-          {/* Message */}
-          {selectedClubRequest?.formData.message && (
-            <div className="bg-green-50 rounded-lg p-4">
-              <h4 className="font-semibold text-green-900 mb-3">Application Message</h4>
+          {/* Message for membership requests */}
+          {selectedClubRequest?.type === 'membership' && selectedClubRequest?.formData?.message && (
+            <div className="bg-purple-50 rounded-lg p-4">
+              <h4 className="font-semibold text-purple-900 mb-3">Application Message</h4>
               <p className="text-sm text-gray-700 leading-relaxed">
                 {selectedClubRequest?.formData.message}
               </p>
@@ -1169,14 +1263,18 @@ const Dashboard = () => {
 
           {/* Timeline */}
           <div className="bg-purple-50 rounded-lg p-4">
-            <h4 className="font-semibold text-purple-900 mb-3">Request Timeline</h4>
+            <h4 className="font-semibold text-purple-900 mb-3">
+              {selectedClubRequest?.type === 'proposal' ? 'Proposal Timeline' : 'Request Timeline'}
+            </h4>
             <div className="space-y-2 text-sm">
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 bg-purple-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">1</span>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Request Submitted</p>
+                  <p className="font-medium text-gray-900">
+                    {selectedClubRequest?.type === 'proposal' ? 'Proposal Submitted' : 'Request Submitted'}
+                  </p>
                   <p className="text-gray-600">{formatDate(selectedClubRequest?.submittedAt)}</p>
                 </div>
               </div>
@@ -1186,8 +1284,14 @@ const Dashboard = () => {
                     <span className="text-white text-xs font-bold">2</span>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">Request Approved</p>
-                    <p className="text-gray-600">Your membership has been approved!</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedClubRequest?.type === 'proposal' ? 'Proposal Approved' : 'Request Approved'}
+                    </p>
+                    <p className="text-gray-600">
+                      {selectedClubRequest?.type === 'proposal' 
+                        ? 'Your club proposal has been approved!' 
+                        : 'Your membership has been approved!'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -1198,11 +1302,13 @@ const Dashboard = () => {
           <div className="border-t border-gray-200 pt-4">
             <h4 className="font-semibold text-gray-900 mb-3">Need Help?</h4>
             <p className="text-sm text-gray-600 mb-4">
-              If you have any questions about your club request, feel free to contact the club administration or the campus activities office.
+              {selectedClubRequest?.type === 'proposal' 
+                ? 'If you have any questions about your club proposal, feel free to contact the campus administration.' 
+                : 'If you have any questions about your club request, feel free to contact the club administration or the campus activities office.'}
             </p>
             <div className="flex space-x-3">
               <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
-                Contact Club
+                {selectedClubRequest?.type === 'proposal' ? 'Contact Admin' : 'Contact Club'}
               </button>
               <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
                 Email Support
@@ -1219,11 +1325,6 @@ const Dashboard = () => {
               className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium"
             >
               Close
-            </button>
-            <button
-              className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 font-medium"
-            >
-              Print Details
             </button>
           </div>
         </div>
@@ -2437,7 +2538,18 @@ const Dashboard = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {myClubRequests.length > 0 ? (
+                {clubRequestsLoading ? (
+                  <div className="col-span-full text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading your club requests...</p>
+                  </div>
+                ) : clubRequestsError ? (
+                  <div className="col-span-full text-center py-12">
+                    <XCircleIcon className="w-16 h-16 text-red-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load requests</h3>
+                    <p className="text-gray-500">Please try again later</p>
+                  </div>
+                ) : myClubRequests.length > 0 ? (
                   myClubRequests.map((request) => (
                     <ClubRequestCard key={request.id} request={request} />
                   ))

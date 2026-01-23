@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   UsersIcon,
   DocumentTextIcon,
   ClockIcon,
   CheckCircleIcon,
+  XCircleIcon,
   ExclamationTriangleIcon,
   ArrowTrendingUpIcon,
   BellIcon,
@@ -45,16 +46,22 @@ const AdminDashboard = () => {
 
   // Check admin authentication
   useEffect(() => {
-    const adminToken = localStorage.getItem('admin_token')
-    const adminUserData = localStorage.getItem('admin_user')
+    const token = localStorage.getItem('admin_token') || localStorage.getItem('access_token')
+    const userData = localStorage.getItem('admin_user') || localStorage.getItem('user')
     
-    if (!adminToken || !adminUserData) {
+    if (!token || !userData) {
       navigate('/admin/login')
       return
     }
     
     try {
-      setAdminUser(JSON.parse(adminUserData))
+      const user = JSON.parse(userData)
+      // Check if user is admin
+      if (user.role !== 'admin') {
+        navigate('/dashboard')
+        return
+      }
+      setAdminUser(user)
     } catch (error) {
       navigate('/admin/login')
     }
@@ -62,7 +69,11 @@ const AdminDashboard = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_refresh_token')
     localStorage.removeItem('admin_user')
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user')
     toast.success('Logged out successfully')
     navigate('/admin/login')
   }
@@ -168,7 +179,7 @@ const AdminDashboard = () => {
 
   // Mutations for request management
   const updateRequestMutation = useMutation({
-    mutationFn: ({ requestId, status }) => updateRequestStatus(requestId, status),
+    mutationFn: ({ requestId, status, comment = '' }) => updateRequestStatus(requestId, status, comment),
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-requests'])
       queryClient.invalidateQueries(['admin-stats'])
@@ -223,11 +234,11 @@ const AdminDashboard = () => {
   }
 
   // Handler functions for request actions
-  const handleRequestAction = (requestId, action) => {
+  const handleRequestAction = (requestId, action, comment = '') => {
     if (action === 'approve') {
-      updateRequestMutation.mutate({ requestId, status: 'approved' })
+      updateRequestMutation.mutate({ requestId, status: 'approved', comment })
     } else if (action === 'reject') {
-      updateRequestMutation.mutate({ requestId, status: 'rejected' })
+      updateRequestMutation.mutate({ requestId, status: 'rejected', comment })
     }
   }
 
@@ -264,40 +275,88 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-orange-600 rounded-lg flex items-center justify-center">
-                <ShieldCheckIcon className="w-6 h-6 text-white" />
+      <div className="bg-gray-900 border-b border-gray-800 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <ShieldCheckIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Admin Control Panel</h1>
+              <p className="text-sm text-gray-400">System Administration</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            {/* Quick navigation */}
+            <button
+              onClick={() => setActiveSection('overview')}
+              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                activeSection === 'overview' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveSection('requests')}
+              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                activeSection === 'requests' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              Request Management
+            </button>
+            <button
+              onClick={() => setActiveSection('users')}
+              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                activeSection === 'users' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              User Management
+            </button>
+            <Link
+              to="/admin/proposals"
+              className="px-3 py-2 text-sm font-medium text-blue-400 hover:text-blue-300 rounded-lg transition-colors"
+            >
+              Advanced View
+            </Link>
+            
+            {/* Search */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-64 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+              <MagnifyingGlassIcon className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+            </div>
+            
+            {/* User Info */}
+            <div className="flex items-center space-x-3">
+              <div className="text-right">
+                <p className="text-sm font-medium text-white">{adminUser?.name || 'Admin'}</p>
+                <p className="text-xs text-gray-400">{adminUser?.email || 'admin@campus.edu'}</p>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">Admin Control Panel</h1>
-                <p className="text-sm text-gray-400">System Administration</p>
+              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                <UserIcon className="w-4 h-4 text-white" />
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-                <MagnifyingGlassIcon className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-              </div>
-              <button className="p-2 text-gray-400 hover:text-white">
-                <BellIcon className="w-6 h-6" />
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                <span>Logout</span>
-              </button>
-            </div>
+            
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ArrowRightOnRectangleIcon className="w-4 h-4" />
+              Logout
+            </button>
           </div>
         </div>
       </div>
@@ -550,81 +609,375 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* Other sections would go here */}
+          {/* Request Management Section */}
           {activeSection === 'requests' && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-white">Request Management</h2>
-              <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-8">
-                <p className="text-gray-300">Request management interface would go here</p>
+              
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Total Proposals</p>
+                      <p className="text-2xl font-bold text-white">{requests.length}</p>
+                    </div>
+                    <DocumentTextIcon className="w-8 h-8 text-blue-500" />
+                  </div>
+                </div>
+                <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Pending</p>
+                      <p className="text-2xl font-bold text-white">{requests.filter(r => r.status === 'pending').length}</p>
+                    </div>
+                    <ClockIcon className="w-8 h-8 text-yellow-500" />
+                  </div>
+                </div>
+                <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Approved</p>
+                      <p className="text-2xl font-bold text-white">{requests.filter(r => r.status === 'approved').length}</p>
+                    </div>
+                    <CheckCircleIcon className="w-8 h-8 text-green-500" />
+                  </div>
+                </div>
+                <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Rejected</p>
+                      <p className="text-2xl font-bold text-white">{requests.filter(r => r.status === 'rejected').length}</p>
+                    </div>
+                    <XCircleIcon className="w-8 h-8 text-red-500" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Proposals List */}
+              <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-white">All Proposals ({requests.length})</h3>
+                  <button 
+                    onClick={() => navigate('/admin/proposals')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                  >
+                    <EyeIcon className="w-4 h-4 mr-2" />
+                    Advanced View
+                  </button>
+                </div>
+                
+                {requestsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-400 mt-2">Loading proposals...</p>
+                  </div>
+                ) : requestsError ? (
+                  <div className="text-center py-8">
+                    <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                    <p className="text-red-400">Failed to load proposals</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {requests.length > 0 ? (
+                      requests.map((request) => (
+                        <div key={request.id} className="bg-gray-700 rounded-lg p-6 hover:bg-gray-600 transition-colors">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3 mb-3">
+                                <div className="p-2 bg-gray-600 rounded-lg">
+                                  {getTypeIcon(request.type)}
+                                </div>
+                                <div>
+                                  <h4 className="text-white font-semibold text-lg">{request.title}</h4>
+                                  <div className="flex items-center space-x-4 mt-1 text-sm text-gray-400">
+                                    <span className="capitalize">{request.type}</span>
+                                    <span>•</span>
+                                    <span>By {request.submitted_by?.name || request.submitted_by?.email || 'Unknown'}</span>
+                                    <span>•</span>
+                                    <span>{new Date(request.submitted_at || request.created_at).toLocaleDateString()}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {request.description && (
+                                <p className="text-gray-300 text-sm mb-4 line-clamp-3">{request.description}</p>
+                              )}
+                              
+                              {/* Club Details Preview */}
+                              {request.type === 'club' && request.long_description && (
+                                <div className="bg-gray-600/30 rounded p-3 mb-4">
+                                  <p className="text-xs text-gray-400 mb-2">Club Details Preview:</p>
+                                  <div className="text-xs text-gray-300 space-y-1">
+                                    {request.long_description.includes('Leader:') && (
+                                      <p><strong>Leader:</strong> {request.long_description.split('Leader:')[1]?.split('\n')[0]?.trim()}</p>
+                                    )}
+                                    {request.long_description.includes('Capacity:') && (
+                                      <p><strong>Capacity:</strong> {request.long_description.split('Capacity:')[1]?.split('\n')[0]?.trim()}</p>
+                                    )}
+                                    {request.long_description.includes('Meeting Time:') && (
+                                      <p><strong>Meeting:</strong> {request.long_description.split('Meeting Time:')[1]?.split('\n')[0]?.trim()}</p>
+                                    )}
+                                    {request.long_description.includes('Location:') && (
+                                      <p><strong>Location:</strong> {request.long_description.split('Location:')[1]?.split('\n')[0]?.trim()}</p>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-blue-400 mt-2">Click view details to see complete information</p>
+                                </div>
+                              )}
+                              
+                              {/* Additional Details */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                <div>
+                                  <p className="text-xs text-gray-500">Priority</p>
+                                  <span className={`inline-flex px-2 py-1 text-xs rounded-full ${getPriorityColor(request.priority)}`}>
+                                    {request.priority}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Status</p>
+                                  <span className={`inline-flex px-2 py-1 text-xs rounded-full ${getStatusColor(request.status)}`}>
+                                    {request.status.replace('_', ' ')}
+                                  </span>
+                                </div>
+                                {request.budget && (
+                                  <div>
+                                    <p className="text-xs text-gray-500">Budget</p>
+                                    <p className="text-sm text-gray-300">${parseFloat(request.budget).toLocaleString()}</p>
+                                  </div>
+                                )}
+                                {request.deadline && (
+                                  <div>
+                                    <p className="text-xs text-gray-500">Deadline</p>
+                                    <p className="text-sm text-gray-300">{new Date(request.deadline).toLocaleDateString()}</p>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Tags */}
+                              {request.tags && request.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                  {request.tags.map((tag, index) => (
+                                    <span key={index} className="px-2 py-1 bg-gray-600 text-gray-300 text-xs rounded">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex flex-col items-end space-y-2">
+                              <button
+                                onClick={() => setSelectedRequest(request)}
+                                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-500 rounded transition-colors"
+                                title="View full details"
+                              >
+                                <EyeIcon className="w-5 h-5" />
+                              </button>
+                              {request.status === 'pending' && (
+                                <div className="flex space-x-1">
+                                  <button
+                                    onClick={() => handleRequestAction(request.id, 'approve', 'Approved by admin')}
+                                    className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-500 rounded transition-colors"
+                                    title="Approve"
+                                    disabled={updateRequestMutation.isLoading}
+                                  >
+                                    <CheckCircleIcon className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleRequestAction(request.id, 'reject', 'Rejected by admin')}
+                                    className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-500 rounded transition-colors"
+                                    title="Reject"
+                                    disabled={updateRequestMutation.isLoading}
+                                  >
+                                    <XCircleIcon className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <DocumentTextIcon className="w-12 h-12 text-gray-500 mx-auto mb-2" />
+                        <p className="text-gray-400">No proposals found</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
+          {/* Analytics Section */}
           {activeSection === 'analytics' && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-white">Analytics</h2>
-              <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-8">
-                <p className="text-gray-300">Analytics dashboard would go here</p>
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <p className="text-gray-400">Analytics dashboard coming soon...</p>
               </div>
             </div>
           )}
 
+          {/* System Health Section */}
           {activeSection === 'system' && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-white">System Health</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <CircleStackIcon className="w-8 h-8 text-blue-400" />
-                    <h3 className="text-lg font-medium text-white">Database</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Status:</span>
-                      <span className="text-green-400">Healthy</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Uptime:</span>
-                      <span className="text-gray-300">99.9%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Response Time:</span>
-                      <span className="text-gray-300">45ms</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <ServerIcon className="w-8 h-8 text-green-400" />
-                    <h3 className="text-lg font-medium text-white">Server</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">CPU Usage:</span>
-                      <span className="text-gray-300">32%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Memory:</span>
-                      <span className="text-gray-300">4.2GB / 8GB</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Disk Space:</span>
-                      <span className="text-gray-300">156GB / 500GB</span>
-                    </div>
-                  </div>
-                </div>
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <p className="text-gray-400">System health monitoring coming soon...</p>
               </div>
             </div>
           )}
 
+          {/* Settings Section */}
           {activeSection === 'settings' && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-white">Settings</h2>
-              <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-8">
-                <p className="text-gray-300">System settings would go here</p>
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <p className="text-gray-400">Admin settings coming soon...</p>
               </div>
             </div>
           )}
+
+          {/* Request Detail Modal */}
+          <AnimatePresence>
+            {showRequestModal && selectedRequest && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                onClick={() => setShowRequestModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-xl font-bold text-white">{selectedRequest.title}</h3>
+                    <button
+                      onClick={() => setShowRequestModal(false)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <XMarkIcon className="w-6 h-6" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Type</p>
+                        <p className="text-white capitalize">{selectedRequest.type}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Priority</p>
+                        <span className={`inline-flex px-2 py-1 text-xs rounded-full ${getPriorityColor(selectedRequest.priority)}`}>
+                          {selectedRequest.priority}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Status</p>
+                        <span className={`inline-flex px-2 py-1 text-xs rounded-full ${getStatusColor(selectedRequest.status)}`}>
+                          {selectedRequest.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Submitted By</p>
+                        <p className="text-white">{selectedRequest.submitted_by?.name || selectedRequest.submitted_by?.email || 'Unknown'}</p>
+                      </div>
+                      {selectedRequest.budget && (
+                        <div>
+                          <p className="text-sm text-gray-500">Budget</p>
+                          <p className="text-white">${parseFloat(selectedRequest.budget).toLocaleString()}</p>
+                        </div>
+                      )}
+                      {selectedRequest.deadline && (
+                        <div>
+                          <p className="text-sm text-gray-500">Deadline</p>
+                          <p className="text-white">{new Date(selectedRequest.deadline).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {selectedRequest.description && (
+                      <div>
+                        <p className="text-sm text-gray-500 mb-2">Description</p>
+                        <p className="text-gray-300 whitespace-pre-wrap">{selectedRequest.description}</p>
+                      </div>
+                    )}
+                    
+                    {/* Enhanced Club Details Display */}
+                    {selectedRequest.type === 'club' && selectedRequest.long_description && (
+                      <div className="mt-6 p-4 bg-gray-700 rounded-lg">
+                        <p className="text-sm text-gray-500 mb-3">Complete Club Proposal Details</p>
+                        <div className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed">
+                          {selectedRequest.long_description}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Additional description field if separate from long_description */}
+                    {selectedRequest.long_description && !selectedRequest.long_description.includes('**Club Details:**') && (
+                      <div>
+                        <p className="text-sm text-gray-500 mb-2">Additional Information</p>
+                        <p className="text-gray-300 whitespace-pre-wrap">{selectedRequest.long_description}</p>
+                      </div>
+                    )}
+                    
+                    {selectedRequest.tags && selectedRequest.tags.length > 0 && (
+                      <div>
+                        <p className="text-sm text-gray-500 mb-2">Tags</p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedRequest.tags.map((tag, index) => (
+                            <span key={index} className="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
+                      {selectedRequest.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => {
+                              handleRequestAction(selectedRequest.id, 'reject', 'Rejected by admin')
+                              setShowRequestModal(false)
+                            }}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            disabled={updateRequestMutation.isLoading}
+                          >
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleRequestAction(selectedRequest.id, 'approve', 'Approved by admin')
+                              setShowRequestModal(false)
+                            }}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                            disabled={updateRequestMutation.isLoading}
+                          >
+                            Approve
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setShowRequestModal(false)}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

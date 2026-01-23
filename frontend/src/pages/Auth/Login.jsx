@@ -41,12 +41,7 @@ const Login = () => {
         // Authenticate user with tokens
         if (response.data && response.data.access_token) {
           login(response.data.user, response.data.access_token, 'mock_refresh_token')
-          toast.success('Login successful!')
-          
-          // Navigate to dashboard after successful login
-          setTimeout(() => {
-            navigate('/dashboard')
-          }, 100)
+          // Navigation is handled by AuthContext based on user role
         } else {
           toast.error('Login failed: No access token received')
         }

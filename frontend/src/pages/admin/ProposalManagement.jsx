@@ -11,7 +11,7 @@ import {
   ClockIcon,
   CalendarIcon,
   UserIcon,
-  DollarSignIcon,
+  CurrencyDollarIcon,
   TagIcon,
   ExclamationTriangleIcon,
   ChevronLeftIcon,
@@ -39,7 +39,9 @@ const ProposalManagement = () => {
   const { data: proposalsData, isLoading, error } = useQuery({
     queryKey: ['admin-proposals', currentPage, searchTerm, typeFilter, statusFilter, priorityFilter],
     queryFn: async () => {
+      console.log('Fetching proposals...')
       const token = localStorage.getItem('access_token')
+      console.log('Token exists:', !!token)
       const params = new URLSearchParams({
         page: currentPage,
         search: searchTerm,
@@ -47,14 +49,21 @@ const ProposalManagement = () => {
         status: statusFilter,
         priority: priorityFilter
       })
-      const response = await fetch(`http://localhost:8000/api/admin/api/proposals/?${params}`, {
+      console.log('API URL:', `http://localhost:8000/api/admin/proposals/?${params}`)
+      const response = await fetch(`http://localhost:8000/api/admin/proposals/?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       })
-      if (!response.ok) throw new Error('Failed to fetch proposals')
-      return response.json()
+      console.log('Response status:', response.status)
+      if (!response.ok) {
+        console.log('Response error:', await response.text())
+        throw new Error('Failed to fetch proposals')
+      }
+      const data = await response.json()
+      console.log('Response data:', data)
+      return data
     }
   })
 
@@ -62,7 +71,7 @@ const ProposalManagement = () => {
   const approveProposalMutation = useMutation({
     mutationFn: async ({ proposalId, comment }) => {
       const token = localStorage.getItem('access_token')
-      const response = await fetch(`http://localhost:8000/api/admin/api/proposals/${proposalId}/approve/`, {
+      const response = await fetch(`http://localhost:8000/api/admin/proposals/${proposalId}/approve/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -85,7 +94,7 @@ const ProposalManagement = () => {
   const rejectProposalMutation = useMutation({
     mutationFn: async ({ proposalId, comment }) => {
       const token = localStorage.getItem('access_token')
-      const response = await fetch(`http://localhost:8000/api/admin/api/proposals/${proposalId}/reject/`, {
+      const response = await fetch(`http://localhost:8000/api/admin/proposals/${proposalId}/reject/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -108,7 +117,7 @@ const ProposalManagement = () => {
   const deleteProposalMutation = useMutation({
     mutationFn: async (proposalId) => {
       const token = localStorage.getItem('access_token')
-      const response = await fetch(`http://localhost:8000/api/admin/api/proposals/${proposalId}/`, {
+      const response = await fetch(`http://localhost:8000/api/admin/proposals/${proposalId}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -428,7 +437,7 @@ const ProposalManagement = () => {
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">Budget</h4>
                   <div className="flex items-center space-x-2">
-                    <DollarSignIcon className="w-5 h-5 text-gray-400" />
+                    <CurrencyDollarIcon className="w-5 h-5 text-gray-400" />
                     <span className="text-lg font-semibold text-gray-900">${proposal.budget.toLocaleString()}</span>
                   </div>
                 </div>
@@ -521,6 +530,7 @@ const ProposalManagement = () => {
   }
 
   if (error) {
+    console.log('Proposal fetch error:', error)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -531,6 +541,9 @@ const ProposalManagement = () => {
       </div>
     )
   }
+
+  console.log('Proposals data:', proposalsData)
+  console.log('Is loading:', isLoading)
 
   return (
     <div className="min-h-screen bg-gray-50">
