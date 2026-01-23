@@ -1,19 +1,20 @@
 FROM python:3.11-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Set environment variables (Updated to modern syntax)
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set work directory
 WORKDIR /app
 
 # Install system dependencies
+# FIX: Changed libmysqlclient-dev to default-libmysqlclient-dev
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
         libpq-dev \
-        libmysqlclient-dev \
+        default-libmysqlclient-dev \
         libmagic1 \
         libmagic-dev \
         pkg-config \
@@ -31,7 +32,7 @@ COPY . /app/
 # Create static files directory
 RUN mkdir -p /app/staticfiles /app/mediafiles
 
-# Collect static files (skip if no settings configured)
+# Collect static files
 RUN python manage.py collectstatic --noinput || echo "Static files collection skipped"
 
 # Expose port
