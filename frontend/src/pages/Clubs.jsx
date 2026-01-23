@@ -2,13 +2,16 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserGroupIcon, PlusIcon, MagnifyingGlassIcon, CalendarIcon, XMarkIcon, CheckCircleIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
+import { useAuth } from '../contexts/AuthContext'
 
 const Clubs = () => {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showJoinModal, setShowJoinModal] = useState(false)
   const [selectedClub, setSelectedClub] = useState(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showCreateClubModal, setShowCreateClubModal] = useState(false)
   const [joinRequests, setJoinRequests] = useState([])
   const [formData, setFormData] = useState({
     name: '',
@@ -17,6 +20,30 @@ const Clubs = () => {
     major: '',
     year: '',
     message: ''
+  })
+  const [clubForm, setClubForm] = useState({
+    name: '',
+    category: 'Academic',
+    description: '',
+    longDescription: '',
+    meetingTime: '',
+    locationType: 'physical',
+    location: '',
+    physicalLocation: '',
+    onlinePlatform: '',
+    meetingLink: '',
+    requirements: '',
+    goals: '',
+    leaderName: '',
+    capacity: 10,
+    memberEmails: '',
+    president: user?.name || '',
+    contactEmail: user?.email || '',
+    socialMedia: {
+      instagram: '',
+      linkedin: '',
+      github: ''
+    }
   })
 
   const clubs = [
@@ -195,6 +222,103 @@ const Clubs = () => {
     })
     setShowJoinModal(false)
     setSelectedClub(null)
+  }
+
+  const handleCreateClub = () => {
+    // Check if user is a student
+    if (user?.role !== 'student') {
+      toast.error('Only students can create clubs')
+      return
+    }
+    
+    // Validation
+    if (!clubForm.name.trim()) {
+      toast.error('Club name is required')
+      return
+    }
+    if (!clubForm.description.trim()) {
+      toast.error('Club description is required')
+      return
+    }
+    if (!clubForm.meetingTime.trim()) {
+      toast.error('Meeting time is required')
+      return
+    }
+    if (!clubForm.location.trim()) {
+      toast.error('Location is required')
+      return
+    }
+    if (!clubForm.leaderName.trim()) {
+      toast.error('Leader name is required')
+      return
+    }
+    if (clubForm.capacity < 10) {
+      toast.error('Club capacity must be at least 10 members')
+      return
+    }
+    
+    // Create new club object
+    const newClub = {
+      id: Date.now(),
+      ...clubForm,
+      members: 1,
+      image: '/api/placeholder/300/200',
+      events: 0,
+      status: 'pending_approval',
+      createdAt: new Date().toISOString(),
+      createdBy: user?.name || 'Student'
+    }
+    
+    console.log('Creating club:', newClub)
+    
+    // Show success message
+    toast.success('Club creation request submitted! Your club is pending approval.')
+    
+    // Reset form and close modal
+    setClubForm({
+      name: '',
+      category: 'Academic',
+      description: '',
+      longDescription: '',
+      meetingTime: '',
+      locationType: 'physical',
+      location: '',
+      physicalLocation: '',
+      onlinePlatform: '',
+      meetingLink: '',
+      requirements: '',
+      goals: '',
+      leaderName: '',
+      capacity: 10,
+      memberEmails: '',
+      president: user?.name || '',
+      contactEmail: user?.email || '',
+      socialMedia: {
+        instagram: '',
+        linkedin: '',
+        github: ''
+      }
+    })
+    setShowCreateClubModal(false)
+  }
+
+  const handleClubFormChange = (e) => {
+    const { name, value } = e.target
+    if (name.includes('socialMedia.')) {
+      const socialField = name.split('.')[1]
+      setClubForm(prev => ({
+        ...prev,
+        socialMedia: {
+          ...prev.socialMedia,
+          [socialField]: value
+        }
+      }))
+    } else {
+      setClubForm(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
   }
 
   // Join Request Modal
@@ -631,15 +755,19 @@ const Clubs = () => {
           ))}
         </div>
 
-        {/* Create Club Button */}
-        <motion.button
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5 }}
-          className="fixed bottom-8 right-8 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
-        >
-          <PlusIcon className="h-6 w-6" />
-        </motion.button>
+        {/* Create Club Button - Only for Students */}
+        {user?.role === 'student' && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+            onClick={() => setShowCreateClubModal(true)}
+            className="fixed bottom-8 right-8 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+            title="Create Club"
+          >
+            <PlusIcon className="h-6 w-6" />
+          </motion.button>
+        )}
       </div>
 
       {/* Join Request Modal */}
@@ -647,6 +775,419 @@ const Clubs = () => {
       
       {/* Club Details Modal */}
       <ClubDetailsModal />
+
+      {/* Create Club Modal */}
+      <AnimatePresence>
+        {showCreateClubModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => setShowCreateClubModal(false)}
+              />
+              
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              >
+                {/* Header */}
+                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-1">Create New Club</h2>
+                      <p className="text-purple-100">Start your own student organization</p>
+                    </div>
+                    <button
+                      onClick={() => setShowCreateClubModal(false)}
+                      className="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={(e) => { e.preventDefault(); handleCreateClub(); }} className="p-6 space-y-6 overflow-y-auto flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Basic Information */}
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-gray-900 mb-4">Basic Information</h3>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Club Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={clubForm.name}
+                          onChange={handleClubFormChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          placeholder="Enter club name"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Category *
+                        </label>
+                        <select
+                          name="category"
+                          value={clubForm.category}
+                          onChange={handleClubFormChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          required
+                        >
+                          <option value="Academic">Academic</option>
+                          <option value="Arts">Arts</option>
+                          <option value="Sports">Sports</option>
+                          <option value="Cultural">Cultural</option>
+                          <option value="Technical">Technical</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Description *
+                        </label>
+                        <textarea
+                          name="description"
+                          value={clubForm.description}
+                          onChange={handleClubFormChange}
+                          rows={3}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                          placeholder="Brief description of your club"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Leader Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="leaderName"
+                          value={clubForm.leaderName}
+                          onChange={handleClubFormChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          placeholder="Enter leader's full name"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Club Capacity * (Minimum 10)
+                        </label>
+                        <input
+                          type="number"
+                          name="capacity"
+                          value={clubForm.capacity}
+                          onChange={handleClubFormChange}
+                          min="10"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          placeholder="Maximum number of members"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Meeting Details */}
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-gray-900 mb-4">Meeting Details</h3>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Meeting Time *
+                        </label>
+                        <input
+                          type="text"
+                          name="meetingTime"
+                          value={clubForm.meetingTime}
+                          onChange={handleClubFormChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          placeholder="e.g., Every Wednesday at 6:00 PM"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Location *
+                        </label>
+                        <select
+                          name="locationType"
+                          value={clubForm.locationType || 'physical'}
+                          onChange={(e) => {
+                            setClubForm(prev => ({
+                              ...prev,
+                              locationType: e.target.value,
+                              location: e.target.value === 'physical' ? '' : 'Online Meeting'
+                            }))
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent mb-2"
+                          required
+                        >
+                          <option value="physical">Physical Location</option>
+                          <option value="online">Online Meeting</option>
+                          <option value="hybrid">Hybrid (Physical + Online)</option>
+                        </select>
+                        
+                        {clubForm.locationType === 'physical' ? (
+                          <input
+                            type="text"
+                            name="location"
+                            value={clubForm.location}
+                            onChange={handleClubFormChange}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            placeholder="e.g., Tech Building, Room 301"
+                            required
+                          />
+                        ) : clubForm.locationType === 'online' ? (
+                          <div className="space-y-2">
+                            <select
+                              name="onlinePlatform"
+                              value={clubForm.onlinePlatform || ''}
+                              onChange={(e) => {
+                                setClubForm(prev => ({
+                                  ...prev,
+                                  onlinePlatform: e.target.value,
+                                  location: e.target.value ? `Online via ${e.target.value}` : ''
+                                }))
+                              }}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              required
+                            >
+                              <option value="">Select Platform</option>
+                              <option value="Zoom">Zoom</option>
+                              <option value="Microsoft Teams">Microsoft Teams</option>
+                              <option value="Google Meet">Google Meet</option>
+                              <option value="Skype">Skype</option>
+                              <option value="Discord">Discord</option>
+                              <option value="Other">Other Platform</option>
+                            </select>
+                            
+                            <input
+                              type="text"
+                              name="meetingLink"
+                              value={clubForm.meetingLink || ''}
+                              onChange={(e) => {
+                                setClubForm(prev => ({
+                                  ...prev,
+                                  meetingLink: e.target.value,
+                                  location: prev.onlinePlatform ? `Online via ${prev.onlinePlatform}` : ''
+                                }))
+                              }}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              placeholder="Enter meeting link (e.g., https://zoom.us/j/123456789)"
+                              required
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              name="physicalLocation"
+                              value={clubForm.physicalLocation || ''}
+                              onChange={(e) => {
+                                setClubForm(prev => ({
+                                  ...prev,
+                                  physicalLocation: e.target.value,
+                                  location: e.target.value ? `${e.target.value} + Online Meeting` : 'Hybrid Meeting'
+                                }))
+                              }}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent mb-2"
+                              placeholder="e.g., Tech Building, Room 301"
+                              required
+                            />
+                            
+                            <select
+                              name="onlinePlatform"
+                              value={clubForm.onlinePlatform || ''}
+                              onChange={(e) => {
+                                setClubForm(prev => ({
+                                  ...prev,
+                                  onlinePlatform: e.target.value,
+                                  location: prev.physicalLocation ? `${prev.physicalLocation} + Online via ${e.target.value}` : 'Hybrid Meeting'
+                                }))
+                              }}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              required
+                            >
+                              <option value="">Select Online Platform</option>
+                              <option value="Zoom">Zoom</option>
+                              <option value="Microsoft Teams">Microsoft Teams</option>
+                              <option value="Google Meet">Google Meet</option>
+                              <option value="Skype">Skype</option>
+                              <option value="Discord">Discord</option>
+                              <option value="Other">Other Platform</option>
+                            </select>
+                            
+                            <input
+                              type="text"
+                              name="meetingLink"
+                              value={clubForm.meetingLink || ''}
+                              onChange={(e) => {
+                                setClubForm(prev => ({
+                                  ...prev,
+                                  meetingLink: e.target.value
+                                }))
+                              }}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              placeholder="Enter meeting link (e.g., https://zoom.us/j/123456789)"
+                              required
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Requirements
+                        </label>
+                        <textarea
+                          name="requirements"
+                          value={clubForm.requirements}
+                          onChange={handleClubFormChange}
+                          rows={3}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                          placeholder="Any requirements for joining the club"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Add Members by Email (CluboraX Accounts)
+                        </label>
+                        <textarea
+                          name="memberEmails"
+                          value={clubForm.memberEmails}
+                          onChange={handleClubFormChange}
+                          rows={3}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                          placeholder="Enter email addresses separated by commas (e.g., student1@campushub.edu, student2@campushub.edu)"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Add CluboraX member email addresses to invite them to join your club
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Information */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-gray-900 mb-4">Additional Information</h3>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Long Description
+                      </label>
+                      <textarea
+                        name="longDescription"
+                        value={clubForm.longDescription}
+                        onChange={handleClubFormChange}
+                        rows={4}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                        placeholder="Detailed description of your club's mission and activities"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Goals & Objectives
+                      </label>
+                      <textarea
+                        name="goals"
+                        value={clubForm.goals}
+                        onChange={handleClubFormChange}
+                        rows={3}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                        placeholder="What do you want to achieve with this club?"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Social Media */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-gray-900 mb-4">Social Media (Optional)</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Instagram
+                        </label>
+                        <input
+                          type="text"
+                          name="socialMedia.instagram"
+                          value={clubForm.socialMedia.instagram}
+                          onChange={handleClubFormChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          placeholder="@clubname"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          LinkedIn
+                        </label>
+                        <input
+                          type="text"
+                          name="socialMedia.linkedin"
+                          value={clubForm.socialMedia.linkedin}
+                          onChange={handleClubFormChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          placeholder="Club Name"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          GitHub
+                        </label>
+                        <input
+                          type="text"
+                          name="socialMedia.github"
+                          value={clubForm.socialMedia.github}
+                          onChange={handleClubFormChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          placeholder="club-username"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateClubModal(false)}
+                      className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors duration-300 font-medium"
+                    >
+                      Submit for Approval
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

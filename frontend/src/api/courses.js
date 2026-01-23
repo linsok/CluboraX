@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 
 // Get user's enrolled courses
-export const getUserCourses = async () => {
+export const getUserCourses = async (user = null) => {
   try {
     const response = await apiClient.get('/api/events/registrations/')
     const registrations = response.data.results || []
@@ -29,7 +29,7 @@ export const getUserCourses = async () => {
 }
 
 // Get user's achievements
-export const getUserAchievements = async () => {
+export const getUserAchievements = async (user = null) => {
   try {
     const response = await apiClient.get('/api/users/achievements/')
     return response.data.results || []
@@ -40,7 +40,7 @@ export const getUserAchievements = async () => {
 }
 
 // Get user's certificates
-export const getUserCertificates = async () => {
+export const getUserCertificates = async (user = null) => {
   try {
     const response = await apiClient.get('/api/users/certificates/')
     return response.data.results || []

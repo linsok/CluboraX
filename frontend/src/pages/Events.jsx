@@ -20,11 +20,21 @@ import {
   InformationCircleIcon,
   ArrowDownTrayIcon,
   ExclamationTriangleIcon,
-  UserGroupIcon as UserGroupSolidIcon
+  UserGroupIcon as UserGroupSolidIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
+
+// Import Create Event Modal components from Dashboard
+let CreateEventModalImport = null
+try {
+  // We'll need to import or recreate the CreateEventModal here
+  CreateEventModalImport = null // Placeholder
+} catch (error) {
+  console.warn('Create Event Modal not available')
+}
 
 // Import QR Code with fallback
 let QRCode = null
@@ -73,6 +83,25 @@ const Events = () => {
   const [showTicketModal, setShowTicketModal] = useState(false)
   const [ticketData, setTicketData] = useState(null)
   const [showOrganizerModal, setShowOrganizerModal] = useState(false)
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false)
+  
+  // State for event creation form (same as Dashboard)
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    date: '',
+    time: '',
+    agenda: '',
+    agendaPdf: null,
+    location: '',
+    eventType: 'academic',
+    maxAttendees: '',
+    phoneNumber: '',
+    price: 0,
+    description: '',
+    organizer: user?.name || 'Event Organizer',
+    requirements: '',
+    tags: []
+  })
   const [registrationData, setRegistrationData] = useState({
     name: '',
     email: '',
@@ -85,10 +114,12 @@ const Events = () => {
     // Check if user is a student
     if (user?.role === 'student') {
       setShowOrganizerModal(true)
+    } else if (user?.role === 'organizer' || user?.role === 'admin') {
+      // If user is organizer or admin, open the Create Event modal
+      setShowCreateEventModal(true)
     } else {
-      // If user is not a student (organizer or admin), allow event creation
-      toast.success('Event creation form would open here')
-      // TODO: Navigate to event creation form
+      // For other roles or undefined user, show message
+      toast.error('You need to be logged in as an organizer to create events')
     }
   }
 
@@ -97,6 +128,105 @@ const Events = () => {
     setShowOrganizerModal(false)
     navigate('/register?role=organizer')
     toast.success('Redirecting to Organizer Registration...')
+  }
+
+  // Handler for form input changes
+  const handleFormChange = (e) => {
+    const { name, value, type } = e.target
+    setEventForm(prev => ({
+      ...prev,
+      [name]: type === 'number' ? (value === '' ? 0 : parseFloat(value)) : value
+    }))
+  }
+
+  // Handler for PDF file upload
+  const handlePdfUpload = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      // Check if file is PDF
+      if (file.type !== 'application/pdf') {
+        toast.error('Please upload a PDF file')
+        return
+      }
+      
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size must be less than 10MB')
+        return
+      }
+
+      setEventForm(prev => ({
+        ...prev,
+        agendaPdf: file
+      }))
+      toast.success('PDF uploaded successfully')
+    }
+  }
+
+  // Handler for removing PDF
+  const removePdf = () => {
+    setEventForm(prev => ({
+      ...prev,
+      agendaPdf: null
+    }))
+    toast.success('PDF removed')
+  }
+
+  // Calculate platform fee (3% of total potential revenue)
+  const calculatePlatformFee = () => {
+    const totalRevenue = eventForm.price * eventForm.maxAttendees
+    return eventForm.price > 0 ? totalRevenue * 0.03 : 0
+  }
+
+  // Handle event creation
+  const handleCreateEventSubmit = () => {
+    // Validation
+    if (!eventForm.title || !eventForm.date || !eventForm.time || !eventForm.location || !eventForm.maxAttendees || !eventForm.phoneNumber) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    // Calculate platform fee
+    const platformFee = calculatePlatformFee()
+    
+    // Create new event object
+    const newEvent = {
+      id: Date.now(),
+      ...eventForm,
+      status: 'published',
+      registrations: 0,
+      image: '/api/placeholder/400/200',
+      createdAt: new Date().toISOString()
+    }
+
+    console.log('Creating event:', newEvent)
+    console.log('Platform fee:', platformFee)
+
+    // Show success message
+    if (platformFee > 0) {
+      toast.success(`Event created successfully! Platform fee: $${platformFee.toFixed(2)}`)
+    } else {
+      toast.success('Free event created successfully!')
+    }
+
+    // Reset form and close modal
+    setEventForm({
+      title: '',
+      date: '',
+      time: '',
+      agenda: '',
+      agendaPdf: null,
+      location: '',
+      eventType: 'academic',
+      maxAttendees: '',
+      phoneNumber: '',
+      price: 0,
+      description: '',
+      organizer: user?.name || 'Event Organizer',
+      requirements: '',
+      tags: []
+    })
+    setShowCreateEventModal(false)
   }
 
   const { data: events, isLoading } = useQuery({
@@ -112,11 +242,11 @@ const Events = () => {
           time: '09:00 AM',
           location: 'Main Auditorium',
           type: 'conference',
-          status: 'approved',
+          status: '',
           maxAttendees: 500,
           currentAttendees: 234,
           price: 0,
-          image: 'https://images.unsplash.com/photo-1540575498872-042c504ba367?w=800',
+          image: 'https://media.istockphoto.com/id/2184850383/photo/happy-young-university-students-smiling-and-looking-at-camera-enjoying-together-sitting-in.jpg?s=612x612&w=0&k=20&c=RBIj20VUFZg3nyhE9rKeJY2AnUJAs1fd_G9TbSwxyQQ=',
           organizer: {
             name: 'Tech Club',
             avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100'
@@ -131,14 +261,14 @@ const Events = () => {
           time: '06:00 PM',
           location: 'Campus Grounds',
           type: 'entertainment',
-          status: 'approved',
+          status: '',
           maxAttendees: 1000,
           currentAttendees: 789,
           price: 15,
           image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800',
           organizer: {
             name: 'Music Society',
-            avatar: 'https://images.unsplash.com/photo-1494790108755-2616b332f1c0?w=100'
+            avatar: 'https://img.freepik.com/free-photo/front-view-business-woman-suit_23-2148603018.jpg?semt=ais_hybrid&w=740&q=80'
           },
           tags: ['music', 'festival', 'entertainment']
         },
@@ -150,14 +280,14 @@ const Events = () => {
           time: '02:00 PM',
           location: 'Room 203, Business Building',
           type: 'workshop',
-          status: 'pending_approval',
+          status: '',
           maxAttendees: 50,
           currentAttendees: 0,
           price: 0,
-          image: 'https://images.unsplash.com/photo-1515187029135-18e286b8b6b8?w=800',
+          image: 'https://cdn.unischolarz.com/blog/wp-content/uploads/2021/05/24174820/alphagamma-bett-show-2020-opportuniries-min-1024x576.jpg',
           organizer: {
             name: 'Career Services',
-            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'
+            avatar: 'https://media.istockphoto.com/id/1500308602/photo/happy-black-man-mature-or-portrait-in-finance-office-about-us-company-profile-picture-or-ceo.jpg?s=612x612&w=0&k=20&c=3BWt_eT7QaaiGx4zI_K63pnntIp5Cv1qW8Pw-_bSlm8='
           },
           tags: ['career', 'workshop', 'professional']
         }
@@ -1222,7 +1352,380 @@ const StableRegistrationForm = React.memo(({ registrationData, onChange, onSubmi
       
       {/* Organizer Registration Modal */}
       <OrganizerRegistrationModal />
+
+      {/* Create Event Modal */}
+      <AnimatePresence>
+        {showCreateEventModal && (
+          <CreateEventModal 
+            eventForm={eventForm}
+            handleFormChange={handleFormChange}
+            handlePdfUpload={handlePdfUpload}
+            removePdf={removePdf}
+            calculatePlatformFee={calculatePlatformFee}
+            handleCreateEventSubmit={handleCreateEventSubmit}
+            setShowCreateEventModal={setShowCreateEventModal}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  )
+}
+
+// Create Event Modal Component
+const CreateEventModal = ({ eventForm, handleFormChange, handlePdfUpload, removePdf, calculatePlatformFee, handleCreateEventSubmit, setShowCreateEventModal }) => {
+  const platformFee = calculatePlatformFee()
+  const totalRevenue = eventForm.price * eventForm.maxAttendees
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={() => setShowCreateEventModal(false)}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 30 }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 300, 
+          damping: 30,
+          duration: 0.5
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold mb-1">Create New Event</h2>
+              <p className="text-purple-100">Fill in the details to create your event</p>
+            </div>
+            <button
+              onClick={() => setShowCreateEventModal(false)}
+              className="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-4 transition-all duration-300 hover:text-purple-600 cursor-pointer">Basic Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Event Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="title"
+                      value={eventForm.title}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm"
+                      placeholder="Enter event title"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Event Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="eventType"
+                      value={eventForm.eventType}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm"
+                    >
+                      <option value="academic">Academic</option>
+                      <option value="sports">Sports</option>
+                      <option value="cultural">Cultural</option>
+                      <option value="social">Social</option>
+                      <option value="workshop">Workshop</option>
+                      <option value="conference">Conference</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      value={eventForm.description}
+                      onChange={handleFormChange}
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm resize-none"
+                      placeholder="Describe your event"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Date & Time */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 mb-4 transition-all duration-300 hover:text-blue-600 cursor-pointer">Date & Time</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={eventForm.date}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Time <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="time"
+                      name="time"
+                      value={eventForm.time}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Location & Capacity */}
+              <div className="bg-green-50 rounded-lg p-4">
+                <h3 className="font-semibold text-green-900 mb-4 transition-all duration-300 hover:text-green-600 cursor-pointer">Location & Capacity</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Location <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="location"
+                      value={eventForm.location}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm"
+                      placeholder="Event location"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Max Attendees <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="maxAttendees"
+                      value={eventForm.maxAttendees}
+                      onChange={handleFormChange}
+                      min="1"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm"
+                      placeholder="Maximum number of attendees"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Contact Phone <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="phoneNumber"
+                      value={eventForm.phoneNumber}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm"
+                      placeholder="+1 (555) 123-4567"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing */}
+              <div className="bg-yellow-50 rounded-lg p-4">
+                <h3 className="font-semibold text-yellow-900 mb-4 transition-all duration-300 hover:text-yellow-600 cursor-pointer">Pricing</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ticket Price ($)
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={eventForm.price}
+                      onChange={handleFormChange}
+                      min="0"
+                      step="0.01"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm"
+                      placeholder="0 for free event"
+                    />
+                  </div>
+
+                  {eventForm.price > 0 && eventForm.maxAttendees > 0 && (
+                    <div className="bg-white rounded-lg p-3 border border-yellow-200">
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Ticket Price:</span>
+                          <span className="font-medium">${eventForm.price.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Max Attendees:</span>
+                          <span className="font-medium">{eventForm.maxAttendees}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Total Revenue:</span>
+                          <span className="font-medium">${totalRevenue.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-red-600">
+                          <span>Platform Fee (3%):</span>
+                          <span>${platformFee.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Agenda */}
+          <div className="mt-6 bg-purple-50 rounded-lg p-4">
+            <h3 className="font-semibold text-purple-900 mb-4 transition-all duration-300 hover:text-purple-600 cursor-pointer">Event Agenda</h3>
+            <div className="space-y-4">
+              {/* Text Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Agenda Description
+                </label>
+                <textarea
+                  name="agenda"
+                  value={eventForm.agenda}
+                  onChange={handleFormChange}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm resize-none"
+                  placeholder="Describe the event agenda, schedule, and activities..."
+                />
+              </div>
+
+              {/* PDF Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload Agenda PDF (Optional)
+                </label>
+                <div className="border-2 border-dashed border-purple-300 rounded-lg p-4 bg-white/50 transition-all duration-300 hover:border-purple-400 hover:bg-purple-100/50 cursor-pointer">
+                  {eventForm.agendaPdf ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <DocumentTextIcon className="w-8 h-8 text-purple-600" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{eventForm.agendaPdf.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {(eventForm.agendaPdf.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removePdf}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-300 transform hover:scale-110"
+                      >
+                        <XMarkIcon className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <DocumentTextIcon className="w-12 h-12 text-purple-400 mx-auto mb-3 transition-transform duration-300 hover:scale-110" />
+                      <label htmlFor="agenda-pdf-upload" className="cursor-pointer">
+                        <span className="text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors duration-300">
+                          Click to upload PDF
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          PDF files only, max 10MB
+                        </p>
+                        <input
+                          id="agenda-pdf-upload"
+                          type="file"
+                          accept=".pdf,application/pdf"
+                          onChange={handlePdfUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Upload a detailed agenda PDF for attendees to download
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Requirements */}
+          <div className="mt-6 bg-orange-50 rounded-lg p-4">
+            <h3 className="font-semibold text-orange-900 mb-4 transition-all duration-300 hover:text-orange-600 cursor-pointer">Requirements</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Special Requirements
+              </label>
+              <textarea
+                name="requirements"
+                value={eventForm.requirements}
+                onChange={handleFormChange}
+                rows={2}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-purple-400 hover:shadow-sm resize-none"
+                placeholder="Any special requirements for attendees..."
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="p-6 border-t border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              {platformFee > 0 ? (
+                <span className="text-red-600 font-medium">
+                  Platform fee: ${platformFee.toFixed(2)} will be charged
+                </span>
+              ) : (
+                <span className="text-green-600 font-medium">
+                  Free event - no platform fee
+                </span>
+              )}
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowCreateEventModal(false)}
+                className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium transition-all duration-300 hover:bg-gray-100 rounded-lg transform hover:scale-105"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateEventSubmit}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 font-medium transform hover:scale-105 hover:shadow-lg"
+              >
+                Create Event
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   )
 }
 

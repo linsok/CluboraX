@@ -1721,3 +1721,675 @@ WARNING 2026-01-22 17:11:35,038 basehttp 12860 11072 "GET /api/admin/api/proposa
 INFO 2026-01-22 17:11:38,638 basehttp 12860 10704 "GET /admin/ HTTP/1.1" 200 41235
 INFO 2026-01-22 17:11:40,856 basehttp 12860 10704 "GET /admin/users/user/ HTTP/1.1" 200 41913
 INFO 2026-01-22 17:11:40,907 basehttp 12860 10704 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-01-23 11:20:08,588 autoreload 18356 20204 Watching for file changes with StatReloader
+INFO 2026-01-23 11:21:14,827 basehttp 18356 11880 "OPTIONS /api/auth/profile/ HTTP/1.1" 200 0
+INFO 2026-01-23 11:21:14,828 basehttp 18356 2312 "OPTIONS /api/auth/profile/ HTTP/1.1" 200 0
+INFO 2026-01-23 11:21:14,828 basehttp 18356 12392 "OPTIONS /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 0
+INFO 2026-01-23 11:21:14,828 basehttp 18356 13352 "OPTIONS /api/users/achievements/ HTTP/1.1" 200 0
+INFO 2026-01-23 11:21:14,835 basehttp 18356 11520 "OPTIONS /api/users/certificates/ HTTP/1.1" 200 0
+WARNING 2026-01-23 11:21:14,990 log 18356 11520 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:21:14,991 log 18356 2312 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:21:14,992 basehttp 18356 11520 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:21:15,001 basehttp 18356 2312 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:21:15,001 basehttp 18356 11880 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 11:21:15,006 basehttp 18356 11880 "OPTIONS /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 0
+INFO 2026-01-23 11:21:15,023 basehttp 18356 11880 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 11:21:15,025 basehttp 18356 13352 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:21:15,030 basehttp 18356 11880 "OPTIONS /api/events/stats/ HTTP/1.1" 200 0
+INFO 2026-01-23 11:21:15,054 basehttp 18356 13352 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:21:15,055 views 18356 11880 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:21:15,056 log 18356 11880 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:21:15,059 basehttp 18356 11880 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 11:21:15,068 basehttp 18356 11880 "OPTIONS /api/clubs/stats/ HTTP/1.1" 200 0
+INFO 2026-01-23 11:21:15,069 basehttp 18356 13352 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:21:15,085 views 18356 11880 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:21:15,086 log 18356 11880 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:21:15,087 basehttp 18356 11880 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:21:16,032 log 18356 11880 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:21:16,033 log 18356 13352 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:21:16,034 basehttp 18356 11880 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:21:16,037 basehttp 18356 13352 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:21:16,069 basehttp 18356 13352 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:21:16,105 basehttp 18356 13352 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:21:16,123 views 18356 13352 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:21:16,124 log 18356 13352 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:21:16,125 basehttp 18356 13352 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:21:16,141 views 18356 13352 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:21:16,142 log 18356 13352 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:21:16,143 basehttp 18356 13352 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:21:18,057 log 18356 11880 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:21:18,065 log 18356 13352 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:21:18,066 basehttp 18356 11880 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:21:18,067 basehttp 18356 13352 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:21:18,092 basehttp 18356 13352 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:21:18,158 basehttp 18356 13352 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:21:18,177 views 18356 13352 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:21:18,178 log 18356 13352 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:21:18,179 basehttp 18356 13352 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:21:18,195 views 18356 13352 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:21:18,196 log 18356 13352 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:21:18,198 basehttp 18356 13352 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:23:43,549 log 18356 17464 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:23:43,553 log 18356 20444 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:23:43,554 basehttp 18356 17464 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:23:43,570 basehttp 18356 4916 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 11:23:43,570 basehttp 18356 20444 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:23:43,580 basehttp 18356 9924 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 11:23:43,595 basehttp 18356 17464 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:23:43,613 basehttp 18356 9924 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 11:23:43,624 views 18356 20444 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:23:43,627 log 18356 20444 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:23:43,628 basehttp 18356 20444 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 11:23:43,632 basehttp 18356 9924 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:23:43,657 views 18356 9924 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:23:43,659 log 18356 9924 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:23:43,661 basehttp 18356 9924 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:23:48,729 log 18356 20444 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:23:48,737 log 18356 17464 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:23:48,743 basehttp 18356 20444 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:23:48,743 basehttp 18356 17464 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:23:48,744 basehttp 18356 9924 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:23:48,759 basehttp 18356 9924 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:23:48,771 views 18356 17464 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:23:48,772 log 18356 17464 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:23:48,774 basehttp 18356 17464 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:23:48,790 views 18356 17464 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:23:48,791 log 18356 17464 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:23:48,792 basehttp 18356 17464 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:23:51,072 log 18356 6152 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:23:51,079 log 18356 20124 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:23:51,080 basehttp 18356 6152 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:23:51,083 basehttp 18356 20124 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:23:51,089 basehttp 18356 17264 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:23:51,100 basehttp 18356 17264 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:23:51,126 views 18356 17264 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:23:51,127 log 18356 17264 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:23:51,128 basehttp 18356 17264 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:23:51,143 views 18356 17264 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:23:51,144 log 18356 17264 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:23:51,145 basehttp 18356 17264 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:27:53,475 log 18356 17900 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:27:53,487 log 18356 24480 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:27:53,497 basehttp 18356 17900 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:27:53,498 basehttp 18356 18208 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:27:53,501 basehttp 18356 6872 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+WARNING 2026-01-23 11:27:53,502 basehttp 18356 24480 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:27:53,523 basehttp 18356 18208 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:27:53,532 basehttp 18356 24480 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 11:27:53,549 views 18356 6872 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:27:53,555 log 18356 6872 Internal Server Error: /api/events/stats/
+INFO 2026-01-23 11:27:53,555 basehttp 18356 24480 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:27:53,556 basehttp 18356 6872 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:27:53,585 views 18356 6872 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:27:53,586 log 18356 6872 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:27:53,587 basehttp 18356 6872 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:29:14,508 log 18356 4764 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:29:14,521 log 18356 1544 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:29:14,523 basehttp 18356 4764 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:29:14,523 basehttp 18356 1544 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:29:14,531 basehttp 18356 19988 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:29:14,555 basehttp 18356 19988 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:29:14,564 views 18356 1544 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:29:14,566 log 18356 1544 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:29:14,567 basehttp 18356 1544 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:29:14,588 views 18356 1544 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:29:14,589 log 18356 1544 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:29:14,590 basehttp 18356 1544 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:29:16,553 log 18356 1544 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:29:16,559 log 18356 19988 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:29:16,561 basehttp 18356 1544 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:29:16,562 basehttp 18356 19988 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:29:16,584 basehttp 18356 19988 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:29:16,621 basehttp 18356 19988 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:29:16,647 views 18356 19988 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:29:16,651 log 18356 19988 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:29:16,652 basehttp 18356 19988 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:29:16,676 views 18356 19988 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:29:16,680 log 18356 19988 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:29:16,681 basehttp 18356 19988 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:31:19,460 log 18356 23428 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:31:19,470 log 18356 16056 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:31:19,476 basehttp 18356 23428 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:31:19,482 basehttp 18356 5692 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 11:31:19,487 basehttp 18356 16056 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:31:19,497 basehttp 18356 23540 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 11:31:19,498 basehttp 18356 23428 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:31:19,513 views 18356 5692 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:31:19,516 log 18356 5692 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:31:19,516 basehttp 18356 5692 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 11:31:19,517 basehttp 18356 23540 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 11:31:19,535 basehttp 18356 5692 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:31:19,541 views 18356 23540 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:31:19,542 log 18356 23540 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:31:19,542 basehttp 18356 23540 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:31:32,943 log 18356 13324 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:31:32,955 log 18356 21444 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:31:32,956 basehttp 18356 13324 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:31:32,957 basehttp 18356 21444 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:31:32,965 basehttp 18356 14052 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:31:32,990 basehttp 18356 14052 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:31:33,000 views 18356 13324 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:31:33,001 log 18356 13324 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:31:33,002 basehttp 18356 13324 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:31:33,032 views 18356 13324 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:31:33,033 log 18356 13324 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:31:33,035 basehttp 18356 13324 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:31:35,298 log 18356 15576 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:31:35,309 log 18356 17712 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:31:35,310 basehttp 18356 15576 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:31:35,317 basehttp 18356 17712 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:31:35,328 basehttp 18356 8580 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:31:35,343 basehttp 18356 8580 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:31:35,368 views 18356 8580 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:31:35,370 log 18356 8580 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:31:35,371 basehttp 18356 8580 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:31:35,389 views 18356 8580 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:31:35,389 log 18356 8580 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:31:35,390 basehttp 18356 8580 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 11:37:30,625 basehttp 18356 24772 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:37:30,627 basehttp 18356 17680 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+WARNING 2026-01-23 11:37:30,646 log 18356 18040 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:37:30,662 log 18356 17588 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:37:30,668 basehttp 18356 18040 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:37:30,682 basehttp 18356 17588 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:37:30,722 basehttp 18356 24772 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:37:30,724 basehttp 18356 18040 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 11:37:30,732 views 18356 17680 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:37:30,734 log 18356 17680 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:37:30,736 basehttp 18356 17680 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 11:37:30,765 basehttp 18356 18040 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:37:30,788 views 18356 17680 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:37:30,792 log 18356 17680 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:37:30,795 basehttp 18356 17680 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:37:45,730 log 18356 12524 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:37:45,740 log 18356 1844 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:37:45,741 basehttp 18356 12524 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:37:45,743 basehttp 18356 1844 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:37:45,746 basehttp 18356 3308 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:37:45,760 basehttp 18356 3308 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:37:45,770 views 18356 1844 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:37:45,773 log 18356 1844 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:37:45,773 basehttp 18356 1844 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:37:45,793 views 18356 1844 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:37:45,794 log 18356 1844 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:37:45,795 basehttp 18356 1844 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:37:47,769 log 18356 3308 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:37:47,775 log 18356 1844 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:37:47,777 basehttp 18356 3308 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:37:47,777 basehttp 18356 1844 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:37:47,780 basehttp 18356 12524 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:37:47,814 basehttp 18356 12524 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:37:47,825 views 18356 12524 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:37:47,826 log 18356 12524 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:37:47,826 basehttp 18356 12524 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:37:47,834 views 18356 12524 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:37:47,835 log 18356 12524 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:37:47,837 basehttp 18356 12524 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:41:28,455 log 18356 16880 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:41:28,465 log 18356 11864 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:41:28,467 basehttp 18356 16880 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:41:28,487 basehttp 18356 11864 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:41:28,492 basehttp 18356 22188 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 11:41:28,492 basehttp 18356 3284 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:41:28,522 basehttp 18356 3284 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:41:28,532 basehttp 18356 22188 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 11:41:28,543 views 18356 11864 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:41:28,544 log 18356 11864 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:41:28,552 basehttp 18356 11864 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 11:41:28,552 basehttp 18356 22188 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:41:28,572 views 18356 22188 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:41:28,574 log 18356 22188 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:41:28,575 basehttp 18356 22188 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:41:33,570 log 18356 3284 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:41:33,581 log 18356 11864 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:41:33,586 basehttp 18356 3284 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:41:33,587 basehttp 18356 22188 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 11:41:33,587 basehttp 18356 11864 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:41:33,599 basehttp 18356 22188 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:41:33,609 views 18356 11864 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:41:33,610 log 18356 11864 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:41:33,611 basehttp 18356 11864 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:41:33,630 views 18356 11864 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:41:33,631 log 18356 11864 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:41:33,632 basehttp 18356 11864 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:41:35,603 log 18356 22188 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:41:35,609 log 18356 11864 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:41:35,616 basehttp 18356 11864 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:41:35,616 basehttp 18356 22188 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:41:35,625 basehttp 18356 3284 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:41:35,652 basehttp 18356 3284 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:41:35,676 views 18356 3284 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:41:35,678 log 18356 3284 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:41:35,679 basehttp 18356 3284 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:41:35,700 views 18356 3284 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:41:35,702 log 18356 3284 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:41:35,705 basehttp 18356 3284 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:42:37,432 log 18356 17196 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:42:37,441 log 18356 20920 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:42:37,447 basehttp 18356 20920 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:42:37,447 basehttp 18356 17196 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:42:37,448 basehttp 18356 25076 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:42:37,461 basehttp 18356 25076 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:42:37,470 views 18356 20920 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:42:37,471 log 18356 20920 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:42:37,472 basehttp 18356 20920 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:42:37,490 views 18356 20920 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:42:37,491 log 18356 20920 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:42:37,491 basehttp 18356 20920 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:43:15,455 log 18356 5400 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:43:15,466 log 18356 5252 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:43:15,467 basehttp 18356 5400 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:43:15,468 basehttp 18356 5252 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:43:15,477 basehttp 18356 10616 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:43:15,493 basehttp 18356 10616 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:43:15,503 views 18356 5252 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:43:15,504 log 18356 5252 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:43:15,505 basehttp 18356 5252 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:43:15,526 views 18356 5252 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:43:15,529 log 18356 5252 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:43:15,531 basehttp 18356 5252 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:43:17,503 log 18356 10616 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:43:17,511 log 18356 5252 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:43:17,515 basehttp 18356 10616 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:43:17,516 basehttp 18356 5252 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:43:17,524 basehttp 18356 5400 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:43:17,556 basehttp 18356 5400 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:43:17,578 views 18356 5400 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:43:17,580 log 18356 5400 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:43:17,581 basehttp 18356 5400 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:43:17,602 views 18356 5400 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:43:17,603 log 18356 5400 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:43:17,604 basehttp 18356 5400 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:45:34,463 log 18356 20588 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:45:34,464 log 18356 15748 Not Found: /api/users/certificates/
+INFO 2026-01-23 11:45:34,479 basehttp 18356 3020 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 11:45:34,479 basehttp 18356 20588 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:45:34,482 basehttp 18356 15748 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:45:34,484 basehttp 18356 11132 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 11:45:34,501 basehttp 18356 3020 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:45:34,520 basehttp 18356 3020 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 11:45:34,545 views 18356 11132 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:45:34,546 log 18356 11132 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:45:34,548 basehttp 18356 11132 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 11:45:34,563 basehttp 18356 11132 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:45:34,569 views 18356 3020 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:45:34,569 log 18356 3020 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:45:34,570 basehttp 18356 3020 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:45:41,892 log 18356 20588 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:45:41,897 log 18356 11132 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:45:41,903 basehttp 18356 20588 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:45:41,907 basehttp 18356 11132 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:45:41,906 basehttp 18356 3020 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:45:41,941 basehttp 18356 3020 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:45:41,949 views 18356 11132 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:45:41,956 log 18356 11132 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:45:41,958 basehttp 18356 11132 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:45:41,997 views 18356 11132 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:45:41,999 log 18356 11132 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:45:42,001 basehttp 18356 11132 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:45:43,930 log 18356 11132 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:45:43,940 log 18356 3020 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:45:43,941 basehttp 18356 11132 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:45:43,942 basehttp 18356 3020 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:45:43,960 basehttp 18356 11132 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:45:44,031 basehttp 18356 11132 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:45:44,052 views 18356 11132 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:45:44,055 log 18356 11132 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:45:44,055 basehttp 18356 11132 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:45:44,074 views 18356 11132 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:45:44,076 log 18356 11132 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:45:44,077 basehttp 18356 11132 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:53:10,473 log 18356 21084 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:53:10,484 log 18356 18324 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:53:10,486 basehttp 18356 21084 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:53:10,494 basehttp 18356 18324 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:53:10,509 basehttp 18356 18408 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:53:10,518 basehttp 18356 22544 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 11:53:10,526 basehttp 18356 18324 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:53:10,552 views 18356 18408 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+INFO 2026-01-23 11:53:10,553 basehttp 18356 22544 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 11:53:10,554 log 18356 18408 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:53:10,557 basehttp 18356 18408 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 11:53:10,570 basehttp 18356 18408 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:53:10,577 views 18356 22544 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:53:10,578 log 18356 22544 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:53:10,580 basehttp 18356 22544 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:54:34,831 log 18356 12224 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:54:34,837 basehttp 18356 12224 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:54:34,854 log 18356 3088 Not Found: /api/users/certificates/
+INFO 2026-01-23 11:54:34,856 basehttp 18356 16716 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 11:54:34,857 basehttp 18356 3088 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:54:34,887 basehttp 18356 16716 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:54:34,900 views 18356 3088 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:54:34,901 log 18356 3088 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:54:34,903 basehttp 18356 3088 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:54:34,931 views 18356 3088 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:54:34,932 log 18356 3088 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:54:34,933 basehttp 18356 3088 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:54:36,869 log 18356 3088 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:54:36,887 basehttp 18356 3088 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:54:36,886 log 18356 16716 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:54:36,890 basehttp 18356 16716 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:54:36,914 basehttp 18356 16716 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:54:36,951 basehttp 18356 16716 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:54:36,978 views 18356 16716 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:54:36,979 log 18356 16716 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:54:36,981 basehttp 18356 16716 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:54:37,005 views 18356 16716 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:54:37,006 log 18356 16716 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:54:37,007 basehttp 18356 16716 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:56:17,419 log 18356 20400 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:56:17,433 log 18356 15472 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:56:17,435 basehttp 18356 20400 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:56:17,444 basehttp 18356 15472 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:56:17,459 basehttp 18356 25256 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:56:17,478 basehttp 18356 19844 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 11:56:17,495 basehttp 18356 25256 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:56:17,516 views 18356 15472 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:56:17,517 log 18356 15472 Internal Server Error: /api/events/stats/
+INFO 2026-01-23 11:56:17,520 basehttp 18356 19844 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 11:56:17,521 basehttp 18356 15472 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 11:56:17,540 basehttp 18356 15472 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:56:17,547 views 18356 19844 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:56:17,548 log 18356 19844 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:56:17,549 basehttp 18356 19844 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:56:18,466 log 18356 15472 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:56:18,472 log 18356 19844 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:56:18,473 basehttp 18356 19844 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:56:18,473 basehttp 18356 15472 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:56:18,516 basehttp 18356 15472 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:56:18,568 basehttp 18356 15472 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:56:18,591 views 18356 15472 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:56:18,592 log 18356 15472 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:56:18,593 basehttp 18356 15472 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:56:18,616 views 18356 15472 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:56:18,617 log 18356 15472 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:56:18,618 basehttp 18356 15472 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:56:20,499 log 18356 15472 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:56:20,505 log 18356 19844 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:56:20,508 basehttp 18356 19844 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:56:20,509 basehttp 18356 15472 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:56:20,544 basehttp 18356 15472 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:56:20,636 basehttp 18356 15472 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:56:20,656 views 18356 15472 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:56:20,658 log 18356 15472 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:56:20,659 basehttp 18356 15472 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:56:20,678 views 18356 15472 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:56:20,679 log 18356 15472 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:56:20,680 basehttp 18356 15472 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:57:30,432 log 18356 4248 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:57:30,441 log 18356 8864 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:57:30,442 basehttp 18356 4248 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:57:30,443 basehttp 18356 8864 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:57:30,449 basehttp 18356 3120 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:57:30,463 basehttp 18356 3120 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:57:30,476 views 18356 8864 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:57:30,477 log 18356 8864 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:57:30,478 basehttp 18356 8864 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:57:30,497 views 18356 8864 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:57:30,498 log 18356 8864 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:57:30,499 basehttp 18356 8864 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:58:11,836 log 18356 18532 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:58:11,849 log 18356 5616 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:58:11,857 basehttp 18356 18532 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:58:11,857 basehttp 18356 5616 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:58:11,858 basehttp 18356 21632 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:58:11,883 basehttp 18356 18532 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:58:11,892 views 18356 5616 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:58:11,893 log 18356 5616 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:58:11,894 basehttp 18356 5616 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:58:11,910 views 18356 5616 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:58:11,911 log 18356 5616 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:58:11,914 basehttp 18356 5616 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:58:14,207 log 18356 12584 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:58:14,222 log 18356 14840 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:58:14,226 basehttp 18356 12584 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:58:14,229 basehttp 18356 14840 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:58:14,241 basehttp 18356 25360 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:58:14,255 basehttp 18356 25360 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:58:14,274 views 18356 25360 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:58:14,275 log 18356 25360 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:58:14,276 basehttp 18356 25360 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 11:58:14,292 views 18356 25360 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:58:14,293 log 18356 25360 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:58:14,295 basehttp 18356 25360 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 11:59:16,476 log 18356 20248 Not Found: /api/users/achievements/
+WARNING 2026-01-23 11:59:16,486 log 18356 15832 Not Found: /api/users/certificates/
+WARNING 2026-01-23 11:59:16,488 basehttp 18356 20248 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 11:59:16,489 basehttp 18356 15832 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 11:59:16,506 basehttp 18356 19028 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:59:16,507 basehttp 18356 6764 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 11:59:16,533 basehttp 18356 19028 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 11:59:16,550 basehttp 18356 15832 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 11:59:16,553 views 18356 6764 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 11:59:16,554 log 18356 6764 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 11:59:16,555 basehttp 18356 6764 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 11:59:16,569 basehttp 18356 15832 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 11:59:16,576 views 18356 6764 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 11:59:16,577 log 18356 6764 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 11:59:16,578 basehttp 18356 6764 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:00:25,904 log 18356 10416 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:00:25,916 log 18356 12508 Not Found: /api/users/certificates/
+INFO 2026-01-23 12:00:25,925 basehttp 18356 22292 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 12:00:25,926 basehttp 18356 12508 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:00:25,926 basehttp 18356 10416 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:00:25,947 basehttp 18356 10416 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:00:25,958 views 18356 12508 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:00:25,959 log 18356 12508 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:00:25,960 basehttp 18356 12508 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:00:25,980 views 18356 12508 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:00:25,981 log 18356 12508 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:00:25,982 basehttp 18356 12508 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:00:28,263 log 18356 6700 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:00:28,273 log 18356 6068 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:00:28,276 basehttp 18356 6700 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:00:28,276 basehttp 18356 6068 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:00:28,289 basehttp 18356 15804 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:00:28,303 basehttp 18356 15804 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:00:28,325 views 18356 15804 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:00:28,327 log 18356 15804 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:00:28,329 basehttp 18356 15804 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:00:28,349 views 18356 15804 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:00:28,350 log 18356 15804 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:00:28,351 basehttp 18356 15804 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:01:41,454 log 18356 6512 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:01:41,462 log 18356 7196 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:01:41,478 basehttp 18356 6512 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:01:41,478 basehttp 18356 7196 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:01:41,482 basehttp 18356 21016 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:01:41,482 basehttp 18356 8212 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 12:01:41,503 basehttp 18356 21016 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:01:41,517 views 18356 8212 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:01:41,519 log 18356 8212 Internal Server Error: /api/events/stats/
+INFO 2026-01-23 12:01:41,519 basehttp 18356 7196 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 12:01:41,520 basehttp 18356 8212 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:01:41,538 basehttp 18356 8212 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:01:41,547 views 18356 7196 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:01:41,547 log 18356 7196 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:01:41,548 basehttp 18356 7196 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:02:26,601 log 18356 3964 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:02:26,610 log 18356 9696 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:02:26,619 basehttp 18356 3964 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:02:26,620 basehttp 18356 9696 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:02:26,620 basehttp 18356 11776 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:02:26,642 basehttp 18356 11776 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:02:26,647 views 18356 9696 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:02:26,648 log 18356 9696 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:02:26,649 basehttp 18356 9696 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:02:26,669 views 18356 9696 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:02:26,670 log 18356 9696 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:02:26,671 basehttp 18356 9696 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:02:28,660 log 18356 11776 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:02:28,665 log 18356 9696 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:02:28,666 basehttp 18356 11776 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:02:28,668 basehttp 18356 9696 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:02:28,678 basehttp 18356 3964 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:02:28,694 basehttp 18356 3964 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:02:28,719 views 18356 3964 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:02:28,721 log 18356 3964 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:02:28,722 basehttp 18356 3964 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:02:28,746 views 18356 3964 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:02:28,747 log 18356 3964 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:02:28,748 basehttp 18356 3964 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:03:10,495 basehttp 18356 21876 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 12:03:10,513 log 18356 21672 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:03:10,527 log 18356 16884 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:03:10,528 basehttp 18356 21672 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:03:10,528 basehttp 18356 16884 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:03:10,537 basehttp 18356 21876 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:03:10,559 views 18356 16884 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:03:10,560 log 18356 16884 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:03:10,560 basehttp 18356 16884 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:03:10,580 views 18356 16884 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:03:10,581 log 18356 16884 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:03:10,582 basehttp 18356 16884 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:03:35,447 log 18356 18036 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:03:35,471 log 18356 22104 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:03:35,471 basehttp 18356 18036 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:03:35,478 basehttp 18356 22104 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:03:35,478 basehttp 18356 13780 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:03:35,507 basehttp 18356 13780 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:03:35,515 views 18356 22104 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:03:35,516 log 18356 22104 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:03:35,517 basehttp 18356 22104 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:03:35,548 views 18356 22104 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:03:35,550 log 18356 22104 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:03:35,552 basehttp 18356 22104 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:03:37,515 log 18356 22104 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:03:37,520 log 18356 13780 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:03:37,529 basehttp 18356 22104 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:03:37,532 basehttp 18356 13780 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:03:37,544 basehttp 18356 18036 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:03:37,584 basehttp 18356 18036 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:03:37,625 views 18356 18036 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:03:37,627 log 18356 18036 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:03:37,628 basehttp 18356 18036 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:03:37,658 views 18356 18036 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:03:37,660 log 18356 18036 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:03:37,661 basehttp 18356 18036 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:04:19,520 log 18356 17096 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:04:19,530 log 18356 15964 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:04:19,531 basehttp 18356 17096 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:04:19,545 basehttp 18356 17316 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 12:04:19,546 basehttp 18356 15964 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:04:19,558 basehttp 18356 6140 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 12:04:19,571 basehttp 18356 17316 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:04:19,597 basehttp 18356 17316 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:04:19,597 basehttp 18356 6140 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+ERROR 2026-01-23 12:04:19,606 views 18356 15964 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:04:19,607 log 18356 15964 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:04:19,610 basehttp 18356 15964 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:04:19,623 basehttp 18356 17316 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:04:19,639 views 18356 6140 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:04:19,640 views 18356 15964 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:04:19,641 log 18356 6140 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:04:19,642 log 18356 15964 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:04:19,643 basehttp 18356 15964 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:04:19,643 basehttp 18356 6140 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:04:19,664 views 18356 15964 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:04:19,665 log 18356 15964 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:04:19,666 basehttp 18356 15964 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:04:25,435 basehttp 18356 7396 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 12:04:33,114 log 18356 7396 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:04:33,121 log 18356 16900 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:04:33,122 basehttp 18356 7396 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:04:33,122 basehttp 18356 16900 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:04:48,070 log 18356 21256 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:04:48,081 log 18356 18128 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:04:48,085 basehttp 18356 21256 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:04:48,105 basehttp 18356 18128 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:04:48,109 basehttp 18356 6632 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:04:48,131 basehttp 18356 18128 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:04:48,169 views 18356 6632 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:04:48,171 log 18356 6632 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:04:48,173 basehttp 18356 6632 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:04:48,210 views 18356 6632 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:04:48,211 log 18356 6632 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:04:48,212 basehttp 18356 6632 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:04:50,111 log 18356 6632 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:04:50,114 basehttp 18356 6632 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:04:50,125 log 18356 6632 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:04:50,127 basehttp 18356 6632 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:04:50,156 basehttp 18356 6632 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:04:50,238 basehttp 18356 6632 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:04:50,256 views 18356 6632 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:04:50,257 log 18356 6632 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:04:50,258 basehttp 18356 6632 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:04:50,275 views 18356 6632 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:04:50,276 log 18356 6632 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:04:50,277 basehttp 18356 6632 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:05:34,494 log 18356 20416 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:05:34,501 log 18356 1960 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:05:34,502 basehttp 18356 20416 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:05:34,508 basehttp 18356 1960 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:05:34,509 basehttp 18356 9188 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:05:34,527 basehttp 18356 9188 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:05:34,540 views 18356 1960 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:05:34,541 log 18356 1960 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:05:34,542 basehttp 18356 1960 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:05:34,565 views 18356 1960 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:05:34,566 log 18356 1960 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:05:34,567 basehttp 18356 1960 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+WARNING 2026-01-23 12:06:22,552 log 18356 928 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:06:22,564 log 18356 23536 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:06:22,566 basehttp 18356 928 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:06:22,574 basehttp 18356 23536 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:06:22,575 basehttp 18356 21948 "GET /api/auth/profile/ HTTP/1.1" 200 377
+INFO 2026-01-23 12:06:22,616 basehttp 18356 21948 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:06:22,634 views 18356 23536 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:06:22,639 log 18356 23536 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:06:22,647 basehttp 18356 23536 "GET /api/events/stats/ HTTP/1.1" 500 52
+ERROR 2026-01-23 12:06:22,686 views 18356 23536 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:06:22,687 log 18356 23536 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:06:22,689 basehttp 18356 23536 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:06:58,499 basehttp 18356 23280 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 12:06:58,517 basehttp 18356 23280 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 12:06:58,534 basehttp 18356 23280 "GET /api/auth/profile/ HTTP/1.1" 200 377
+WARNING 2026-01-23 12:09:53,510 log 18356 11200 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:09:53,511 basehttp 18356 11200 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:09:54,545 log 18356 11200 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:09:54,547 basehttp 18356 11200 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:09:56,579 log 18356 11200 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:09:56,582 basehttp 18356 11200 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:10:21,685 log 18356 11200 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:10:21,689 basehttp 18356 11200 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:10:22,711 log 18356 11200 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:10:22,714 basehttp 18356 11200 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:10:24,738 log 18356 11200 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:10:24,740 basehttp 18356 11200 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:16:03,386 log 18356 13256 Not Found: /api/placeholder/800/600
+WARNING 2026-01-23 12:16:03,388 basehttp 18356 13256 "GET /api/placeholder/800/600 HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:16:06,897 log 18356 14224 Not Found: /api/placeholder/800/600
+WARNING 2026-01-23 12:16:06,898 basehttp 18356 14224 "GET /api/placeholder/800/600 HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:23:41,292 log 18356 7396 Not Found: /api/users/achievements/
+WARNING 2026-01-23 12:23:41,316 basehttp 18356 7396 "GET /api/users/achievements/ HTTP/1.1" 404 3709
+WARNING 2026-01-23 12:23:41,332 log 18356 14968 Not Found: /api/users/certificates/
+WARNING 2026-01-23 12:23:41,335 basehttp 18356 14968 "GET /api/users/certificates/ HTTP/1.1" 404 3709
+INFO 2026-01-23 12:23:41,336 basehttp 18356 22044 "GET /api/events/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 12:23:41,350 basehttp 18356 15356 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:23:41,360 views 18356 15628 Event stats error: "Got KeyError when attempting to get a value for field `my_registrations` on serializer `EventStatsSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'my_registrations'."
+ERROR 2026-01-23 12:23:41,362 log 18356 15628 Internal Server Error: /api/events/stats/
+ERROR 2026-01-23 12:23:41,364 basehttp 18356 15628 "GET /api/events/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:23:41,390 basehttp 18356 15628 "GET /api/clubs/?ordering=-created_at&limit=5 HTTP/1.1" 200 52
+INFO 2026-01-23 12:23:41,412 basehttp 18356 15628 "GET /api/auth/profile/ HTTP/1.1" 200 377
+ERROR 2026-01-23 12:23:41,415 views 18356 15356 Club stats error: no such function: DATE_FORMAT
+ERROR 2026-01-23 12:23:41,416 log 18356 15356 Internal Server Error: /api/clubs/stats/
+ERROR 2026-01-23 12:23:41,417 basehttp 18356 15356 "GET /api/clubs/stats/ HTTP/1.1" 500 52
+INFO 2026-01-23 12:23:42,437 basehttp 18356 15628 "OPTIONS /api/admin/api/user-stats/ HTTP/1.1" 200 0
+INFO 2026-01-23 12:23:42,441 basehttp 18356 22044 "OPTIONS /api/admin/api/recent-activities/ HTTP/1.1" 200 0
+INFO 2026-01-23 12:23:42,442 basehttp 18356 14968 "OPTIONS /api/admin/api/proposal-stats/ HTTP/1.1" 200 0
+INFO 2026-01-23 12:23:42,442 basehttp 18356 15356 "OPTIONS /api/admin/api/dashboard-stats/ HTTP/1.1" 200 0
+INFO 2026-01-23 12:23:42,446 basehttp 18356 7396 "OPTIONS /api/admin/api/upcoming-events/ HTTP/1.1" 200 0
+INFO 2026-01-23 12:23:42,446 basehttp 18356 13180 "OPTIONS /api/admin/api/system-health/ HTTP/1.1" 200 0
+WARNING 2026-01-23 12:23:42,465 log 18356 22044 Not Found: /api/admin/api/user-stats/
+WARNING 2026-01-23 12:23:42,469 log 18356 15628 Not Found: /api/admin/api/recent-activities/
+WARNING 2026-01-23 12:23:42,481 log 18356 14968 Not Found: /api/admin/api/proposal-stats/
+WARNING 2026-01-23 12:23:42,495 log 18356 7396 Not Found: /api/admin/api/upcoming-events/
+WARNING 2026-01-23 12:23:42,511 log 18356 15356 Not Found: /api/admin/api/dashboard-stats/
+WARNING 2026-01-23 12:23:42,512 basehttp 18356 22044 "GET /api/admin/api/user-stats/ HTTP/1.1" 404 3715
+WARNING 2026-01-23 12:23:42,524 log 18356 13180 Not Found: /api/admin/api/system-health/
+WARNING 2026-01-23 12:23:42,527 basehttp 18356 15628 "GET /api/admin/api/recent-activities/ HTTP/1.1" 404 3736
+WARNING 2026-01-23 12:23:42,528 basehttp 18356 14968 "GET /api/admin/api/proposal-stats/ HTTP/1.1" 404 3727
+WARNING 2026-01-23 12:23:42,530 basehttp 18356 7396 "GET /api/admin/api/upcoming-events/ HTTP/1.1" 404 3730
+WARNING 2026-01-23 12:23:42,532 basehttp 18356 15356 "GET /api/admin/api/dashboard-stats/ HTTP/1.1" 404 3730
+WARNING 2026-01-23 12:23:42,534 basehttp 18356 13180 "GET /api/admin/api/system-health/ HTTP/1.1" 404 3724

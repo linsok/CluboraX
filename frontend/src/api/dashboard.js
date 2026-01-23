@@ -1,10 +1,14 @@
 import { apiClient } from './client'
 
 // Dashboard statistics
-export const getDashboardStats = async () => {
+export const getDashboardStats = async (user = null) => {
   try {
-    const response = await apiClient.get('/api/auth/profile/')
-    const user = response.data.data
+    // Use provided user or fetch from API
+    let userData = user
+    if (!userData) {
+      const response = await apiClient.get('/api/auth/profile/')
+      userData = response.data.data
+    }
     
     // Get user-specific statistics based on role
     const stats = {
@@ -16,6 +20,10 @@ export const getDashboardStats = async () => {
       activeClubs: 0,
       totalRegistrations: 0,
       pendingApprovals: 0,
+      myEvents: 0,
+      myRegistrations: 0,
+      totalAttendees: 0,
+      revenue: 0,
       systemHealth: {
         status: 'healthy',
         database: 'connected',
@@ -46,7 +54,7 @@ export const getDashboardStats = async () => {
     }
 
     // Get user count (admin only)
-    if (user.role === 'admin') {
+    if (userData.role === 'admin') {
       try {
         const usersResponse = await apiClient.get('/api/auth/users/')
         stats.totalUsers = usersResponse.data.count || 0
@@ -57,7 +65,7 @@ export const getDashboardStats = async () => {
     }
 
     // Get pending approvals for admins/approvers
-    if (user.role === 'admin' || user.role === 'approver') {
+    if (userData.role === 'admin' || userData.role === 'approver') {
       try {
         const eventsApprovalResponse = await apiClient.get('/api/events/approvals/')
         const clubsApprovalResponse = await apiClient.get('/api/clubs/approvals/')

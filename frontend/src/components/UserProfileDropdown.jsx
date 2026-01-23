@@ -113,7 +113,6 @@ const UserProfileDropdown = ({ user }) => {
                   <div className="flex-1">
                     <h3 className="text-lg font-bold">{user?.name || 'John Doe'}</h3>
                     <p className="text-sm text-blue-100">{user?.email || 'john.doe@campus.edu'}</p>
-                    <p className="text-xs text-blue-200 mt-1">{user?.major || 'Computer Science'} • {user?.year || 'Senior'}</p>
                   </div>
                 </div>
               </div>
