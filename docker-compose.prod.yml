@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: campus_db_prod
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-campus_management}
+      MYSQL_USER: ${DB_USER:-campus_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - campus_network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: campus_redis_prod
+    networks:
+      - campus_network
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY:-linsok/CluboraX}-backend:latest
+    container_name: campus_backend_prod
+    environment:
+      - DEBUG=0
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-campus_management}
+      - DB_USER=${DB_USER:-campus_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+    depends_on:
+      - db
+      - redis
+    networks:
+      - campus_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY:-linsok/CluboraX}-frontend:latest
+    container_name: campus_frontend_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - campus_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery worker for background tasks
+  celery-worker:
+    image: ghcr.io/${GITHUB_REPOSITORY:-linsok/CluboraX}-backend:latest
+    container_name: campus_celery_worker
+    command: celery -A campus_management worker --loglevel=info
+    environment:
+      - DEBUG=0
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-campus_management}
+      - DB_USER=${DB_USER:-campus_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      - db
+      - redis
+    networks:
+      - campus_network
+    restart: unless-stopped
+
+  # Celery beat for scheduled tasks
+  celery-beat:
+    image: ghcr.io/${GITHUB_REPOSITORY:-linsok/CluboraX}-backend:latest
+    container_name: campus_celery_beat
+    command: celery -A campus_management beat --loglevel=info
+    environment:
+      - DEBUG=0
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-campus_management}
+      - DB_USER=${DB_USER:-campus_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      - db
+      - redis
+    networks:
+      - campus_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  campus_network:
+    driver: bridge
