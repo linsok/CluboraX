@@ -27,7 +27,7 @@ THIRD_PARTY_APPS = [
     'rest_framework',
     'corsheaders',
     'drf_spectacular',
-    'django_extensions',
+    # 'django_extensions',
     'phonenumber_field',
     'allauth',
     'allauth.account',
@@ -46,6 +46,7 @@ LOCAL_APPS = [
     'apps.core',
     'apps.admin_panel',
     'apps.ai_advisor',
+    'apps.proposals',
 ]
 
 # Put users app before allauth apps to ensure proper migration order
@@ -103,9 +104,9 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
-    ],
+    # 'DEFAULT_FILTER_BACKENDS': [
+    #     'django_filters.rest_framework.DjangoFilterBackend',
+    # ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
@@ -115,11 +116,8 @@ REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
 # Cache Configuration
 CACHES = {
     'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': REDIS_URL,
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
     }
 }
 
