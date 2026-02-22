@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '../api/client'
+import FloatingChatbot from '../components/FloatingChatbot'
 import { 
   PhotoIcon, 
   HeartIcon, 
@@ -149,214 +152,38 @@ const Gallery = () => {
     setShowUploadModal(false)
   }
 
-  const galleryItems = [
-    {
-      id: 1,
-      title: 'Annual Tech Fest',
-      category: 'Events',
-      description: 'Students showcasing their innovative projects',
-      longDescription: 'The Annual Tech Fest is a celebration of innovation and creativity where students from various departments showcase their cutting-edge projects, prototypes, and research work. This year\'s event featured over 50 projects ranging from AI applications to sustainable technology solutions.',
-      imageUrl: 'https://media.istockphoto.com/id/1783743688/photo/mature-businesswoman-taking-notes-while-participating-in-an-education-event-at-convention.jpg?s=612x612&w=0&k=20&c=i8VV32QPd3oRvyt6x8au1K31WS711hzdXtTExXfhR2Y=',
-      images: [
-        'https://media.istockphoto.com/id/1783743772/photo/female-speaker-giving-a-presentation-during-business-seminar-at-convention-center.jpg?s=612x612&w=0&k=20&c=T0Sit9sSbrafPXlY0vjadvEf-dyI8-t4uTY5W1TFzWU=',
-        'https://media.istockphoto.com/id/1783743688/photo/mature-businesswoman-taking-notes-while-participating-in-an-education-event-at-convention.jpg?s=612x612&w=0&k=20&c=i8VV32QPd3oRvyt6x8au1K31WS711hzdXtTExXfhR2Y=',
-        'https://www.shutterstock.com/image-photo/female-speaker-giving-talk-on-260nw-2480862361.jpg',
-        'https://img.freepik.com/free-photo/close-up-people-business-meeting_23-2149304767.jpg?semt=ais_hybrid&w=740&q=80',
-        'https://img.freepik.com/free-photo/woman-giving-lecture-audience_1262-735.jpg?semt=ais_hybrid&w=740&q=80',
-        'https://img.freepik.com/premium-photo/speaker-giving-talk-corporate-business-conference-unrecognizable-people-audience-confere_939033-19359.jpg',
-        'https://statics.forbesargentina.com/2024/03/crop/66033457e67d8__980x549.webp',
-        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTKeK0zZtnwEfLrLGX9YgvpbYOL1QP2pqFo_w&s'
-      ],
-      likes: 245,
-      comments: 32,
-      author: 'Photography Club',
-      date: '2024-01-15',
-      eventDate: '2024-01-15',
-      eventLocation: 'Main Auditorium',
-      eventDuration: 'Full Day',
-      participants: 150,
-      tags: ['Technology', 'Innovation', 'Projects', 'AI', 'Robotics'],
-      organizer: 'Computer Science Department',
-      highlights: [
-        'AI-powered smart home automation system',
-        'Sustainable energy solutions',
-        'Virtual reality campus tour',
-        'Student startup pitches'
-      ]
+  const { data: galleryItemsRaw = [], isLoading: galleryLoading } = useQuery({
+    queryKey: ['gallery'],
+    queryFn: async () => {
+      const res = await apiClient.get('/api/gallery/?is_public=true&ordering=-created_at')
+      const raw = res.data?.results || (Array.isArray(res.data) ? res.data : [])
+      return raw.map(g => ({
+        id: g.id,
+        title: g.title,
+        category: g.gallery_type_display || g.gallery_type || 'General',
+        description: g.description || '',
+        longDescription: g.description || '',
+        imageUrl: g.cover_image_url || 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=400&h=300&fit=crop',
+        images: g.cover_image_url ? [g.cover_image_url] : [],
+        likes: g.total_likes || 0,
+        comments: g.total_comments || 0,
+        author: g.created_by?.full_name || g.created_by?.username || 'Campus',
+        date: g.date_taken || (g.created_at ? g.created_at.substring(0, 10) : ''),
+        eventDate: g.date_taken || '',
+        eventLocation: g.location || '',
+        eventDuration: '',
+        participants: 0,
+        tags: Array.isArray(g.tags) ? g.tags : [],
+        organizer: g.created_by?.full_name || '',
+        highlights: [],
+      }))
     },
-    {
-      id: 2,
-      title: 'Sports Day 2024',
-      category: 'Sports',
-      description: 'Annual sports competition highlights',
-      longDescription: 'Sports Day 2024 brought together students from all faculties for a day of friendly competition and sportsmanship. Events included track and field, basketball, volleyball, chess, and various fun activities promoting physical fitness and team spirit.',
-      imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-      images: [
-        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1547153760-18fc86324498?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1576610616656-d3aa5d1f4534?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=800&h=600&fit=crop'
-      ],
-      likes: 189,
-      comments: 28,
-      author: 'Sports Club',
-      date: '2024-01-10',
-      eventDate: '2024-01-10',
-      eventLocation: 'Sports Complex',
-      eventDuration: 'Full Day',
-      participants: 200,
-      tags: ['Athletics', 'Competition', 'Team Sports', 'Fitness'],
-      organizer: 'Sports Department',
-      highlights: [
-        'Track and field records broken',
-        'Basketball championship finals',
-        'Chess tournament winners',
-        'Fun relay races'
-      ]
-    },
-    {
-      id: 3,
-      title: 'Cultural Festival',
-      category: 'Cultural',
-      description: 'Celebrating diversity through cultural performances',
-      longDescription: 'The Cultural Festival celebrated the rich diversity of our campus community through music, dance, drama, and traditional performances from around the world. Students showcased their cultural heritage while learning about others.',
-      imageUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop',
-      images: [
-        'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1429962714457-bb9342d97e9b?w=800&h=600&fit=crop'
-      ],
-      likes: 312,
-      comments: 45,
-      author: 'Cultural Club',
-      date: '2024-01-08',
-      eventDate: '2024-01-08',
-      eventLocation: 'Open Air Theater',
-      eventDuration: '3 Days',
-      participants: 500,
-      tags: ['Music', 'Dance', 'Drama', 'Tradition', 'Diversity'],
-      organizer: 'Cultural Affairs Committee',
-      highlights: [
-        'Traditional dance performances',
-        'International food festival',
-        'Fashion show',
-        'Cultural exhibitions'
-      ]
-    },
-    {
-      id: 4,
-      title: 'Coding Competition',
-      category: 'Academic',
-      description: 'Students participating in hackathon',
-      longDescription: 'The 24-hour coding competition challenged students to develop innovative solutions to real-world problems. Teams worked around the clock to create impressive software applications, mobile apps, and web platforms.',
-      imageUrl: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=300&fit=crop',
-      images: [
-        'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1517077304085-24e8e5b9b4ab?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=800&h=600&fit=crop'
-      ],
-      likes: 156,
-      comments: 23,
-      author: 'Computer Science Club',
-      date: '2024-01-05',
-      eventDate: '2024-01-05',
-      eventLocation: 'Tech Building',
-      eventDuration: '24 Hours',
-      participants: 80,
-      tags: ['Programming', 'Hackathon', 'Innovation', 'Competition'],
-      organizer: 'Computer Science Department',
-      highlights: [
-        'Winning healthcare app',
-        'Campus navigation system',
-        'E-commerce platform',
-        'AI chatbot assistant'
-      ]
-    },
-    {
-      id: 5,
-      title: 'Music Concert',
-      category: 'Arts',
-      description: 'Annual music concert featuring student performances',
-      longDescription: 'The Annual Music Concert showcased the incredible musical talent of our students. From classical orchestral pieces to contemporary bands, the evening was filled with diverse musical performances that captivated the audience.',
-      imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop',
-      images: [
-        'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1469371670267-1f06e9dbb0c5?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1471478331149-c72f17e33c73?w=800&h=600&fit=crop'
-      ],
-      likes: 278,
-      comments: 41,
-      author: 'Music Club',
-      date: '2024-01-03',
-      eventDate: '2024-01-03',
-      eventLocation: 'Auditorium',
-      eventDuration: '3 Hours',
-      participants: 300,
-      tags: ['Music', 'Performance', 'Concert', 'Entertainment'],
-      organizer: 'Music Department',
-      highlights: [
-        'Orchestra performance',
-        'Student bands showcase',
-        'Solo vocal performances',
-        'Jazz ensemble'
-      ]
-    },
-    {
-      id: 6,
-      title: 'Art Exhibition',
-      category: 'Arts',
-      description: 'Student artwork display in the campus gallery',
-      longDescription: 'The Art Exhibition featured over 100 pieces of student artwork including paintings, sculptures, digital art, photography, and mixed media installations. The exhibition provided a platform for students to express their creativity and artistic vision.',
-      imageUrl: 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=400&h=300&fit=crop',
-      images: [
-        'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1549490349-8643362247b5?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1578321272176-b7bbc0679853?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1577720643272-265f09367456?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1513245593220-2bda074ac092?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=800&h=600&fit=crop'
-      ],
-      likes: 201,
-      comments: 29,
-      author: 'Fine Arts Club',
-      date: '2024-01-01',
-      eventDate: '2024-01-01',
-      eventLocation: 'Campus Art Gallery',
-      eventDuration: '2 Weeks',
-      participants: 75,
-      tags: ['Art', 'Exhibition', 'Painting', 'Sculpture', 'Photography'],
-      organizer: 'Fine Arts Department',
-      highlights: [
-        'Digital art showcase',
-        'Photography collection',
-        '3D sculpture display',
-        'Student paintings gallery'
-      ]
-    }
-  ]
+    staleTime: 5 * 60 * 1000,
+  })
 
-  const categories = ['all', 'Events', 'Sports', 'Cultural', 'Academic', 'Arts']
+  const galleryItems = galleryItemsRaw
+
+  const categories = ['all', 'Event', 'Club', 'General', 'Achievement', 'Campus Life']
 
   // Filter gallery items based on search and category
   const filteredItems = galleryItems.filter(item => {
@@ -821,7 +648,7 @@ const Gallery = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col"
             >
               {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
@@ -840,9 +667,8 @@ const Gallery = () => {
               </div>
 
               {/* Image Gallery */}
-              <div className="flex-1 bg-black overflow-hidden">
-                <div className="h-full overflow-y-auto">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+              <div className="flex-1 bg-black overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                     {selectedItem.images.map((image, index) => (
                       <div 
                         key={index}
@@ -871,7 +697,6 @@ const Gallery = () => {
                     ))}
                   </div>
                 </div>
-              </div>
 
               {/* Footer */}
               <div className="p-4 border-t border-gray-200 bg-white">
@@ -915,6 +740,66 @@ const Gallery = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <div 
+        style={{
+          position: 'relative',
+          background: 'linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(/img/home.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          color: 'white',
+          padding: 'calc(6rem + 60px) 2rem 5.5rem',
+          textAlign: 'center',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Curved bottom shape */}
+        <div 
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: '100%',
+            height: '60px',
+            background: '#f9fafb',
+            borderRadius: '100% 100% 0 0 / 80px 80px 0 0'
+          }}
+        />
+        
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            style={{
+              fontSize: '0.95rem',
+              marginBottom: '0.5rem',
+              opacity: 0.9,
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              fontWeight: 500
+            }}
+          >
+            Explore Memories
+          </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            style={{
+              fontSize: '2.5rem',
+              marginBottom: '1rem',
+              fontWeight: 700,
+              textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
+            }}
+          >
+            Campus <span style={{ color: '#667eea' }}>Gallery</span>
+          </motion.h1>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
@@ -922,7 +807,7 @@ const Gallery = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Campus Gallery</h1>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Event Gallery</h2>
           <p className="text-gray-600">Explore moments from campus life</p>
         </motion.div>
 
@@ -962,7 +847,19 @@ const Gallery = () => {
 
         {/* Gallery Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredItems.map((item, index) => (
+          {galleryLoading ? (
+            <div className="col-span-3 text-center py-16 text-gray-500">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p>Loading gallery...</p>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="col-span-3 text-center py-16 text-gray-500">
+              <PhotoIcon className="h-16 w-16 mx-auto mb-4 opacity-30" />
+              <p className="text-xl font-medium">No gallery items found</p>
+              <p className="text-sm mt-1">Check back after events have been photographed</p>
+            </div>
+          ) : (
+          filteredItems.map((item, index) => (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, y: 20 }}
@@ -1034,7 +931,8 @@ const Gallery = () => {
                 </div>
               </div>
             </motion.div>
-          ))}
+          ))
+          )}
         </div>
 
         {/* Upload Button - Only for Organizers */}
@@ -1059,6 +957,9 @@ const Gallery = () => {
       <AnimatePresence>
         {showUploadModal && <UploadModal />}
       </AnimatePresence>
+
+      {/* Floating Chatbot Button */}
+      <FloatingChatbot />
     </div>
   )
 }

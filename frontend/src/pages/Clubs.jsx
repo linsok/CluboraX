@@ -1,26 +1,292 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserGroupIcon, PlusIcon, MagnifyingGlassIcon, CalendarIcon, XMarkIcon, CheckCircleIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '../api/client'
+import FloatingChatbot from '../components/FloatingChatbot'
+
+// ── Stable top-level modal components – defined outside Clubs so React never
+// ── sees a new component type on re-render, preventing focus-loss flicker ──
+
+const JoinRequestModal = React.memo(({ show, selectedClub, onClose }) => {
+  const nameRef = useRef()
+  const emailRef = useRef()
+  const studentIdRef = useRef()
+  const majorRef = useRef()
+  const [year, setYear] = useState('')
+  const messageRef = useRef()
+
+  const handleSubmit = useCallback((e) => {
+    e.preventDefault()
+    const name = nameRef.current?.value.trim()
+    const email = emailRef.current?.value.trim()
+    if (!name) { toast.error('Name is required'); return }
+    if (!email) { toast.error('Email is required'); return }
+    if (!/\S+@\S+\.\S+/.test(email)) { toast.error('Please enter a valid email'); return }
+    toast.success(`Join request sent to ${selectedClub.name}!`)
+    if (nameRef.current) nameRef.current.value = ''
+    if (emailRef.current) emailRef.current.value = ''
+    if (studentIdRef.current) studentIdRef.current.value = ''
+    if (majorRef.current) majorRef.current.value = ''
+    if (messageRef.current) messageRef.current.value = ''
+    setYear('')
+    onClose()
+  }, [selectedClub, onClose])
+
+  if (!show || !selectedClub) return null
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        >
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold mb-1">Join Club Request</h2>
+                <p className="text-purple-100">{selectedClub.name}</p>
+              </div>
+              <button onClick={onClose} className="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                <input ref={nameRef} type="text" placeholder="Enter your full name" required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                <input ref={emailRef} type="email" placeholder="Enter your email" required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Student ID</label>
+                <input ref={studentIdRef} type="text" placeholder="Enter your student ID"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Major</label>
+                <input ref={majorRef} type="text" placeholder="Enter your major"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                <select value={year} onChange={e => setYear(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  <option value="">Select year</option>
+                  <option value="Freshman">Freshman</option>
+                  <option value="Sophomore">Sophomore</option>
+                  <option value="Junior">Junior</option>
+                  <option value="Senior">Senior</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Message (Optional)</label>
+              <textarea ref={messageRef} rows={4} placeholder="Tell us why you want to join this club..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none" />
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-2">Club Information</h3>
+              <div className="space-y-1 text-sm text-gray-600">
+                <p><span className="font-medium">Club:</span> {selectedClub.name}</p>
+                <p><span className="font-medium">Category:</span> {selectedClub.category}</p>
+                <p><span className="font-medium">Current Members:</span> {selectedClub.members}</p>
+                <p><span className="font-medium">Events:</span> {selectedClub.events}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
+              <button type="button" onClick={onClose} className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancel</button>
+              <button type="submit" className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors duration-300 font-medium">Send Request</button>
+            </div>
+          </form>
+        </motion.div>
+      </div>
+    </div>
+  )
+})
+
+const OrganizerRestrictModal = React.memo(({ show, onClose, onSignUpAsStudent, onSignInAsStudent }) => {
+  if (!show) return null
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -20 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          onClick={(e) => e.stopPropagation()}
+          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+        >
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <UserGroupIcon className="w-8 h-8" />
+                <h2 className="text-2xl font-bold">Organizer Account</h2>
+              </div>
+              <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="text-center space-y-3">
+              <p className="text-gray-700 text-lg">Organizers cannot join clubs.</p>
+              <p className="text-gray-600">To join clubs as a member, please sign in with a student account.</p>
+            </div>
+            <div className="space-y-3 pt-4">
+              <button onClick={onSignUpAsStudent} className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 font-medium">
+                <UserGroupIcon className="w-5 h-5" />
+                <span>Sign Up as Student</span>
+              </button>
+              <button onClick={onSignInAsStudent} className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-white border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-all duration-300 font-medium">
+                <span>Sign In as Student</span>
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 text-center pt-2">Note: Clicking either button will log you out of your organizer account.</p>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  )
+})
+
+const ClubDetailsModal = React.memo(({ show, selectedClub, onClose, onJoinClub }) => {
+  if (!show || !selectedClub) return null
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        >
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold mb-1">{selectedClub.name}</h2>
+                <p className="text-purple-100">{selectedClub.category} Club</p>
+              </div>
+              <button onClick={onClose} className="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors">
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+          <div className="p-6 space-y-6 overflow-y-auto flex-1">
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">About Us</h3>
+              <p className="text-gray-600 leading-relaxed">{selectedClub.longDescription}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-purple-50 rounded-lg p-4">
+                <h4 className="font-semibold text-purple-900 mb-3">Club Information</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-gray-600">President:</span><span className="font-medium text-gray-900">{selectedClub.president}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Members:</span><span className="font-medium text-gray-900">{selectedClub.members}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Events:</span><span className="font-medium text-gray-900">{selectedClub.events}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Status:</span><span className="font-medium text-green-600">{selectedClub.status}</span></div>
+                </div>
+              </div>
+              <div className="bg-indigo-50 rounded-lg p-4">
+                <h4 className="font-semibold text-indigo-900 mb-3">Meeting Details</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-gray-600">Time:</span><span className="font-medium text-gray-900">{selectedClub.meetingTime}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Location:</span><span className="font-medium text-gray-900">{selectedClub.location}</span></div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-semibold text-gray-900 mb-2">Requirements</h4>
+              <p className="text-gray-600 text-sm">{selectedClub.requirements}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Recent Achievements</h4>
+              <ul className="space-y-2">
+                {selectedClub.achievements?.map((a, i) => (
+                  <li key={i} className="flex items-start space-x-2 text-sm text-gray-600">
+                    <CheckCircleIcon className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>{a}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Connect With Us</h4>
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(selectedClub.socialMedia || {}).map(([platform, handle]) => (
+                  <div key={platform} className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg text-sm">
+                    <span className="font-medium text-gray-700 capitalize">{platform}:</span>
+                    <span className="text-gray-600">{handle}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {selectedClub.website && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Official Website</h4>
+                <a href={selectedClub.website} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-700 underline text-sm">{selectedClub.website}</a>
+              </div>
+            )}
+          </div>
+          <div className="p-6 border-t border-gray-200">
+            <div className="flex items-center justify-end space-x-4">
+              <button onClick={onClose} className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium">Close</button>
+              <button onClick={() => { onClose(); onJoinClub(selectedClub) }} className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors duration-300 font-medium">Join Club</button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  )
+})
 
 const Clubs = () => {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showJoinModal, setShowJoinModal] = useState(false)
   const [selectedClub, setSelectedClub] = useState(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [showCreateClubModal, setShowCreateClubModal] = useState(false)
-  const [joinRequests, setJoinRequests] = useState([])
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    studentId: '',
-    major: '',
-    year: '',
-    message: ''
-  })
+  const [showOrganizerRestrictModal, setShowOrganizerRestrictModal] = useState(false)
+  
+  // Check URL parameters to auto-open create modal
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('create') === 'true' && user?.role === 'organizer') {
+      setShowCreateClubModal(true)
+    }
+  }, [location, user])
   const [clubForm, setClubForm] = useState({
     name: '',
     category: 'Academic',
@@ -46,110 +312,35 @@ const Clubs = () => {
     }
   })
 
-  const clubs = [
-    {
-      id: 1,
-      name: 'Computer Science Club',
-      category: 'Academic',
-      description: 'Explore the world of technology and programming',
-      longDescription: 'The Computer Science Club is dedicated to fostering innovation and excellence in technology. We organize coding competitions, hackathons, workshops on emerging technologies, and guest lectures from industry professionals. Our members get hands-on experience with real-world projects and networking opportunities with tech companies.',
-      members: 156,
-      image: '/api/placeholder/300/200',
-      events: 12,
-      status: 'active',
-      president: 'Sarah Johnson',
-      meetingTime: 'Every Wednesday at 6:00 PM',
-      location: 'Tech Building, Room 301',
-      website: 'https://csclub.university.edu',
-      socialMedia: {
-        instagram: '@csclub_university',
-        linkedin: 'Computer Science Club - University',
-        github: 'csclub-university'
-      },
-      achievements: [
-        'Won Regional Hackathon 2023',
-        'Published 3 research papers',
-        '50+ members placed in top tech companies'
-      ],
-      requirements: 'Open to all students interested in technology and programming. No prior experience required.'
+  const { data: clubsRaw = [], isLoading: clubsLoading } = useQuery({
+    queryKey: ['public-clubs'],
+    queryFn: async () => {
+      const res = await apiClient.get('/api/clubs/?ordering=-created_at')
+      const raw = res.data?.results || (Array.isArray(res.data) ? res.data : [])
+      return raw.map(c => ({
+        id: c.id,
+        name: c.name,
+        category: c.category || 'General',
+        description: c.description || '',
+        longDescription: c.mission_statement || c.description || '',
+        members: c.member_count || 0,
+        events: 0,
+        image: c.logo_url || null,
+        status: c.status || 'active',
+        president: c.advisor_name || c.created_by?.full_name || 'Club Leader',
+        meetingTime: c.meeting_schedule || 'TBD',
+        location: c.requirements || '',
+        requirements: c.requirements || '',
+        achievements: [],
+        socialMedia: c.social_links || {},
+        website: c.social_links?.website || null,
+        tags: Array.isArray(c.tags) ? c.tags : [],
+      }))
     },
-    {
-      id: 2,
-      name: 'Photography Club',
-      category: 'Arts',
-      description: 'Capture moments and express creativity through photography',
-      longDescription: 'The Photography Club welcomes students of all skill levels who are passionate about visual storytelling. We provide workshops on camera techniques, photo editing, composition, and lighting. Members participate in photo walks, exhibitions, and competitions. Our club has access to professional equipment and darkroom facilities.',
-      members: 89,
-      image: '/api/placeholder/300/200',
-      events: 8,
-      status: 'active',
-      president: 'Michael Chen',
-      meetingTime: 'Every Tuesday at 5:00 PM',
-      location: 'Arts Building, Room 205',
-      website: 'https://photoclub.university.edu',
-      socialMedia: {
-        instagram: '@photoclub_university',
-        flickr: 'photoclub-university'
-      },
-      achievements: [
-        'Annual Campus Photography Exhibition',
-        'Published in University Magazine',
-        'Won State Photography Competition'
-      ],
-      requirements: 'Basic camera or smartphone required. Open to all students.'
-    },
-    {
-      id: 3,
-      name: 'Debate Society',
-      category: 'Academic',
-      description: 'Develop critical thinking and public speaking skills',
-      longDescription: 'The Debate Society is dedicated to developing critical thinking, research skills, and public speaking abilities. We participate in inter-university debates, organize campus debates on current issues, and provide training in argumentation and rhetoric. Our members have consistently performed well in regional and national competitions.',
-      members: 67,
-      image: '/api/placeholder/300/200',
-      events: 15,
-      status: 'active',
-      president: 'Emily Rodriguez',
-      meetingTime: 'Every Thursday at 7:00 PM',
-      location: 'Humanities Building, Room 102',
-      website: 'https://debatesociety.university.edu',
-      socialMedia: {
-        instagram: '@debate_society_university',
-        twitter: '@DebateSocietyUni'
-      },
-      achievements: [
-        'Regional Debate Champions 2023',
-        'National Debate Tournament Quarterfinalists',
-        '10+ members selected for Model UN'
-      ],
-      requirements: 'Strong interest in public speaking and current events. Audition required for competitive team.'
-    },
-    {
-      id: 4,
-      name: 'Music Club',
-      category: 'Arts',
-      description: 'Share your passion for music and performance',
-      longDescription: 'The Music Club brings together musicians and music lovers from all backgrounds. We organize concerts, open mic nights, jam sessions, and workshops. Whether you play an instrument, sing, or just love listening to music, there\'s a place for you. We have practice rooms, recording equipment, and performance opportunities throughout the year.',
-      members: 124,
-      image: '/api/placeholder/300/200',
-      events: 10,
-      status: 'active',
-      president: 'David Martinez',
-      meetingTime: 'Every Monday at 6:30 PM',
-      location: 'Performing Arts Center, Room 150',
-      website: 'https://musicclub.university.edu',
-      socialMedia: {
-        instagram: '@musicclub_university',
-        youtube: 'Music Club University',
-        spotify: 'Music Club University Playlist'
-      },
-      achievements: [
-        'Spring Concert Series',
-        'Battle of the Bands Winners',
-        'Collaboration with Local Symphony'
-      ],
-      requirements: 'Open to all students. Auditions for performance groups, but everyone can join as a member.'
-    }
-  ]
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const clubs = clubsRaw
 
   const categories = ['all', 'Academic', 'Arts', 'Sports', 'Cultural', 'Technical']
 
@@ -161,8 +352,24 @@ const Clubs = () => {
   })
 
   const handleJoinClub = (club) => {
+    // Check if user is an organizer
+    if (user?.role === 'organizer') {
+      setShowOrganizerRestrictModal(true)
+      return
+    }
+    
     setSelectedClub(club)
     setShowJoinModal(true)
+  }
+
+  const handleSignUpAsStudent = () => {
+    logout()
+    navigate('/register')
+  }
+
+  const handleSignInAsStudent = () => {
+    logout()
+    navigate('/login')
   }
 
   const handleViewDetails = (club) => {
@@ -170,64 +377,10 @@ const Clubs = () => {
     setShowDetailsModal(true)
   }
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
-
-  const handleSubmitJoinRequest = (e) => {
-    e.preventDefault()
-    
-    // Basic validation
-    if (!formData.name.trim()) {
-      toast.error('Name is required')
-      return
-    }
-    if (!formData.email.trim()) {
-      toast.error('Email is required')
-      return
-    }
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      toast.error('Please enter a valid email')
-      return
-    }
-    
-    // Create join request
-    const request = {
-      id: Date.now(),
-      clubId: selectedClub.id,
-      clubName: selectedClub.name,
-      ...formData,
-      status: 'pending',
-      submittedAt: new Date().toISOString()
-    }
-    
-    // Add to join requests
-    setJoinRequests(prev => [...prev, request])
-    
-    // Show success message
-    toast.success(`Join request sent to ${selectedClub.name}!`)
-    
-    // Reset form and close modal
-    setFormData({
-      name: '',
-      email: '',
-      studentId: '',
-      major: '',
-      year: '',
-      message: ''
-    })
-    setShowJoinModal(false)
-    setSelectedClub(null)
-  }
-
   const handleCreateClub = () => {
-    // Check if user is a student
-    if (user?.role !== 'student') {
-      toast.error('Only students can create clubs')
+    // Check if user is an organizer
+    if (user?.role !== 'organizer') {
+      toast.error('Only organizers can create clubs')
       return
     }
     
@@ -320,336 +473,68 @@ const Clubs = () => {
       }))
     }
   }
-
-  // Join Request Modal
-  const JoinRequestModal = () => (
-    <AnimatePresence>
-      {showJoinModal && selectedClub && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowJoinModal(false)}
-            />
-            
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-            >
-              {/* Header */}
-              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-1">Join Club Request</h2>
-                    <p className="text-purple-100">{selectedClub.name}</p>
-                  </div>
-                  <button
-                    onClick={() => setShowJoinModal(false)}
-                    className="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors"
-                  >
-                    <XMarkIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleSubmitJoinRequest} className="p-6 space-y-6 overflow-y-auto flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter your full name"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Student ID
-                    </label>
-                    <input
-                      type="text"
-                      name="studentId"
-                      value={formData.studentId}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter your student ID"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Major
-                    </label>
-                    <input
-                      type="text"
-                      name="major"
-                      value={formData.major}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter your major"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Year
-                    </label>
-                    <select
-                      name="year"
-                      value={formData.year}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    >
-                      <option value="">Select year</option>
-                      <option value="Freshman">Freshman</option>
-                      <option value="Sophomore">Sophomore</option>
-                      <option value="Junior">Junior</option>
-                      <option value="Senior">Senior</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Message (Optional)
-                  </label>
-                  <textarea
-                    name="message"
-                    value={formData.message}
-                    onChange={handleFormChange}
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                    placeholder="Tell us why you want to join this club..."
-                  />
-                </div>
-
-                {/* Club Info Summary */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-medium text-gray-900 mb-2">Club Information</h3>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p><span className="font-medium">Club:</span> {selectedClub.name}</p>
-                    <p><span className="font-medium">Category:</span> {selectedClub.category}</p>
-                    <p><span className="font-medium">Current Members:</span> {selectedClub.members}</p>
-                    <p><span className="font-medium">Events:</span> {selectedClub.events}</p>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => setShowJoinModal(false)}
-                    className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors duration-300 font-medium"
-                  >
-                    Send Request
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        </div>
-      )}
-    </AnimatePresence>
-  )
-
-  // Club Details Modal
-  const ClubDetailsModal = () => (
-    <AnimatePresence>
-      {showDetailsModal && selectedClub && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowDetailsModal(false)}
-            />
-            
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-            >
-              {/* Header */}
-              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-3xl font-bold mb-1">{selectedClub.name}</h2>
-                    <p className="text-purple-100">{selectedClub.category} Club</p>
-                  </div>
-                  <button
-                    onClick={() => setShowDetailsModal(false)}
-                    className="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors"
-                  >
-                    <XMarkIcon className="w-6 h-6" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-6 space-y-6 overflow-y-auto flex-1">
-                {/* Description */}
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">About Us</h3>
-                  <p className="text-gray-600 leading-relaxed">{selectedClub.longDescription}</p>
-                </div>
-
-                {/* Quick Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <h4 className="font-semibold text-purple-900 mb-3">Club Information</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">President:</span>
-                        <span className="font-medium text-gray-900">{selectedClub.president}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Members:</span>
-                        <span className="font-medium text-gray-900">{selectedClub.members}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Events:</span>
-                        <span className="font-medium text-gray-900">{selectedClub.events}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Status:</span>
-                        <span className="font-medium text-green-600">{selectedClub.status}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-indigo-50 rounded-lg p-4">
-                    <h4 className="font-semibold text-indigo-900 mb-3">Meeting Details</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Time:</span>
-                        <span className="font-medium text-gray-900">{selectedClub.meetingTime}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Location:</span>
-                        <span className="font-medium text-gray-900">{selectedClub.location}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Requirements */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">Requirements</h4>
-                  <p className="text-gray-600 text-sm">{selectedClub.requirements}</p>
-                </div>
-
-                {/* Achievements */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Recent Achievements</h4>
-                  <ul className="space-y-2">
-                    {selectedClub.achievements.map((achievement, index) => (
-                      <li key={index} className="flex items-start space-x-2 text-sm text-gray-600">
-                        <CheckCircleIcon className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>{achievement}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Social Media */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Connect With Us</h4>
-                  <div className="flex flex-wrap gap-3">
-                    {Object.entries(selectedClub.socialMedia).map(([platform, handle]) => (
-                      <div key={platform} className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg text-sm">
-                        <span className="font-medium text-gray-700 capitalize">{platform}:</span>
-                        <span className="text-gray-600">{handle}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Website */}
-                {selectedClub.website && (
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">Official Website</h4>
-                    <a 
-                      href={selectedClub.website} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-purple-600 hover:text-purple-700 underline text-sm"
-                    >
-                      {selectedClub.website}
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="p-6 border-t border-gray-200">
-                <div className="flex items-center justify-end space-x-4">
-                  <button
-                    onClick={() => setShowDetailsModal(false)}
-                    className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowDetailsModal(false)
-                      handleJoinClub(selectedClub)
-                    }}
-                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors duration-300 font-medium"
-                  >
-                    Join Club
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      )}
-    </AnimatePresence>
-  )
-
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <div 
+        style={{
+          position: 'relative',
+          background: 'linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(/img/clubs.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          color: 'white',
+          padding: 'calc(6rem + 60px) 2rem 5.5rem',
+          textAlign: 'center',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Curved bottom shape */}
+        <div 
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: '100%',
+            height: '60px',
+            background: '#f9fafb',
+            borderRadius: '100% 100% 0 0 / 80px 80px 0 0'
+          }}
+        />
+        
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            style={{
+              fontSize: '0.95rem',
+              marginBottom: '0.5rem',
+              opacity: 0.9,
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              fontWeight: 500
+            }}
+          >
+            Join Communities
+          </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            style={{
+              fontSize: '2.5rem',
+              marginBottom: '1rem',
+              fontWeight: 700,
+              textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
+            }}
+          >
+            Campus <span style={{ color: '#667eea' }}>Clubs</span>
+          </motion.h1>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
@@ -657,7 +542,7 @@ const Clubs = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Student Clubs</h1>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Campus Clubs</h2>
           <p className="text-gray-600">Discover and join student organizations</p>
         </motion.div>
 
@@ -692,12 +577,35 @@ const Clubs = () => {
                 {category}
               </button>
             ))}
+            
+            {/* Create Club Button - For Organizers Only */}
+            {user?.role === 'organizer' && (
+              <button 
+                onClick={() => setShowCreateClubModal(true)}
+                className="px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2"
+              >
+                <PlusIcon className="h-5 w-5" />
+                Create Club
+              </button>
+            )}
           </div>
         </motion.div>
 
         {/* Clubs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClubs.map((club, index) => (
+          {clubsLoading ? (
+            <div className="col-span-3 text-center py-16 text-gray-500">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p>Loading clubs...</p>
+            </div>
+          ) : filteredClubs.length === 0 ? (
+            <div className="col-span-3 text-center py-16 text-gray-500">
+              <UserGroupIcon className="h-16 w-16 mx-auto mb-4 opacity-30" />
+              <p className="text-xl font-medium">No clubs found</p>
+              <p className="text-sm mt-1">Try a different search or category</p>
+            </div>
+          ) : (
+          filteredClubs.map((club, index) => (
             <motion.div
               key={club.id}
               initial={{ opacity: 0, y: 20 }}
@@ -752,29 +660,33 @@ const Clubs = () => {
                 </div>
               </div>
             </motion.div>
-          ))}
+          ))
+          )}
         </div>
-
-        {/* Create Club Button - Only for Students */}
-        {user?.role === 'student' && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }}
-            onClick={() => setShowCreateClubModal(true)}
-            className="fixed bottom-8 right-8 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
-            title="Create Club"
-          >
-            <PlusIcon className="h-6 w-6" />
-          </motion.button>
-        )}
       </div>
 
       {/* Join Request Modal */}
-      <JoinRequestModal />
-      
+      <JoinRequestModal
+        show={showJoinModal}
+        selectedClub={selectedClub}
+        onClose={() => { setShowJoinModal(false); setSelectedClub(null) }}
+      />
+
       {/* Club Details Modal */}
-      <ClubDetailsModal />
+      <ClubDetailsModal
+        show={showDetailsModal}
+        selectedClub={selectedClub}
+        onClose={() => setShowDetailsModal(false)}
+        onJoinClub={handleJoinClub}
+      />
+
+      {/* Organizer Restrict Modal */}
+      <OrganizerRestrictModal
+        show={showOrganizerRestrictModal}
+        onClose={() => setShowOrganizerRestrictModal(false)}
+        onSignUpAsStudent={handleSignUpAsStudent}
+        onSignInAsStudent={handleSignInAsStudent}
+      />
 
       {/* Create Club Modal */}
       <AnimatePresence>
@@ -1188,6 +1100,9 @@ const Clubs = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Floating Chatbot Button */}
+      <FloatingChatbot />
     </div>
   )
 }
