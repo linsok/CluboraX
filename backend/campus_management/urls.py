@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/clubs/', include('apps.clubs.urls')),
     path('api/events/', include('apps.events.urls')),
     path('api/notifications/', include('apps.notifications.urls')),
+    path('api/proposals/', include('apps.proposals.urls')),
     # path('api/payments/', include('apps.payments.urls')),  # TODO: Implement payments app
     path('api/gallery/', include('apps.gallery.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

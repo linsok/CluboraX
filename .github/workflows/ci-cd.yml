@@ -1,0 +1,290 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, dev ]
+  pull_request:
+    branches: [ main, develop, dev ]
+
+permissions:
+  security-events: write
+
+jobs:
+  # Backend Testing and Quality Checks
+  backend-test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: campus_management_test
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Django migrations
+      run: |
+        cd backend
+        python manage.py migrate --settings=campus_management.settings_ci
+      env:
+        DJANGO_SETTINGS_MODULE: campus_management.settings_ci
+        DB_HOST: 127.0.0.1
+        DB_NAME: campus_management_test
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        SECRET_KEY: test-secret-key-for-ci
+
+    - name: Run backend tests
+      run: |
+        cd backend
+        python manage.py test --settings=campus_management.settings_ci --verbosity=2
+      env:
+        DJANGO_SETTINGS_MODULE: campus_management.settings_ci
+        DB_HOST: 127.0.0.1
+        DB_NAME: campus_management_test
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        SECRET_KEY: test-secret-key-for-ci
+
+    - name: Run code quality checks
+      run: |
+        cd backend
+        pip install flake8 black isort
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        isort --check-only --diff . || echo "Import sorting issues found"
+
+  # Frontend Testing and Quality Checks
+  frontend-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Run frontend tests
+      run: |
+        cd frontend
+        npm run test -- --run --coverage --passWithNoTests
+      env:
+        CI: true
+
+    - name: Run linting
+      run: |
+        cd frontend
+        npm run lint || echo "Linting completed with warnings"
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+
+  # Docker Build and Security Scan
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build backend Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: false
+        tags: cluborax-backend:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build frontend Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile
+        push: false
+        tags: cluborax-frontend:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test Docker Compose
+      run: |
+        docker compose config --quiet
+        docker compose build --parallel
+
+  # Security Scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v4
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run safety check for Python dependencies
+      run: |
+        cd backend
+        pip install safety
+        safety check || echo "Security vulnerabilities found but continuing pipeline"
+
+  # Deployment (only on main branch)
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test, docker-build, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and push backend image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: cluborax-backend
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Build and push backend
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+        # Tag as latest
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+    - name: Build and push frontend image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: cluborax-frontend
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Build and push frontend
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+        # Tag as latest
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+    - name: Deploy to production
+      run: |
+        # Update ECS service or trigger deployment
+        aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER }} --service ${{ secrets.ECS_SERVICE }} --force-new-deployment
+
+  # Performance Testing
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Locust
+      run: pip install locust
+
+    - name: Run performance tests
+      run: |
+        # Create a simple performance test
+        printf 'from locust import HttpUser, task\n\nclass WebsiteUser(HttpUser):\n    @task\n    def index_page(self):\n        self.client.get("/")\n' > locustfile.py
+        locust --headless --users 10 --spawn-rate 1 --run-time 30s --host http://localhost:8000
+
+  # Code Coverage Report
+  coverage:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Upload backend coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+
+    - name: Upload frontend coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./frontend/coverage/lcov.info
+        flags: frontend
+        name: frontend-coverage

@@ -2,8 +2,10 @@ from celery import shared_task
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import Club, ClubMembership, ClubAnnouncement
+from django.db.models import Count, Q
+from .models import Club, ClubMembership, ClubAnnouncement, ClubActivity
 from apps.core.utils import send_notification
+from apps.users.models import User
 import logging
 
 logger = logging.getLogger(__name__)

@@ -3,6 +3,9 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from apps.core.models import TimeStampedModel
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 

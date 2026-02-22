@@ -58,7 +58,7 @@ def dashboard_stats(request):
             'proposals': {
                 'pending': pending_proposals,
                 'approved': approved_proposals,
-                'total': total_propals
+                'total': total_proposals
             },
             'events': {
                 'total': total_events,

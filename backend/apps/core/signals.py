@@ -60,6 +60,11 @@ def post_save_handler(sender, instance, created, **kwargs):
         from apps.core.models import AuditLog
         from django.contrib.auth import get_user_model
         from django.forms.models import model_to_dict
+        from django.db import connection
+        
+        # Skip if table doesn't exist yet (during migrations)
+        if 'core_auditlog' not in connection.introspection.table_names():
+            return
         
         User = get_user_model()
         
@@ -76,13 +81,16 @@ def post_save_handler(sender, instance, created, **kwargs):
             new_values = model_to_dict(instance)
         
         # Create audit log
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+        
         AuditLog.objects.create(
             user=current_user,
             action=action,
             table_name=sender.__name__,
             record_id=str(instance.pk),
-            old_values=old_values,
-            new_values=new_values,
+            old_values=json.dumps(old_values, cls=DjangoJSONEncoder) if old_values else None,
+            new_values=json.dumps(new_values, cls=DjangoJSONEncoder),
             ip_address=getattr(instance, '_ip_address', None),
             user_agent=getattr(instance, '_user_agent', None)
         )
@@ -102,6 +110,11 @@ def post_delete_handler(sender, instance, **kwargs):
     try:
         from apps.core.models import AuditLog
         from django.forms.models import model_to_dict
+        from django.db import connection
+        
+        # Skip if table doesn't exist yet (during migrations)
+        if 'core_auditlog' not in connection.introspection.table_names():
+            return
         
         # Get current user (this is tricky in signals)
         current_user = getattr(instance, '_current_user', None)

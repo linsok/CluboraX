@@ -27,7 +27,11 @@ from apps.users.serializers import UserListSerializer
 from apps.events.models import Event
 from apps.clubs.models import Club
 import logging
-import psutil
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 import os
 
 logger = logging.getLogger(__name__)
@@ -494,38 +498,40 @@ class DashboardStatsView(APIView):
                 health_data['status'] = 'degraded'
             
             # Get memory usage
-            try:
-                memory = psutil.virtual_memory()
-                health_data['memory_usage'] = {
-                    'total': memory.total,
-                    'available': memory.available,
-                    'percent': memory.percent,
-                    'used': memory.used
-                }
-                
-                if memory.percent > 90:
-                    health_data['status'] = 'critical'
-                elif memory.percent > 80:
-                    health_data['status'] = 'warning'
-            except Exception:
-                pass
+            if PSUTIL_AVAILABLE:
+                try:
+                    memory = psutil.virtual_memory()
+                    health_data['memory_usage'] = {
+                        'total': memory.total,
+                        'available': memory.available,
+                        'percent': memory.percent,
+                        'used': memory.used
+                    }
+                    
+                    if memory.percent > 90:
+                        health_data['status'] = 'critical'
+                    elif memory.percent > 80:
+                        health_data['status'] = 'warning'
+                except Exception:
+                    pass
             
             # Get disk usage
-            try:
-                disk = psutil.disk_usage('/')
-                health_data['disk_usage'] = {
-                    'total': disk.total,
-                    'used': disk.used,
-                    'free': disk.free,
-                    'percent': (disk.used / disk.total) * 100
-                }
-                
-                if (disk.used / disk.total) * 100 > 90:
-                    health_data['status'] = 'critical'
-                elif (disk.used / disk.total) * 100 > 80:
-                    health_data['status'] = 'warning'
-            except Exception:
-                pass
+            if PSUTIL_AVAILABLE:
+                try:
+                    disk = psutil.disk_usage('/')
+                    health_data['disk_usage'] = {
+                        'total': disk.total,
+                        'used': disk.used,
+                        'free': disk.free,
+                        'percent': (disk.used / disk.total) * 100
+                    }
+                    
+                    if (disk.used / disk.total) * 100 > 90:
+                        health_data['status'] = 'critical'
+                    elif (disk.used / disk.total) * 100 > 80:
+                        health_data['status'] = 'warning'
+                except Exception:
+                    pass
             
             return health_data
             

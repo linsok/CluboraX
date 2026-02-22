@@ -5,10 +5,19 @@ from django.core.files import File
 from django.utils import timezone
 from datetime import timedelta
 import uuid
-import magic
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    MAGIC_AVAILABLE = False
+    magic = None
 from PIL import Image
-import cv2
-import numpy as np
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
 from django.conf import settings
 import logging
 
@@ -122,6 +131,9 @@ def detect_faces(image_path):
     Returns:
         list: List of face coordinates
     """
+    if not CV2_AVAILABLE:
+        return []
+    
     try:
         # Load the cascade classifier
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
