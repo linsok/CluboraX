@@ -1056,7 +1056,7 @@ const Events = () => {
           type: e.event_type || 'general',
           image: e.poster_image_url || 'https://images.unsplash.com/photo-1549924231-f129b911e442?w=800',
           currentAttendees: e.current_participants || 0,
-          maxAttendees: e.max_participants || 0,
+          maxAttendees: e.max_participants ?? null,
           price: e.is_paid ? (parseFloat(e.price) || 0) : 0,
           organizer: {
             name: e.created_by?.full_name || e.club_name || 'Campus Events',
@@ -1126,7 +1126,7 @@ const Events = () => {
       return
     }
     
-    if (selectedEvent.currentAttendees >= selectedEvent.maxAttendees) {
+    if (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees) {
       toast.error('This event is already full')
       return
     }
@@ -1600,11 +1600,11 @@ const Events = () => {
                 <div className="flex items-center justify-end pt-6 border-t border-gray-200">
                   <button
                     onClick={handleRegister}
-                    disabled={isRegistered || selectedEvent.currentAttendees >= selectedEvent.maxAttendees}
+                    disabled={isRegistered || (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees)}
                     className={`px-8 py-3 rounded-lg font-medium transition-all duration-300 ${
                       isRegistered
                         ? 'bg-green-100 text-green-700 border border-green-200'
-                        : selectedEvent.currentAttendees >= selectedEvent.maxAttendees
+                        : (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees)
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
                     }`}
@@ -1614,7 +1614,7 @@ const Events = () => {
                         <CheckCircleIcon className="w-5 h-5" />
                         <span>Registered</span>
                       </span>
-                    ) : selectedEvent.currentAttendees >= selectedEvent.maxAttendees ? (
+                    ) : (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees) ? (
                       'Event Full'
                     ) : (
                       'Register'
@@ -2025,7 +2025,9 @@ const Events = () => {
           </div>
           <div className="flex items-center text-gray-600">
             <UserGroupIcon className="w-5 h-5 mr-2 text-purple-600" />
-            <span className="text-sm">{event.currentAttendees}/{event.maxAttendees} attending</span>
+            <span className="text-sm">
+              {event.currentAttendees}{event.maxAttendees !== null ? `/${event.maxAttendees}` : ''} attending
+            </span>
           </div>
           {event.price > 0 && (
             <div className="flex items-center text-gray-600">
