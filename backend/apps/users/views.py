@@ -6,6 +6,7 @@ from django.contrib.auth import login, logout
 from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
+from django.http import HttpResponse
 from .models import User, UserProfile, PasswordResetToken, EmailVerificationToken, UserActivity
 from .serializers import (
     UserRegistrationSerializer, UserLoginSerializer, OTPVerificationSerializer,
@@ -627,4 +628,173 @@ class UserActivityView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return UserActivity.objects.filter(user=self.request.user).order_by('-created_at')
+        return UserActivity.objects.filter(user=self.request.user).order_by('-timestamp')
+
+
+class OAuthCallbackView(APIView):
+    """
+    Google OAuth callback endpoint.
+    """
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    
+    def get(self, request):
+        """
+        Handle Google OAuth callback (GET request).
+        """
+        try:
+            logger.info(f"OAuth callback called with path: {request.path}")
+            
+            # Disconnect signals to avoid serialization issues during OAuth
+            from django.db.models.signals import post_save
+            from django.contrib.auth.signals import user_logged_in
+            from .signals import save_user_profile, create_user_profile
+            from .models import User
+            
+            post_save.disconnect(save_user_profile, sender=User)
+            post_save.disconnect(create_user_profile, sender=User)
+            
+            from django.conf import settings
+            from .models import User
+            from .authentication import generate_jwt_token
+            import requests
+            import json
+            import urllib.parse
+            
+            code = request.GET.get('code')
+            logger.info(f"Authorization code received: {code[:20] if code else 'None'}...")
+            
+            if not code:
+                return Response({
+                    'error': 'Authorization code is required'
+                }, status=400)
+            
+            # Exchange code for access token
+            token_url = 'https://oauth2.googleapis.com/token'
+            
+            # Determine the correct redirect URI based on the request path
+            if '/oauth/callback/' in request.path:
+                redirect_uri = request.build_absolute_uri('/api/users/oauth/callback/')
+            else:
+                redirect_uri = request.build_absolute_uri('/api/users/google/callback/')
+            
+            logger.info(f"Using redirect URI: {redirect_uri}")
+            
+            token_data = {
+                'code': code,
+                'client_id': settings.GOOGLE_OAUTH2_CLIENT_ID,
+                'client_secret': settings.GOOGLE_OAUTH2_CLIENT_SECRET,
+                'redirect_uri': redirect_uri,
+                'grant_type': 'authorization_code'
+            }
+            
+            logger.info(f"Token exchange data: {token_data}")
+            token_response = requests.post(token_url, data=token_data)
+            logger.info(f"Token exchange response status: {token_response.status_code}")
+            
+            if token_response.status_code != 200:
+                return Response({
+                    'error': 'Failed to exchange code for token',
+                    'details': token_response.text
+                }, status=400)
+            
+            token_info = token_response.json()
+            access_token = token_info.get('access_token')
+            
+            # Get user info from Google
+            user_info_url = 'https://www.googleapis.com/oauth2/v2/userinfo'
+            headers = {'Authorization': f'Bearer {access_token}'}
+            user_response = requests.get(user_info_url, headers=headers)
+            
+            if user_response.status_code != 200:
+                return Response({
+                    'error': 'Failed to get user info from Google'
+                }, status=400)
+            
+            user_info = user_response.json()
+            
+            # Find or create user
+            email = user_info.get('email')
+            if not email:
+                return Response({
+                    'error': 'Email is required from Google'
+                }, status=400)
+            
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'username': email,
+                    'first_name': user_info.get('given_name', ''),
+                    'last_name': user_info.get('family_name', ''),
+                    'is_verified': True,
+                    'role': 'student'
+                }
+            )
+            
+            if not created:
+                # Update existing user with Google info
+                user.first_name = user_info.get('given_name', user.first_name)
+                user.last_name = user_info.get('family_name', user.last_name)
+                user.is_verified = True
+                user.save()
+            
+            # Generate JWT token
+            token = generate_jwt_token(user)
+            
+            # Use serializer for proper JSON serialization
+            from .serializers import UserProfileSerializer
+            serializer = UserProfileSerializer(user, context={'request': request})
+            user_data = serializer.data
+            user_data['is_new_user'] = created
+            
+            # Return HTML page with token for frontend
+            html_response = f"""
+            <html>
+            <head>
+                <title>Google Sign-In Success</title>
+            </head>
+            <body>
+                <h1>Successfully signed in with Google!</h1>
+                <p>You will be redirected automatically...</p>
+                <script>
+                    // Send token to parent window or store in localStorage
+                    const token = '{token}';
+                    const user = {json.dumps(user_data)};
+                    
+                    // Store in localStorage for immediate access
+                    localStorage.setItem('access_token', token);
+                    localStorage.setItem('user', JSON.stringify(user));
+                    
+                    // Store user data for profile completion
+                    localStorage.setItem('google_signup_data', JSON.stringify({
+                        user: user,
+                        is_new_user: {str(created).lower()}
+                    }));
+                    
+                    // Redirect to frontend Google callback handler with URL parameters
+                    setTimeout(function(){
+                        // Notify parent window (for popup flow)
+                        if (window.opener) {
+                            window.opener.postMessage({
+                                type: 'OAUTH_SUCCESS',
+                                token: token,
+                                user: user
+                            }, '*');
+                            window.close();
+                        } else {
+                            // Redirect with token and user as URL parameters as fallback
+                            window.location.href = '{settings.FRONTEND_URL}/auth/google/callback?token=' + encodeURIComponent(token) + '&user=' + encodeURIComponent(JSON.stringify(user));
+                        }
+                    }, 500);
+                </script>
+            </body>
+            </html>
+            """
+            
+            return HttpResponse(html_response, content_type='text/html')
+            
+        except Exception as e:
+            logger.error(f"Google OAuth callback error: {e}")
+            return Response({
+                'error': 'Internal server error during OAuth callback'
+            }, status=500)
