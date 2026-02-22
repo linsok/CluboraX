@@ -628,3 +628,182 @@ class UserActivityView(generics.ListAPIView):
     
     def get_queryset(self):
         return UserActivity.objects.filter(user=self.request.user).order_by('-created_at')
+
+
+class UserAchievementsView(APIView):
+    """
+    Return user achievements derived from event registrations and club memberships.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            from apps.events.models import EventRegistration
+            from apps.clubs.models import ClubMembership
+
+            achievements = []
+
+            registrations = EventRegistration.objects.filter(
+                user=request.user, status='confirmed'
+            ).select_related('event').order_by('-registration_date')
+
+            for reg in registrations:
+                achievements.append({
+                    'id': str(reg.id),
+                    'title': f'Attended: {reg.event.title}',
+                    'description': f'Successfully registered and attended this event.',
+                    'icon': '🎉',
+                    'date_earned': reg.registration_date.strftime('%Y-%m-%d'),
+                    'category': 'Events',
+                    'event_id': str(reg.event.id),
+                })
+
+            memberships = ClubMembership.objects.filter(
+                user=request.user, status='approved'
+            ).select_related('club').order_by('-joined_date')
+
+            for membership in memberships:
+                achievements.append({
+                    'id': f'club-{membership.id}',
+                    'title': f'Member: {membership.club.name}',
+                    'description': f'Active member of {membership.club.name}.',
+                    'icon': '🏆',
+                    'date_earned': membership.joined_date.strftime('%Y-%m-%d') if membership.joined_date else None,
+                    'category': 'Clubs',
+                    'club_id': str(membership.club.id),
+                })
+
+            return Response({
+                'success': True,
+                'count': len(achievements),
+                'results': achievements
+            })
+        except Exception as e:
+            logger.error(f"Achievements error: {e}")
+            return Response({'success': True, 'count': 0, 'results': []})
+
+
+class UserCertificatesView(APIView):
+    """
+    Return user certificates from confirmed event registrations.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            from apps.events.models import EventRegistration
+
+            registrations = EventRegistration.objects.filter(
+                user=request.user, status='confirmed'
+            ).select_related('event').order_by('-registration_date')
+
+            certificates = [
+                {
+                    'id': str(reg.id),
+                    'title': f'Certificate of Participation',
+                    'event_title': reg.event.title,
+                    'issued_date': reg.registration_date.strftime('%Y-%m-%d'),
+                    'category': reg.event.category if hasattr(reg.event, 'category') else 'General',
+                    'status': 'issued',
+                }
+                for reg in registrations
+            ]
+
+            return Response({
+                'success': True,
+                'count': len(certificates),
+                'results': certificates
+            })
+        except Exception as e:
+            logger.error(f"Certificates error: {e}")
+            return Response({'success': True, 'count': 0, 'results': []})
+
+
+class UserAnalyticsView(APIView):
+    """
+    Return aggregated analytics for the current user.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            from apps.events.models import EventRegistration
+            from apps.clubs.models import ClubMembership
+
+            total_registrations = EventRegistration.objects.filter(user=request.user).count()
+            confirmed_registrations = EventRegistration.objects.filter(
+                user=request.user, status='confirmed'
+            ).count()
+            total_clubs = ClubMembership.objects.filter(
+                user=request.user, status='approved'
+            ).count()
+            total_activities = UserActivity.objects.filter(user=request.user).count()
+
+            progress_pct = int((confirmed_registrations / total_registrations * 100)
+                               if total_registrations > 0 else 0)
+
+            return Response({
+                'success': True,
+                'data': {
+                    'total_events_registered': total_registrations,
+                    'total_events_confirmed': confirmed_registrations,
+                    'total_clubs_joined': total_clubs,
+                    'total_activities': total_activities,
+                    'total_achievements': confirmed_registrations + total_clubs,
+                    'total_certificates': confirmed_registrations,
+                    'progress_percentage': progress_pct,
+                    'total_courses': total_registrations,
+                    'completed_courses': confirmed_registrations,
+                }
+            })
+        except Exception as e:
+            logger.error(f"Analytics error: {e}")
+            return Response({
+                'success': True,
+                'data': {
+                    'total_events_registered': 0, 'total_events_confirmed': 0,
+                    'total_clubs_joined': 0, 'total_activities': 0,
+                    'total_achievements': 0, 'total_certificates': 0,
+                    'progress_percentage': 0, 'total_courses': 0, 'completed_courses': 0,
+                }
+            })
+
+
+class PublicStatsView(APIView):
+    """
+    Public platform statistics (no authentication required).
+    Used by the Landing page.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        try:
+            from apps.events.models import Event
+            from apps.clubs.models import Club
+            from apps.events.models import EventRegistration
+
+            total_events = Event.objects.filter(status='approved').count()
+            upcoming_events = Event.objects.filter(status='approved').count()
+            total_clubs = Club.objects.filter(status='active').count()
+            total_participants = EventRegistration.objects.filter(status='confirmed').count()
+            total_users = User.objects.filter(is_active=True).count()
+
+            return Response({
+                'success': True,
+                'data': {
+                    'total_events': total_events,
+                    'upcoming_events': upcoming_events,
+                    'total_clubs': total_clubs,
+                    'total_participants': total_participants,
+                    'total_users': total_users,
+                }
+            })
+        except Exception as e:
+            logger.error(f"Public stats error: {e}")
+            return Response({
+                'success': True,
+                'data': {
+                    'total_events': 0, 'upcoming_events': 0,
+                    'total_clubs': 0, 'total_participants': 0, 'total_users': 0,
+                }
+            })

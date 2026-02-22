@@ -7,7 +7,7 @@ export const getDashboardStats = async (user = null) => {
     let userData = user
     if (!userData) {
       const response = await apiClient.get('/api/auth/profile/')
-      userData = response.data.data
+      userData = response.data
     }
     
     // Get user-specific statistics based on role
@@ -35,7 +35,7 @@ export const getDashboardStats = async (user = null) => {
     // Get events statistics
     try {
       const eventsResponse = await apiClient.get('/api/events/stats/')
-      const eventsData = eventsResponse.data.data
+      const eventsData = eventsResponse.data
       stats.totalEvents = eventsData.total_events || 0
       stats.upcomingEvents = eventsData.upcoming_events || 0
       stats.totalRegistrations = eventsData.total_registrations || 0
@@ -46,7 +46,7 @@ export const getDashboardStats = async (user = null) => {
     // Get clubs statistics
     try {
       const clubsResponse = await apiClient.get('/api/clubs/stats/')
-      const clubsData = clubsResponse.data.data
+      const clubsData = clubsResponse.data
       stats.totalClubs = clubsData.total_clubs || 0
       stats.activeClubs = clubsData.active_clubs || 0
     } catch (error) {
@@ -130,7 +130,7 @@ export const getRecentActivities = async () => {
     // Get user registrations (if student)
     try {
       const profileResponse = await apiClient.get('/api/auth/profile/')
-      const user = profileResponse.data.data
+      const user = profileResponse.data
       
       if (user.role === 'student') {
         const registrationsResponse = await apiClient.get('/api/events/registrations/')
@@ -161,7 +161,7 @@ export const getRecentActivities = async () => {
 export const getUserCourses = async () => {
   try {
     const profileResponse = await apiClient.get('/api/auth/profile/')
-    const user = profileResponse.data.data
+    const user = profileResponse.data
     
     if (user.role === 'student') {
       // Get registered events
@@ -172,12 +172,12 @@ export const getUserCourses = async () => {
         id: registration.event.id,
         title: registration.event.title,
         instructor: registration.event.created_by?.full_name || 'TBD',
-        progress: Math.floor(Math.random() * 100), // Placeholder - would need actual progress tracking
-        totalLessons: 10, // Placeholder
-        completedLessons: Math.floor(Math.random() * 10), // Placeholder
-        thumbnail: registration.event.image || '/api/placeholder/400/200',
+        progress: 20,
+        totalLessons: null,
+        completedLessons: null,
+        thumbnail: registration.event.image || null,
         category: registration.event.category,
-        duration: 'Event', // Placeholder
+        duration: 'Event',
         level: 'All Levels'
       }))
     } else if (user.role === 'organizer') {
@@ -189,10 +189,10 @@ export const getUserCourses = async () => {
         id: event.id,
         title: event.title,
         instructor: user.full_name,
-        progress: Math.floor(Math.random() * 100), // Placeholder
-        totalLessons: 10, // Placeholder
-        completedLessons: Math.floor(Math.random() * 10), // Placeholder
-        thumbnail: event.image || '/api/placeholder/400/200',
+        progress: 0,
+        totalLessons: null,
+        completedLessons: null,
+        thumbnail: event.image || null,
         category: event.category,
         duration: 'Event',
         level: 'All Levels'

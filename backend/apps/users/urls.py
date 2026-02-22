@@ -24,4 +24,12 @@ urlpatterns = [
     # User management (admin)
     path('list/', views.UserListView.as_view(), name='user_list'),
     path('activity/', views.UserActivityView.as_view(), name='user_activity'),
+
+    # User stats & achievements
+    path('achievements/', views.UserAchievementsView.as_view(), name='user_achievements'),
+    path('certificates/', views.UserCertificatesView.as_view(), name='user_certificates'),
+    path('analytics/', views.UserAnalyticsView.as_view(), name='user_analytics'),
+
+    # Public stats (no auth)
+    path('public-stats/', views.PublicStatsView.as_view(), name='public_stats'),
 ]

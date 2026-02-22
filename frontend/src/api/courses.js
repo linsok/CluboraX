@@ -12,9 +12,9 @@ export const getUserCourses = async (user = null) => {
       title: registration.event.title,
       instructor: registration.event.created_by?.full_name || 'TBD',
       progress: calculateProgress(registration),
-      totalLessons: 10, // Placeholder - would come from course data
-      completedLessons: Math.floor(calculateProgress(registration) * 10 / 100),
-      thumbnail: registration.event.image || '/api/placeholder/400/200',
+      totalLessons: null,
+      completedLessons: null,
+      thumbnail: registration.event.image || null,
       category: registration.event.category,
       duration: 'Event',
       level: 'All Levels',
