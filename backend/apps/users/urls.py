@@ -12,6 +12,10 @@ urlpatterns = [
     path('verify-email/', views.VerifyEmailView.as_view(), name='verify_email'),
     path('refresh-token/', views.RefreshTokenView.as_view(), name='refresh_token'),
     
+    # OAuth endpoints
+    path('google/callback/', views.OAuthCallbackView.as_view(), name='google_callback'),
+    path('oauth/callback/', views.OAuthCallbackView.as_view(), name='oauth_callback'),
+    
     # Password management
     path('password-reset/', views.PasswordResetView.as_view(), name='password_reset'),
     path('password-reset-confirm/', views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
