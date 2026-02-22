@@ -201,6 +201,12 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
     """
     user = UserProfileSerializer(read_only=True)
     event_title = serializers.CharField(source='event.title', read_only=True)
+    event_venue = serializers.CharField(source='event.venue', read_only=True)
+    event_start = serializers.DateTimeField(source='event.start_datetime', read_only=True)
+    event_end = serializers.DateTimeField(source='event.end_datetime', read_only=True)
+    event_price = serializers.DecimalField(source='event.price', max_digits=10, decimal_places=2, read_only=True)
+    event_category = serializers.CharField(source='event.category', read_only=True)
+    event_image = serializers.ImageField(source='event.image', read_only=True)
     qr_code_url = serializers.SerializerMethodField()
     payment_receipt_url = serializers.SerializerMethodField()
     is_qr_expired = serializers.ReadOnlyField()
@@ -208,7 +214,9 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventRegistration
         fields = [
-            'id', 'event', 'event_title', 'user', 'registration_date',
+            'id', 'event', 'event_title', 'event_venue', 'event_start', 'event_end',
+            'event_price', 'event_category', 'event_image',
+            'user', 'registration_date',
             'status', 'qr_code', 'qr_code_url', 'payment_status',
             'payment_receipt', 'payment_receipt_url', 'checked_in',
             'checked_in_at', 'notes', 'is_qr_expired'

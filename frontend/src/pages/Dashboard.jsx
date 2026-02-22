@@ -42,7 +42,7 @@ import {
   ShieldCheckIcon,
   ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline'
-import { getDashboardStats, getRecentActivities, getUserCourses } from '../api/dashboard'
+import { getDashboardStats, getRecentActivities, getUserCourses, getMyEventRegistrations, getMyClubMemberships, getMyCreatedEvents, getMyCreatedClubs } from '../api/dashboard'
 import { getUserAchievements, getUserCertificates } from '../api/courses'
 import { 
   getEventProposals, 
@@ -159,121 +159,29 @@ const Dashboard = () => {
   // Check if user is organizer
   const isOrganizer = user?.role === 'organizer'
   
-  // Mock data for user's club requests and event registrations
-  const [myClubRequests] = useState([
-    {
-      id: 1,
-      clubName: 'Computer Science Club',
-      clubCategory: 'Academic',
-      status: 'pending',
-      submittedAt: '2024-01-15T10:30:00Z',
-      formData: {
-        name: 'Thoeun Soklin',
-        email: 'soklin1220lin@gmail.com',
-        phone: '0977569023',
-        studentId: 'ST5667',
-        major: 'Computer Science',
-        year: 'Junior',
-        message: 'I am very interested in joining the Computer Science Club to learn more about programming and participate in hackathons.'
-      }
-    },
-    {
-      id: 2,
-      clubName: 'Photography Club',
-      clubCategory: 'Arts',
-      status: 'approved',
-      submittedAt: '2024-01-10T14:15:00Z',
-      formData: {
-        name: 'Thoeun Soklin',
-        email: 'soklin1220lin@gmail.com',
-        phone: '0977569023',
-        studentId: 'ST5667',
-        major: 'Computer Science',
-        year: 'Junior',
-        message: 'I love photography and would like to learn more about camera techniques and photo editing.'
-      }
-    }
-  ])
+  // Fetch real event registrations and club memberships
+  const { data: myEventRegistrations = [], isLoading: loadingEventRegs } = useQuery({
+    queryKey: ['my-event-registrations', user?.id],
+    queryFn: getMyEventRegistrations,
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000,
+  })
 
-  const [myEventRegistrations] = useState([
-    {
-      id: 1,
-      eventName: 'Tech Innovation Summit 2024',
-      eventDate: '2024-03-15',
-      eventTime: '09:00 AM',
-      eventLocation: 'Main Auditorium',
-      eventPrice: 0,
-      status: 'confirmed',
-      registeredAt: '2024-01-12T16:45:00Z',
-      ticketId: 'TKT-1-1705123456789-ABC123',
-      qrCodeData: JSON.stringify({
-        ticketId: 'TKT-1-1705123456789-ABC123',
-        eventId: 1,
-        userEmail: 'soklin1220lin@gmail.com',
-        userName: 'Thoeun Soklin',
-        eventDate: '2024-03-15',
-        eventTime: '09:00 AM'
-      }),
-      formData: {
-        name: 'Thoeun Soklin',
-        email: 'soklin1220lin@gmail.com',
-        phone: '0977569023',
-        studentId: 'ST5667',
-        notes: 'Looking forward to attending this tech summit!'
-      }
-    },
-    {
-      id: 2,
-      eventName: 'Spring Music Festival',
-      eventDate: '2024-03-20',
-      eventTime: '06:00 PM',
-      eventLocation: 'Campus Grounds',
-      eventPrice: 15,
-      status: 'confirmed',
-      registeredAt: '2024-01-08T11:20:00Z',
-      ticketId: 'TKT-2-1704704000123-XYZ789',
-      qrCodeData: JSON.stringify({
-        ticketId: 'TKT-2-1704704000123-XYZ789',
-        eventId: 2,
-        userEmail: 'soklin1220lin@gmail.com',
-        userName: 'Thoeun Soklin',
-        eventDate: '2024-03-20',
-        eventTime: '06:00 PM'
-      }),
-      formData: {
-        name: 'Thoeun Soklin',
-        email: 'soklin1220lin@gmail.com',
-        phone: '0977569023',
-        studentId: 'ST5667',
-        notes: 'Excited for the music festival!'
-      }
-    }
-  ])
+  const { data: myClubRequests = [], isLoading: loadingClubMemberships } = useQuery({
+    queryKey: ['my-club-memberships', user?.id],
+    queryFn: getMyClubMemberships,
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000,
+  })
   const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['dashboard-stats', user?.role],
     queryFn: async () => {
       if (!user) return null
-      try {
-        return await getDashboardStats(user)
-      } catch (error) {
-        console.warn('Dashboard stats API error, using fallback data:', error.message)
-        // Return fallback data when API fails
-        return {
-          myEvents: user?.role === 'organizer' ? 5 : 0,
-          totalUsers: user?.role === 'organizer' ? 1247 : 0,
-          myRegistrations: user?.role === 'student' ? 3 : 0,
-          totalAttendees: 245,
-          revenue: user?.role === 'organizer' ? 1250 : 0
-        }
-      }
+      return await getDashboardStats(user)
     },
-    enabled: !!user, // Only run query if user exists
-    retry: 1, // Reduce retries to avoid spamming failing APIs
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error) => {
-      // Don't show toast for expected API errors, just log
-      console.warn('Dashboard stats temporarily unavailable')
-    }
+    enabled: !!user,
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data: recentActivities, isLoading: activitiesLoading, error: activitiesError } = useQuery({
@@ -287,113 +195,52 @@ const Dashboard = () => {
     }
   })
 
-  const { data: courses, isLoading: coursesLoading, error: coursesError } = useQuery({
+  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useQuery({
     queryKey: ['user-courses', user?.role],
     queryFn: async () => {
-      if (!user) return null
-      try {
-        return await getUserCourses(user)
-      } catch (error) {
-        console.warn('User courses API error, using fallback data:', error.message)
-        // Return fallback course data
-        return [
-          {
-            id: 1,
-            title: 'Introduction to React',
-            instructor: 'Dr. Sarah Johnson',
-            progress: 75,
-            thumbnail: '/api/placeholder/300/200',
-            category: 'Web Development',
-            level: 'Intermediate',
-            duration: '6 weeks',
-            enrolledStudents: 234
-          },
-          {
-            id: 2,
-            title: 'Data Science Fundamentals',
-            instructor: 'Prof. Michael Chen',
-            progress: 45,
-            thumbnail: '/api/placeholder/300/200',
-            category: 'Data Science',
-            level: 'Beginner',
-            duration: '8 weeks',
-            enrolledStudents: 456
-          }
-        ]
-      }
+      if (!user) return []
+      return await getUserCourses(user)
     },
-    enabled: !!user, // Only run query if user exists
-    retry: 1, // Reduce retries
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    onError: (error) => {
-      console.warn('User courses temporarily unavailable')
-    }
+    enabled: !!user,
+    retry: 1,
+    staleTime: 10 * 60 * 1000,
   })
 
   const { data: achievements, isLoading: achievementsLoading, error: achievementsError } = useQuery({
     queryKey: ['user-achievements', user?.id],
     queryFn: async () => {
       if (!user) return null
-      try {
-        return await getUserAchievements(user)
-      } catch (error) {
-        console.warn('User achievements API error, using fallback data:', error.message)
-        // Return fallback achievement data
-        return [
-          {
-            id: 1,
-            title: 'First Steps',
-            description: 'Complete your profile setup',
-            icon: 'target',
-            dateEarned: '2024-01-15',
-            category: 'Onboarding'
-          },
-          {
-            id: 2,
-            title: 'Event Enthusiast',
-            description: 'Register for 5 events',
-            icon: 'star',
-            dateEarned: '2024-01-20',
-            category: 'Events'
-          }
-        ]
-      }
+      return await getUserAchievements(user)
     },
-    enabled: !!user, // Only run query if user exists
-    retry: 1, // Reduce retries
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    onError: (error) => {
-      console.warn('User achievements temporarily unavailable')
-    }
+    enabled: !!user,
+    retry: 1,
+    staleTime: 15 * 60 * 1000,
   })
 
   const { data: certificates, isLoading: certificatesLoading, error: certificatesError } = useQuery({
     queryKey: ['user-certificates', user?.id],
     queryFn: async () => {
       if (!user) return null
-      try {
-        return await getUserCertificates(user)
-      } catch (error) {
-        console.warn('User certificates API error, using fallback data:', error.message)
-        // Return fallback certificate data
-        return [
-          {
-            id: 1,
-            title: 'React Development Certificate',
-            issuer: 'Campus Learning Platform',
-            dateIssued: '2024-01-10',
-            credentialId: 'CLP-2024-REACT-001',
-            category: 'Web Development'
-          }
-        ]
-      }
+      return await getUserCertificates(user)
     },
-    enabled: !!user, // Only run query if user exists
-    retry: 1, // Reduce retries
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    onError: (error) => {
-      console.warn('User certificates temporarily unavailable')
-    }
+    enabled: !!user,
+    retry: 1,
+    staleTime: 15 * 60 * 1000,
+  })
+
+  // Fetch organizer's created events and clubs
+  const { data: myCreatedEvents = [], isLoading: loadingCreatedEvents } = useQuery({
+    queryKey: ['my-created-events', user?.id],
+    queryFn: getMyCreatedEvents,
+    enabled: !!user && isOrganizer,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const { data: myCreatedClubs = [], isLoading: loadingCreatedClubs } = useQuery({
+    queryKey: ['my-created-clubs', user?.id],
+    queryFn: getMyCreatedClubs,
+    enabled: !!user && isOrganizer,
+    staleTime: 2 * 60 * 1000,
   })
 
   // Fetch event proposals
@@ -2858,8 +2705,12 @@ const Dashboard = () => {
                             <div className="flex items-center gap-3">
                               <CalendarIcon className="w-8 h-8 text-blue-600" />
                               <div>
-                                <h4 className="font-semibold text-gray-900">2 Active Events</h4>
-                                <p className="text-sm text-gray-600">Managing 123 registrations</p>
+                                <h4 className="font-semibold text-gray-900">
+                                  {Array.isArray(courses) ? courses.filter(c => c.duration === 'Event').length : 0} Active Event{(Array.isArray(courses) ? courses.filter(c => c.duration === 'Event').length : 0) !== 1 ? 's' : ''}
+                                </h4>
+                                <p className="text-sm text-gray-600">
+                                  {stats?.totalRegistrations ? `Managing ${stats.totalRegistrations} registration${stats.totalRegistrations !== 1 ? 's' : ''}` : 'View event details'}
+                                </p>
                               </div>
                             </div>
                             <ChevronRightIcon className="w-5 h-5 text-gray-400" />
@@ -2874,8 +2725,10 @@ const Dashboard = () => {
                             <div className="flex items-center gap-3">
                               <UserGroupIcon className="w-8 h-8 text-purple-600" />
                               <div>
-                                <h4 className="font-semibold text-gray-900">1 Active Club</h4>
-                                <p className="text-sm text-gray-600">156 members</p>
+                                <h4 className="font-semibold text-gray-900">
+                                  {stats?.activeClubs ?? stats?.totalClubs ?? 0} Active Club{(stats?.activeClubs ?? stats?.totalClubs ?? 0) !== 1 ? 's' : ''}
+                                </h4>
+                                <p className="text-sm text-gray-600">View club details</p>
                               </div>
                             </div>
                             <ChevronRightIcon className="w-5 h-5 text-gray-400" />
@@ -3422,21 +3275,13 @@ const Dashboard = () => {
                   <div className="mb-6">
                     <div className="flex flex-wrap gap-2">
                       {(() => {
-                        const eventData = [
-                          { id: 1, status: 'published' },
-                          { id: 2, status: 'published' },
-                          { id: 3, status: 'approved' },
-                          { id: 4, status: 'pending_approval' },
-                          { id: 5, status: 'cancelled' },
-                          { id: 6, status: 'rejected' }
-                        ]
                         const statusCounts = {
-                          all: eventData.length,
-                          published: eventData.filter(e => e.status === 'published').length,
-                          approved: eventData.filter(e => e.status === 'approved').length,
-                          pending_approval: eventData.filter(e => e.status === 'pending_approval').length,
-                          rejected: eventData.filter(e => e.status === 'rejected').length,
-                          cancelled: eventData.filter(e => e.status === 'cancelled').length
+                          all: myCreatedEvents.length,
+                          published: myCreatedEvents.filter(e => e.status === 'published').length,
+                          approved: myCreatedEvents.filter(e => e.status === 'approved').length,
+                          pending_approval: myCreatedEvents.filter(e => e.status === 'pending_approval').length,
+                          rejected: myCreatedEvents.filter(e => e.status === 'rejected').length,
+                          cancelled: myCreatedEvents.filter(e => e.status === 'cancelled').length
                         }
                         return ['all', 'published', 'approved', 'pending_approval', 'rejected', 'cancelled'].map(status => (
                           <button
@@ -3468,21 +3313,13 @@ const Dashboard = () => {
                   <div className="mb-6">
                     <div className="flex flex-wrap gap-2">
                       {(() => {
-                        const clubData = [
-                          { id: 1, status: 'published' },
-                          { id: 2, status: 'published' },
-                          { id: 3, status: 'approved' },
-                          { id: 4, status: 'pending_approval' },
-                          { id: 5, status: 'suspended' },
-                          { id: 6, status: 'rejected' }
-                        ]
                         const statusCounts = {
-                          all: clubData.length,
-                          published: clubData.filter(c => c.status === 'published').length,
-                          approved: clubData.filter(c => c.status === 'approved').length,
-                          pending_approval: clubData.filter(c => c.status === 'pending_approval').length,
-                          rejected: clubData.filter(c => c.status === 'rejected').length,
-                          suspended: clubData.filter(c => c.status === 'suspended').length
+                          all: myCreatedClubs.length,
+                          published: myCreatedClubs.filter(c => c.status === 'published').length,
+                          approved: myCreatedClubs.filter(c => c.status === 'approved').length,
+                          pending_approval: myCreatedClubs.filter(c => c.status === 'pending_approval').length,
+                          rejected: myCreatedClubs.filter(c => c.status === 'rejected').length,
+                          suspended: myCreatedClubs.filter(c => c.status === 'suspended').length
                         }
                         return ['all', 'published', 'approved', 'pending_approval', 'rejected', 'suspended'].map(status => (
                           <button
@@ -3512,93 +3349,14 @@ const Dashboard = () => {
                 {/* Events Section */}
                 {myEventsContentType === 'events' && (
                 <div>
-                  {(() => {
-                    const eventData = [
-                      {
-                        id: 1,
-                        title: 'Tech Innovation Summit 2024',
-                        date: '2024-03-15',
-                        time: '09:00 AM',
-                        location: 'Main Auditorium',
-                        price: 0,
-                        status: 'published',
-                        registrations: 45,
-                        maxAttendees: 100,
-                        image: '/api/placeholder/400/200',
-                        description: 'Annual technology conference featuring industry leaders'
-                      },
-                      {
-                        id: 2,
-                        title: 'Spring Music Festival',
-                        date: '2024-03-20',
-                        time: '06:00 PM',
-                        location: 'Campus Grounds',
-                        price: 15,
-                        status: 'published',
-                        registrations: 78,
-                        maxAttendees: 200,
-                        image: '/api/placeholder/400/200',
-                        description: 'Outdoor music celebration with student bands'
-                      },
-                      {
-                        id: 3,
-                        title: 'Entrepreneurship Bootcamp',
-                        date: '2024-03-25',
-                        time: '10:00 AM',
-                        location: 'Business School',
-                        price: 0,
-                        status: 'approved',
-                        registrations: 0,
-                        maxAttendees: 80,
-                        image: '/api/placeholder/400/200',
-                        description: 'Three-day intensive workshop on starting and running a business'
-                      },
-                      {
-                        id: 4,
-                        title: 'AI Workshop Series',
-                        date: '2024-04-01',
-                        time: '02:00 PM',
-                        location: 'Computer Lab',
-                        price: 10,
-                        status: 'pending_approval',
-                        registrations: 0,
-                        maxAttendees: 50,
-                        image: '/api/placeholder/400/200',
-                        description: 'Weekly workshops on artificial intelligence and machine learning'
-                      },
-                      {
-                        id: 5,
-                        title: 'Summer Concert 2024',
-                        date: '2024-03-18',
-                        time: '07:00 PM',
-                        location: 'Main Stage',
-                        price: 20,
-                        status: 'cancelled',
-                        registrations: 15,
-                        maxAttendees: 150,
-                        image: '/api/placeholder/400/200',
-                        description: 'Outdoor concert event',
-                        admin_reason: 'Event cancelled due to lack of proper permits and safety concerns. All registered attendees have been refunded.'
-                      },
-                      {
-                        id: 6,
-                        title: 'Hackathon 2024',
-                        date: '2024-02-28',
-                        time: '08:00 AM',
-                        location: 'Innovation Center',
-                        price: 0,
-                        status: 'rejected',
-                        registrations: 0,
-                        maxAttendees: 100,
-                        image: '/api/placeholder/400/200',
-                        description: 'Build innovative solutions in 24 hours',
-                        rejection_reason: 'Similar event already scheduled for the same date. Please consider rescheduling or merging with the existing hackathon event.'
-                      }
-                    ]
-                    
+                  {loadingCreatedEvents ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (() => {
                     const filteredEvents = eventStatusFilter === 'all' 
-                      ? eventData 
-                      : eventData.filter(e => e.status === eventStatusFilter)
+                      ? myCreatedEvents 
+                      : myCreatedEvents.filter(e => e.status === eventStatusFilter)
                     
                     if (filteredEvents.length === 0) {
                       return (
@@ -3769,69 +3527,14 @@ const Dashboard = () => {
                 {/* Clubs Section for Organizers */}
                 {myEventsContentType === 'clubs' && (
                   <div>
-                    {(() => {
-                      const clubData = [
-                        {
-                          id: 1,
-                          name: 'Computer Science Club',
-                          category: 'academic',
-                          description: 'Explore the world of technology and programming',
-                          image: '/api/placeholder/400/200',
-                          members: 156,
-                          status: 'published'
-                        },
-                        {
-                          id: 2,
-                          name: 'Photography Club',
-                          category: 'arts',
-                          description: 'Capture moments and learn photography techniques',
-                          image: '/api/placeholder/400/200',
-                          members: 89,
-                          status: 'published'
-                        },
-                        {
-                          id: 3,
-                          name: 'Robotics Engineering Club',
-                          category: 'academic',
-                          description: 'Build and compete with robots',
-                          image: '/api/placeholder/400/200',
-                          members: 45,
-                          status: 'approved'
-                        },
-                        {
-                          id: 4,
-                          name: 'Environmental Action Group',
-                          category: 'social',
-                          description: 'Promote sustainability and environmental awareness',
-                          image: '/api/placeholder/400/200',
-                          members: 120,
-                          status: 'pending_approval'
-                        },
-                        {
-                          id: 5,
-                          name: 'Gaming Club',
-                          category: 'recreation',
-                          description: 'Video game tournaments and gaming community',
-                          image: '/api/placeholder/400/200',
-                          members: 78,
-                          status: 'suspended',
-                          admin_reason: 'Club activities suspended due to multiple noise complaints and violation of campus facility usage rules. Address these issues to request review.'
-                        },
-                        {
-                          id: 6,
-                          name: 'Crypto Trading Club',
-                          category: 'finance',
-                          description: 'Learn about cryptocurrency and trading strategies',
-                          image: '/api/placeholder/400/200',
-                          members: 0,
-                          status: 'rejected',
-                          rejection_reason: 'Club activities related to cryptocurrency trading pose financial risk to students. Please revise the mission to focus on blockchain technology education instead.'
-                        }
-                      ]
-                      
+                    {loadingCreatedClubs ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                      </div>
+                    ) : (() => {
                       const filteredClubs = clubStatusFilter === 'all' 
-                        ? clubData 
-                        : clubData.filter(c => c.status === clubStatusFilter)
+                        ? myCreatedClubs 
+                        : myCreatedClubs.filter(c => c.status === clubStatusFilter)
                       
                       if (filteredClubs.length === 0) {
                         return (

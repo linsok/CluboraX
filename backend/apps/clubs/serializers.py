@@ -152,13 +152,16 @@ class ClubMembershipSerializer(serializers.ModelSerializer):
     """
     user = UserProfileSerializer(read_only=True)
     club_name = serializers.CharField(source='club.name', read_only=True)
+    club_category = serializers.CharField(source='club.category', read_only=True)
+    club_image = serializers.ImageField(source='club.image', read_only=True)
     role_display = serializers.CharField(source='get_role_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     
     class Meta:
         model = ClubMembership
         fields = [
-            'id', 'club', 'club_name', 'user', 'role', 'role_display',
+            'id', 'club', 'club_name', 'club_category', 'club_image',
+            'user', 'role', 'role_display',
             'status', 'status_display', 'joined_at', 'notes'
         ]
         read_only_fields = ['id', 'user', 'joined_at']

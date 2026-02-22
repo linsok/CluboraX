@@ -206,6 +206,90 @@ export const getUserCourses = async () => {
   }
 }
 
+// Get organizer's created events (full data)
+export const getMyCreatedEvents = async () => {
+  const res = await apiClient.get('/api/events/?my_events=true&ordering=-created_at')
+  const events = res.data?.results || (Array.isArray(res.data) ? res.data : [])
+  return events.map(event => ({
+    id: event.id,
+    title: event.title,
+    description: event.description || '',
+    date: event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
+    time: event.start_datetime ? new Date(event.start_datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
+    location: event.venue || '',
+    price: parseFloat(event.price || 0),
+    status: event.status,
+    registrations: event.current_participants || 0,
+    maxAttendees: event.max_participants || 0,
+    image: event.poster_image_url || null,
+    rejection_reason: event.rejection_reason || null,
+    admin_reason: event.admin_reason || null,
+    category: event.category || '',
+    created_at: event.created_at,
+  }))
+}
+
+// Get organizer's created clubs (full data)
+export const getMyCreatedClubs = async () => {
+  const res = await apiClient.get('/api/clubs/?my_clubs=true&ordering=-created_at')
+  const clubs = res.data?.results || (Array.isArray(res.data) ? res.data : [])
+  return clubs.map(club => ({
+    id: club.id,
+    name: club.name,
+    category: club.category || '',
+    description: club.description || '',
+    image: club.logo_url || null,
+    members: club.member_count || 0,
+    status: club.status,
+    rejection_reason: club.rejection_reason || null,
+    admin_reason: club.admin_reason || null,
+    created_at: club.created_at,
+  }))
+}
+
+// Get current user's event registrations (students)
+export const getMyEventRegistrations = async () => {
+  const res = await apiClient.get('/api/events/registrations/')
+  const registrations = res.data?.results || (Array.isArray(res.data) ? res.data : [])
+  return registrations.map(reg => ({
+    id: reg.id,
+    eventName: reg.event_title || '',
+    eventDate: reg.event_start ? new Date(reg.event_start).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
+    eventTime: reg.event_start ? new Date(reg.event_start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
+    eventLocation: reg.event_venue || '',
+    eventPrice: parseFloat(reg.event_price || 0),
+    status: reg.status,
+    registeredAt: reg.registration_date,
+    ticketId: String(reg.id).substring(0, 13).toUpperCase(),
+    qrCodeData: reg.qr_code || '',
+    formData: {
+      name: reg.user?.full_name || reg.user?.first_name || '',
+      email: reg.user?.email || '',
+      notes: reg.notes || ''
+    }
+  }))
+}
+
+// Get current user's club membership requests
+export const getMyClubMemberships = async () => {
+  const res = await apiClient.get('/api/clubs/memberships/')
+  const memberships = res.data?.results || (Array.isArray(res.data) ? res.data : [])
+  return memberships.map(mem => ({
+    id: mem.id,
+    clubName: mem.club_name || '',
+    clubCategory: mem.club_category || '',
+    status: mem.status,
+    submittedAt: mem.joined_at,
+    formData: {
+      email: mem.user?.email || '',
+      studentId: mem.user?.student_id || mem.user?.username || '',
+      year: mem.user?.year || '',
+      major: mem.user?.major || '',
+      message: mem.notes || ''
+    }
+  }))
+}
+
 // Helper function to format time ago
 const getTimeAgo = (dateString) => {
   const date = new Date(dateString)
