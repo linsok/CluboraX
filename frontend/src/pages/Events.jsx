@@ -884,7 +884,7 @@ const Events = () => {
   const [rejectionReason, setRejectionReason] = useState('')
   const [pendingTicketData, setPendingTicketData] = useState(null)
   const [abaTransactionId, setAbaTransactionId] = useState(null)
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const [pendingRegistrationId, setPendingRegistrationId] = useState(null)
 
   // State for event creation form (same as Dashboard)
   const [eventForm, setEventForm] = useState({
@@ -1144,9 +1144,9 @@ const Events = () => {
     }))
   }, [])
 
-  const handleRegistrationSubmit = useCallback((e) => {
+  const handleRegistrationSubmit = useCallback(async (e) => {
     e.preventDefault()
-    
+
     // Basic validation
     if (!registrationData.name.trim()) {
       toast.error('Name is required')
@@ -1160,59 +1160,72 @@ const Events = () => {
       toast.error('Please enter a valid email')
       return
     }
-    
-    // Generate unique ticket ID
-    const ticketId = `TKT-${selectedEvent.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
-    
-    // Create ticket data
-    const ticket = {
-      id: ticketId,
-      eventId: selectedEvent.id,
-      eventName: selectedEvent.title,
-      eventDate: selectedEvent.date,
-      eventTime: selectedEvent.time,
-      eventLocation: selectedEvent.location,
-      userName: registrationData.name,
-      userEmail: registrationData.email,
-      userPhone: registrationData.phone,
-      userStudentId: registrationData.studentId,
-      registrationDate: new Date().toISOString(),
-      price: selectedEvent.price,
-      qrCodeData: JSON.stringify({
-        ticketId: ticketId,
-        eventId: selectedEvent.id,
-        userEmail: registrationData.email,
-        userName: registrationData.name,
-        eventDate: selectedEvent.date,
-        eventTime: selectedEvent.time
+
+    try {
+      // POST registration to backend
+      const res = await apiClient.post('/api/events/registrations/', {
+        event: selectedEvent.id,
+        notes: registrationData.notes || ''
       })
-    }
-    
-    // â”€â”€â”€ Branch: paid vs free event â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    if (selectedEvent.price > 0) {
-      // Paid event â†’ open payment modal; ticket activates only after approval
-      setPendingTicketData(ticket)
-      setPaymentStep('info')
-      setPaymentMethod('card')
-      setPaymentProof(null)
-      setPaymentProofPreview(null)
-      setRejectionReason('')
+      const registrationId = res.data.id
+
+      // Build local ticket enrichment
+      const ticket = {
+        id: registrationId,
+        eventId: selectedEvent.id,
+        eventName: selectedEvent.title,
+        eventDate: selectedEvent.date,
+        eventTime: selectedEvent.time,
+        eventLocation: selectedEvent.location,
+        userName: registrationData.name,
+        userEmail: registrationData.email,
+        userPhone: registrationData.phone,
+        userStudentId: registrationData.studentId,
+        registrationDate: new Date().toISOString(),
+        price: selectedEvent.price,
+        qrCodeData: JSON.stringify({
+          ticketId: registrationId,
+          eventId: selectedEvent.id,
+          userEmail: registrationData.email,
+          userName: registrationData.name,
+          eventDate: selectedEvent.date,
+          eventTime: selectedEvent.time
+        })
+      }
+
       setRegistrationData({ name: '', email: '', phone: '', studentId: '', notes: '' })
       setShowRegisterForm(false)
-      setShowPaymentModal(true)
-    } else {
-      // Free event â†’ go directly to QR ticket
-      setIsRegistered(true)
-      selectedEvent.currentAttendees += 1
-      toast.success('Successfully registered for the event!')
-      setTicketData(ticket)
-      setShowTicketModal(true)
-      setRegistrationData({ name: '', email: '', phone: '', studentId: '', notes: '' })
-      setShowRegisterForm(false)
+
+      if (selectedEvent.price > 0) {
+        // Paid event → open payment modal; ticket activates only after approval
+        setPendingRegistrationId(registrationId)
+        setPendingTicketData(ticket)
+        setPaymentStep('info')
+        setPaymentMethod('card')
+        setPaymentProof(null)
+        setPaymentProofPreview(null)
+        setRejectionReason('')
+        setShowPaymentModal(true)
+      } else {
+        // Free event → confirmed in DB, show QR ticket
+        setIsRegistered(true)
+        selectedEvent.currentAttendees = (selectedEvent.currentAttendees || 0) + 1
+        toast.success('Successfully registered for the event!')
+        setTicketData(ticket)
+        setShowTicketModal(true)
+      }
+    } catch (err) {
+      const msg =
+        err.response?.data?.event?.[0] ||
+        err.response?.data?.non_field_errors?.[0] ||
+        err.response?.data?.detail ||
+        'Registration failed. Please try again.'
+      toast.error(msg)
     }
-  }, [registrationData, selectedEvent, setPendingTicketData, setPaymentStep, setPaymentMethod,
-      setPaymentProof, setPaymentProofPreview, setRejectionReason,
-      setIsRegistered, setTicketData, setShowTicketModal, setShowRegisterForm, setShowPaymentModal])
+  }, [registrationData, selectedEvent, setPendingRegistrationId, setPendingTicketData,
+      setPaymentStep, setPaymentMethod, setPaymentProof, setPaymentProofPreview,
+      setRejectionReason, setIsRegistered, setTicketData, setShowTicketModal,
+      setShowRegisterForm, setShowPaymentModal])
 
   const handleLike = () => {
     setIsLiked(!isLiked)
@@ -1231,6 +1244,7 @@ const Events = () => {
     setPaymentProof(null)
     setPaymentProofPreview(null)
     setAbaTransactionId(null)
+    setPendingRegistrationId(null)
     setRejectionReason('')
     setRegistrationData({
       name: '',
@@ -1259,14 +1273,25 @@ const Events = () => {
     }
   }, [])
 
-  const handleSubmitProof = useCallback(() => {
+  const handleSubmitProof = useCallback(async () => {
     if (!paymentProof) {
       toast.error('Please upload your proof of payment first')
       return
     }
-    setPaymentStep('verifying')
-    toast.success('Proof submitted! Awaiting finance verification (1â€“3 days).')
-  }, [paymentProof])
+    try {
+      if (pendingRegistrationId) {
+        const formData = new FormData()
+        formData.append('payment_receipt', paymentProof)
+        await apiClient.patch(`/api/events/registrations/${pendingRegistrationId}/`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+      }
+      setPaymentStep('verifying')
+      toast.success('Proof submitted! Awaiting finance verification (1–3 days).')
+    } catch (err) {
+      toast.error('Failed to upload proof. Please try again.')
+    }
+  }, [paymentProof, pendingRegistrationId])
 
   const handleSimulateApprove = useCallback(() => {
     setPaymentStep('approved')

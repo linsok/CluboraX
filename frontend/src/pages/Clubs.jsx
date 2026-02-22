@@ -11,7 +11,7 @@ import FloatingChatbot from '../components/FloatingChatbot'
 // ── Stable top-level modal components – defined outside Clubs so React never
 // ── sees a new component type on re-render, preventing focus-loss flicker ──
 
-const JoinRequestModal = React.memo(({ show, selectedClub, onClose }) => {
+const JoinRequestModal = React.memo(({ show, selectedClub, onClose, onSubmitRequest }) => {
   const nameRef = useRef()
   const emailRef = useRef()
   const studentIdRef = useRef()
@@ -19,14 +19,20 @@ const JoinRequestModal = React.memo(({ show, selectedClub, onClose }) => {
   const [year, setYear] = useState('')
   const messageRef = useRef()
 
-  const handleSubmit = useCallback((e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
     const name = nameRef.current?.value.trim()
     const email = emailRef.current?.value.trim()
     if (!name) { toast.error('Name is required'); return }
     if (!email) { toast.error('Email is required'); return }
     if (!/\S+@\S+\.\S+/.test(email)) { toast.error('Please enter a valid email'); return }
-    toast.success(`Join request sent to ${selectedClub.name}!`)
+    if (onSubmitRequest) {
+      try {
+        await onSubmitRequest({ message: messageRef.current?.value.trim() || '' })
+      } catch {
+        return // error already toasted by parent
+      }
+    }
     if (nameRef.current) nameRef.current.value = ''
     if (emailRef.current) emailRef.current.value = ''
     if (studentIdRef.current) studentIdRef.current.value = ''
@@ -34,7 +40,7 @@ const JoinRequestModal = React.memo(({ show, selectedClub, onClose }) => {
     if (messageRef.current) messageRef.current.value = ''
     setYear('')
     onClose()
-  }, [selectedClub, onClose])
+  }, [selectedClub, onClose, onSubmitRequest])
 
   if (!show || !selectedClub) return null
 
@@ -362,6 +368,24 @@ const Clubs = () => {
     setShowJoinModal(true)
   }
 
+  const handleJoinRequest = useCallback(async ({ message }) => {
+    try {
+      await apiClient.post('/api/clubs/memberships/', {
+        club: selectedClub.id,
+        notes: message
+      })
+      toast.success(`Join request sent to ${selectedClub.name}! Pending approval.`)
+    } catch (err) {
+      const msg =
+        err.response?.data?.club?.[0] ||
+        err.response?.data?.non_field_errors?.[0] ||
+        err.response?.data?.detail ||
+        'Failed to send join request. Please try again.'
+      toast.error(msg)
+      throw err
+    }
+  }, [selectedClub])
+
   const handleSignUpAsStudent = () => {
     logout()
     navigate('/register')
@@ -670,6 +694,7 @@ const Clubs = () => {
         show={showJoinModal}
         selectedClub={selectedClub}
         onClose={() => { setShowJoinModal(false); setSelectedClub(null) }}
+        onSubmitRequest={handleJoinRequest}
       />
 
       {/* Club Details Modal */}
