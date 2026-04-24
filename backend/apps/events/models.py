@@ -26,6 +26,7 @@ class Event(TimeStampedModel):
         ('draft', 'Draft'),
         ('pending_approval', 'Pending Approval'),
         ('approved', 'Approved'),
+        ('published', 'Published'),
         ('rejected', 'Rejected'),
         ('cancelled', 'Cancelled'),
         ('completed', 'Completed'),
@@ -96,11 +97,11 @@ class Event(TimeStampedModel):
     @property
     def registration_open(self):
         if not self.registration_deadline:
-            return self.is_upcoming and self.status == 'approved'
+            return self.is_upcoming and self.status in ['approved', 'published']
         return (
             timezone.now() <= self.registration_deadline and 
             self.is_upcoming and 
-            self.status == 'approved'
+            self.status in ['approved', 'published']
         )
     
     @property

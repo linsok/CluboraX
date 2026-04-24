@@ -12,19 +12,74 @@ logger = logging.getLogger(__name__)
 def media_file_post_save(sender, instance, created, **kwargs):
     """
     Handle media file post-save signals.
+    Notify gallery owner and all event/club members when images are uploaded.
     """
     if created:
+        gallery = instance.gallery
+        
         # Send notification to gallery owner if different from uploader
-        if instance.gallery.created_by != instance.uploaded_by:
+        if gallery.created_by != instance.uploaded_by:
             send_notification(
-                instance.gallery.created_by,
-                'New Media Upload',
-                f'{instance.uploaded_by.full_name} uploaded media to "{instance.gallery.title}"',
-                'system'
+                gallery.created_by,
+                'New Media Uploaded 📸',
+                f'{instance.uploaded_by.full_name} uploaded a new image to "{gallery.title}"',
+                'system',
+                priority='medium'
             )
+        
+        # If gallery is for an event, notify all event registrants
+        if gallery.event:
+            event = gallery.event
+            registrants = event.registrations.filter(status='confirmed')
+            for registration in registrants:
+                if registration.user != instance.uploaded_by:  # Don't notify the uploader
+                    send_notification(
+                        registration.user,
+                        'New Event Photos 📸',
+                        f'New photos from "{event.title}" have been uploaded!',
+                        'event_update',
+                        priority='medium'
+                    )
+            
+            # Notify event organizer
+            if event.created_by != instance.uploaded_by:
+                send_notification(
+                    event.created_by,
+                    'New Photos Uploaded 📸',
+                    f'New photos uploaded to your event "{event.title}"',
+                    'event_update',
+                    priority='medium'
+                )
+        
+        # If gallery is for a club, notify all club members
+        elif gallery.club:
+            club = gallery.club
+            members = club.memberships.filter(status='approved')
+            for membership in members:
+                if membership.user != instance.uploaded_by:  # Don't notify the uploader
+                    send_notification(
+                        membership.user,
+                        'New Club Album Photos 📸',
+                        f'New photos from "{club.name}" club have been uploaded!',
+                        'club_update',
+                        priority='medium'
+                    )
+            
+            # Notify club leaders
+            leaders = club.memberships.filter(role='leader', status='approved')
+            for membership in leaders:
+                if membership.user != instance.uploaded_by:
+                    send_notification(
+                        membership.user,
+                        'New Photos Uploaded to Club 📸',
+                        f'New photos uploaded to "{club.name}" by {instance.uploaded_by.full_name}',
+                        'club_update',
+                        priority='medium'
+                    )
         
         # Log creation
         logger.info(f"Media file uploaded: {instance.title or instance.original_filename}")
+        logger.info(f"Notifications sent for media upload in gallery: {gallery.title}")
 
 
 @receiver(post_save, sender=MediaLike)

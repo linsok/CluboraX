@@ -40,7 +40,8 @@ export const getDashboardStats = async (user = null) => {
       stats.upcomingEvents = eventsData.upcoming_events || 0
       stats.totalRegistrations = eventsData.total_registrations || 0
     } catch (error) {
-      console.error('Failed to fetch events stats:', error)
+      // Silently handle error - stats endpoint may be unavailable
+      // Stats remain at default values (0)
     }
 
     // Get clubs statistics
@@ -50,7 +51,8 @@ export const getDashboardStats = async (user = null) => {
       stats.totalClubs = clubsData.total_clubs || 0
       stats.activeClubs = clubsData.active_clubs || 0
     } catch (error) {
-      console.error('Failed to fetch clubs stats:', error)
+      // Silently handle error - stats endpoint may be unavailable
+      // Stats remain at default values (0)
     }
 
     // Get user count (admin only)
@@ -238,11 +240,19 @@ export const getMyCreatedClubs = async () => {
     name: club.name,
     category: club.category || '',
     description: club.description || '',
+    mission_statement: club.mission_statement || '',
+    requirements: club.requirements || 'No specific requirements',
+    advisor_name: club.advisor_name || 'TBA',
+    advisor_email: club.advisor_email || '',
+    meeting_schedule: club.meeting_schedule || 'TBA',
+    tags: club.tags || [],
+    social_links: club.social_links || {},
     image: club.logo_url || null,
     members: club.member_count || 0,
     status: club.status,
     rejection_reason: club.rejection_reason || null,
     admin_reason: club.admin_reason || null,
+    founded_date: club.founded_date || null,
     created_at: club.created_at,
   }))
 }

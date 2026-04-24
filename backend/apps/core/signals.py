@@ -3,9 +3,47 @@ from django.dispatch import receiver
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.forms.models import model_to_dict
 from django.utils import timezone
+from django.db import models
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def model_to_serializable_dict(instance):
+    """
+    Convert model instance to a dictionary that can be JSON serialized.
+    Handles FileField, ImageField, ForeignKey, and other relational fields.
+    """
+    data = {}
+    for field in instance._meta.fields:
+        field_name = field.name
+        field_value = getattr(instance, field_name)
+        
+        # Handle File fields (ImageField, FileField)
+        if isinstance(field, (models.FileField, models.ImageField)):
+            if field_value:
+                data[field_name] = str(field_value)  # Convert to path string
+            else:
+                data[field_name] = None
+        # Handle ForeignKey and OneToOneField - store the ID
+        elif isinstance(field, (models.ForeignKey, models.OneToOneField)):
+            if field_value:
+                data[field_name] = str(field_value.pk)  # Store primary key as string
+            else:
+                data[field_name] = None
+        # Handle other field types
+        else:
+            try:
+                # Try to use the field value directly
+                if field_value is None or isinstance(field_value, (str, int, float, bool)):
+                    data[field_name] = field_value
+                else:
+                    # Convert to string for complex types
+                    data[field_name] = str(field_value)
+            except Exception:
+                data[field_name] = str(field_value) if field_value is not None else None
+    
+    return data
 
 
 @receiver(user_logged_in)
@@ -42,7 +80,7 @@ def pre_save_handler(sender, instance, **kwargs):
         try:
             old_instance = sender.objects.get(pk=instance.pk)
             # Store old values for audit logging
-            instance._old_values = model_to_dict(old_instance)
+            instance._old_values = model_to_serializable_dict(old_instance)
         except sender.DoesNotExist:
             instance._old_values = None
 
@@ -74,11 +112,11 @@ def post_save_handler(sender, instance, created, **kwargs):
         if created:
             action = 'create'
             old_values = None
-            new_values = model_to_dict(instance)
+            new_values = model_to_serializable_dict(instance)
         else:
             action = 'update'
             old_values = getattr(instance, '_old_values', None)
-            new_values = model_to_dict(instance)
+            new_values = model_to_serializable_dict(instance)
         
         # Create audit log
         import json
@@ -124,7 +162,7 @@ def post_delete_handler(sender, instance, **kwargs):
             action='delete',
             table_name=sender.__name__,
             record_id=str(instance.pk),
-            old_values=model_to_dict(instance),
+            old_values=model_to_serializable_dict(instance),
             new_values=None,
             ip_address=getattr(instance, '_ip_address', None),
             user_agent=getattr(instance, '_user_agent', None)

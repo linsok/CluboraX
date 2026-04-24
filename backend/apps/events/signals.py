@@ -12,47 +12,65 @@ logger = logging.getLogger(__name__)
 def event_post_save(sender, instance, created, **kwargs):
     """
     Handle event post-save signals.
+    Notify organizer on approval and all students on new events.
     """
     if created:
         # Send notification to relevant users
         if instance.status == 'approved':
             send_notification(
                 instance.created_by,
-                'Event Published',
-                f'Your event "{instance.title}" has been published',
-                'event_update'
+                'Event Published 🎉',
+                f'Your event "{instance.title}" has been published! Students can now register.',
+                'event_update',
+                priority='medium'
             )
-            
-            # Notify students about new event
-            from apps.users.models import User
-            students = User.objects.filter(role='student', is_active=True)
-            for student in students:
-                send_notification(
-                    student,
-                    'New Event',
-                    f'New event "{instance.title}" is now available',
-                    'event_update'
-                )
     
     elif not created:
-        # Handle event updates
+        # Handle event updates and status changes
         if hasattr(instance, '_old_status'):
             old_status = instance._old_status
             if old_status != instance.status:
                 if instance.status == 'approved':
                     send_notification(
                         instance.created_by,
-                        'Event Approved',
-                        f'Your event "{instance.title}" has been approved',
-                        'event_update'
+                        'Event Approved ✅',
+                        f'Your event "{instance.title}" has been approved and is now published!',
+                        'event_update',
+                        priority='medium'
                     )
+                
                 elif instance.status == 'rejected':
                     send_notification(
                         instance.created_by,
-                        'Event Rejected',
-                        f'Your event "{instance.title}" has been rejected',
-                        'event_update'
+                        'Event Rejected ❌',
+                        f'Your event "{instance.title}" has been rejected. Please review and try again.',
+                        'event_update',
+                        priority='high'
                     )
+                    
+                    logger.warning(f"Event '{instance.title}' rejected by admin.")
+                
+                elif instance.status == 'cancelled':
+                    send_notification(
+                        instance.created_by,
+                        'Event Cancelled 🚫',
+                        f'Your event "{instance.title}" has been cancelled.',
+                        'event_update',
+                        priority='high'
+                    )
+                    
+                    # Notify all registered participants
+                    registrations = EventRegistration.objects.filter(event=instance, status='confirmed')
+                    for registration in registrations:
+                        send_notification(
+                            registration.user,
+                            'Event Cancelled 🚫',
+                            f'The event "{instance.title}" has been cancelled.',
+                            'event_update',
+                            priority='high'
+                        )
+                    
+                    logger.info(f"Event '{instance.title}' cancelled. Notified {registrations.count()} registered users.")
 
 
 @receiver(pre_save, sender=Event)
@@ -72,32 +90,89 @@ def event_pre_save(sender, instance, **kwargs):
 def registration_post_save(sender, instance, created, **kwargs):
     """
     Handle event registration post-save signals.
+    Notify both registrant and event organizer.
     """
     if created:
-        # Send confirmation to user
+        event = instance.event
+        user = instance.user
+        
+        # Send confirmation to registered user
         send_notification(
-            instance.user,
-            'Registration Confirmed',
-            f'You have registered for "{instance.event.title}"',
-            'event_update'
+            user,
+            'Event Registration Confirmed ✅',
+            f'You have successfully registered for "{event.title}"! Looking forward to seeing you there.',
+            'event_update',
+            priority='medium'
         )
         
-        # Notify event organizer
+        # Notify event organizer about new registration
         send_notification(
-            instance.event.created_by,
-            'New Registration',
-            f'{instance.user.full_name} registered for "{instance.event.title}"',
-            'event_update'
+            event.created_by,
+            'New Registration 👤',
+            f'{user.full_name} has registered for "{event.title}"',
+            'event_update',
+            priority='medium'
         )
         
         # Check if event is full
-        if instance.event.is_full:
+        if event.is_full:
             send_notification(
-                instance.event.created_by,
-                'Event Full',
-                f'Your event "{instance.event.title}" is now fully booked',
-                'event_update'
+                event.created_by,
+                'Event Fully Booked 🎫',
+                f'Your event "{event.title}" has reached maximum capacity!',
+                'event_update',
+                priority='high'
             )
+            
+            # Notify users on waitlist if any
+            waitlist = EventRegistration.objects.filter(event=event, status='waitlist')
+            for waitlist_entry in waitlist:
+                send_notification(
+                    waitlist_entry.user,
+                    'Event Full - You\'re on Waitlist ⏳',
+                    f'"{event.title}" is now full. You\'re on the waitlist.',
+                    'event_update',
+                    priority='medium'
+                )
+        
+        logger.info(f"User {user.email} registered for event {event.title}")
+    
+    elif not created:
+        # Handle registration status changes
+        if hasattr(instance, '_old_status'):
+            old_status = instance._old_status
+            if old_status != instance.status:
+                event = instance.event
+                user = instance.user
+                
+                if instance.status == 'confirmed':
+                    send_notification(
+                        user,
+                        'Registration Confirmed ✅',
+                        f'Your registration for "{event.title}" has been confirmed!',
+                        'event_update',
+                        priority='medium'
+                    )
+                
+                elif instance.status == 'cancelled':
+                    send_notification(
+                        user,
+                        'Registration Cancelled ❌',
+                        f'Your registration for "{event.title}" has been cancelled.',
+                        'event_update',
+                        priority='high'
+                    )
+                    
+                    # Notify organizer
+                    send_notification(
+                        event.created_by,
+                        'Registration Cancelled 🔔',
+                        f'{user.full_name} cancelled their registration for "{event.title}"',
+                        'event_update',
+                        priority='low'
+                    )
+                
+                logger.info(f"Registration status changed: {user.email} - {event.title} - {instance.status}")
 
 
 @receiver(post_save, sender=EventApproval)

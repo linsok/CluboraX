@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getUserNotifications } from '../api/courses'
+import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification as deleteNotificationApi, deleteAllNotifications } from '../api/notifications'
 import toast from 'react-hot-toast'
 import { 
   BellIcon,
@@ -28,7 +28,8 @@ const Notifications = () => {
   // Fetch notifications
   const { data: notifications, isLoading, error, refetch } = useQuery({
     queryKey: ['notifications'],
-    queryFn: getUserNotifications,
+    queryFn: () => getNotifications(),
+
     retry: 1,
     staleTime: 30 * 1000, // 30 seconds
   })
@@ -39,8 +40,8 @@ const Notifications = () => {
   const filteredNotifications = displayNotifications.filter(notif => {
     const typeMatch = filterType === 'all' || notif.type === filterType
     const statusMatch = filterStatus === 'all' || 
-                       (filterStatus === 'unread' && !notif.read) ||
-                       (filterStatus === 'read' && notif.read)
+                       (filterStatus === 'unread' && !notif.is_read) ||
+                       (filterStatus === 'read' && notif.is_read)
     return typeMatch && statusMatch
   })
 
@@ -81,37 +82,40 @@ const Notifications = () => {
 
   // Mark as read mutation
   const markAsReadMutation = useMutation({
-    mutationFn: async (notificationId) => {
-      // TODO: Implement API call to mark notification as read
-      return { success: true }
-    },
+    mutationFn: (notificationId) => markNotificationRead(notificationId),
     onSuccess: () => {
       queryClient.invalidateQueries(['notifications'])
       toast.success('Notification marked as read')
+    },
+    onError: (error) => {
+      console.error('Mark as read error:', error)
+      toast.error('Failed to mark notification as read')
     }
   })
 
   // Mark all as read mutation
   const markAllAsReadMutation = useMutation({
-    mutationFn: async () => {
-      // TODO: Implement API call to mark all notifications as read
-      return { success: true }
-    },
+    mutationFn: () => markAllNotificationsRead(),
     onSuccess: () => {
       queryClient.invalidateQueries(['notifications'])
       toast.success('All notifications marked as read')
+    },
+    onError: (error) => {
+      console.error('Mark all read error:', error)
+      toast.error('Failed to mark all notifications as read')
     }
   })
 
   // Delete notification mutation
   const deleteNotificationMutation = useMutation({
-    mutationFn: async (notificationId) => {
-      // TODO: Implement API call to delete notification
-      return { success: true }
-    },
+    mutationFn: (notificationId) => deleteNotificationApi(notificationId),
     onSuccess: () => {
       queryClient.invalidateQueries(['notifications'])
       toast.success('Notification deleted')
+    },
+    onError: (error) => {
+      console.error('Delete error:', error)
+      toast.error('Failed to delete notification')
     }
   })
 
@@ -129,7 +133,25 @@ const Notifications = () => {
     }
   }
 
-  const unreadCount = filteredNotifications.filter(n => !n.read).length
+  // Delete all notifications mutation
+  const deleteAllMutation = useMutation({
+    mutationFn: () => deleteAllNotifications(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['notifications'])
+      toast.success(`Deleted ${data.deleted} notifications`)
+    },
+    onError: () => {
+      toast.error('Failed to delete all notifications')
+    }
+  })
+
+  const handleDeleteAll = () => {
+    if (window.confirm('Are you sure you want to delete ALL notifications? This cannot be undone.')) {
+      deleteAllMutation.mutate()
+    }
+  }
+
+  const unreadCount = filteredNotifications.filter(n => !n.is_read).length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -168,6 +190,18 @@ const Notifications = () => {
                   <span>Mark All Read</span>
                 </motion.button>
               )}
+              {displayNotifications.length > 0 && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleDeleteAll}
+                  className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  title="Delete all notifications"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                  <span>Delete All</span>
+                </motion.button>
+              )}
             </div>
           </div>
         </motion.div>
@@ -187,7 +221,7 @@ const Notifications = () => {
             
             {/* Type Filter */}
             <div className="flex flex-wrap gap-2">
-              {['all', 'event', 'club', 'announcement', 'system'].map((type) => (
+              {['all', 'event_update', 'club_update', 'approval', 'system'].map((type) => (
                 <button
                   key={type}
                   onClick={() => setFilterType(type)}
@@ -197,7 +231,7 @@ const Notifications = () => {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                  {type === 'all' ? 'All' : type === 'event_update' ? 'Event' : type === 'club_update' ? 'Club' : type === 'approval' ? 'Approval' : 'System'}
                 </button>
               ))}
             </div>
@@ -266,13 +300,13 @@ const Notifications = () => {
                   exit={{ opacity: 0, x: -100 }}
                   transition={{ delay: index * 0.05 }}
                   className={`bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 ${
-                    !notification.read ? 'border-l-4 border-purple-600' : ''
+                    !notification.is_read ? 'border-l-4 border-purple-600' : ''
                   }`}
                 >
                   <div className="flex items-start space-x-4">
                     {/* Icon */}
                     <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
-                      !notification.read ? 'bg-purple-100' : 'bg-gray-100'
+                      !notification.is_read ? 'bg-purple-100' : 'bg-gray-100'
                     }`}>
                       {getNotificationIcon(notification.type, notification.priority)}
                     </div>
@@ -281,18 +315,18 @@ const Notifications = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-2">
                         <h3 className={`text-lg font-semibold ${
-                          !notification.read ? 'text-gray-900' : 'text-gray-700'
+                          !notification.is_read ? 'text-gray-900' : 'text-gray-700'
                         }`}>
                           {notification.title}
                         </h3>
-                        {!notification.read && (
+                        {!notification.is_read && (
                           <span className="ml-2 flex-shrink-0 w-2 h-2 bg-purple-600 rounded-full"></span>
                         )}
                       </div>
                       <p className="text-gray-600 mb-3">{notification.message}</p>
                       <div className="flex items-center text-sm text-gray-500">
                         <ClockIcon className="w-4 h-4 mr-1" />
-                        {formatTimestamp(notification.timestamp)}
+                        {formatTimestamp(notification.created_at)}
                         <span className="mx-2">•</span>
                         <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
                           {notification.type}

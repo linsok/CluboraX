@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
+import axios from 'axios'
 import { 
   UsersIcon,
   MagnifyingGlassIcon,
@@ -35,102 +37,87 @@ const UserManagement = () => {
   const { data: usersData, isLoading, error } = useQuery({
     queryKey: ['admin-users', currentPage, searchTerm, roleFilter, statusFilter],
     queryFn: async () => {
-      const token = localStorage.getItem('access_token')
+      const token = localStorage.getItem('admin_token')
       const params = new URLSearchParams({
         page: currentPage,
         search: searchTerm,
         role: roleFilter,
         status: statusFilter
       })
-      const response = await fetch(`http://localhost:8000/api/admin/api/users/?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await axios.get(`http://localhost:8888/api/admin/users/?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to fetch users')
-      return response.json()
+      return response.data
     }
   })
 
   // User actions mutations
   const activateUserMutation = useMutation({
     mutationFn: async (userId) => {
-      const token = localStorage.getItem('access_token')
-      const response = await fetch(`http://localhost:8000/api/admin/api/users/${userId}/activate/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
+      const token = localStorage.getItem('admin_token')
+      const response = await axios.post(`http://localhost:8888/api/admin/users/${userId}/activate/`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to activate user')
-      return response.json()
+      return response.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-users'])
       setShowUserModal(false)
       setSelectedUser(null)
-      // Show success message
-    }
+      toast.success('User activated successfully')
+    },
+    onError: () => toast.error('Failed to activate user')
   })
 
   const deactivateUserMutation = useMutation({
     mutationFn: async (userId) => {
-      const token = localStorage.getItem('access_token')
-      const response = await fetch(`http://localhost:8000/api/admin/api/users/${userId}/deactivate/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
+      const token = localStorage.getItem('admin_token')
+      const response = await axios.post(`http://localhost:8888/api/admin/users/${userId}/deactivate/`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to deactivate user')
-      return response.json()
+      return response.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-users'])
       setShowUserModal(false)
       setSelectedUser(null)
-      // Show success message
-    }
+      toast.success('User deactivated successfully')
+    },
+    onError: () => toast.error('Failed to deactivate user')
   })
 
   const verifyUserMutation = useMutation({
     mutationFn: async (userId) => {
-      const token = localStorage.getItem('access_token')
-      const response = await fetch(`http://localhost:8000/api/admin/api/users/${userId}/verify/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
+      const token = localStorage.getItem('admin_token')
+      const response = await axios.post(`http://localhost:8888/api/admin/users/${userId}/verify/`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to verify user')
-      return response.json()
+      return response.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-users'])
       setShowUserModal(false)
       setSelectedUser(null)
-      // Show success message
-    }
+      toast.success('User verified successfully')
+    },
+    onError: () => toast.error('Failed to verify user')
   })
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId) => {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE'
+      const token = localStorage.getItem('admin_token')
+      const response = await axios.delete(`http://localhost:8888/api/admin/users/${userId}/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      if (!response.ok) throw new Error('Failed to delete user')
-      return response.json()
+      return response.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-users'])
       setShowUserModal(false)
       setSelectedUser(null)
-      // Show success message
-    }
+      toast.success('User deleted successfully')
+    },
+    onError: () => toast.error('Failed to delete user')
   })
 
   const handleUserAction = (userId, action) => {

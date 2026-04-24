@@ -37,18 +37,31 @@ const Sidebar = ({ isOpen, onClose, user }) => {
     {
       title: 'Main',
       items: [
-        { name: 'Dashboard', href: '/', icon: HomeIcon },
-        { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
+        { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+        { name: 'Events', href: '/events', icon: CalendarIcon },
         { name: 'Clubs', href: '/clubs', icon: UserGroupIcon },
         { name: 'Gallery', href: '/gallery', icon: PhotoIcon },
       ]
     },
+    ...(user?.role === 'organizer' || user?.role === 'admin' ? [{
+      title: 'Management',
+      items: [
+        { name: 'My Events/Clubs', href: '/dashboard?tab=my-events', icon: ChartBarIcon },
+        { name: 'Proposals', href: '/dashboard?tab=proposals', icon: DocumentTextIcon },
+      ]
+    }] : user?.role === 'student' ? [{
+      title: 'My Activities',
+      items: [
+        { name: 'My Clubs/Events', href: '/dashboard?tab=my-clubs-events', icon: ChartBarIcon },
+        { name: 'Proposals', href: '/dashboard?tab=proposals', icon: DocumentTextIcon },
+      ]
+    }] : []),
     {
       title: 'Learning',
       items: [
         { name: 'Video Library', href: '/videos', icon: VideoCameraIcon },
         { name: 'Documents', href: '/documents', icon: DocumentTextIcon },
-        { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
+        { name: 'AI Advisor', href: '/ai-advisor', icon: SparklesIcon },
       ]
     },
     {
@@ -87,19 +100,23 @@ const Sidebar = ({ isOpen, onClose, user }) => {
 
       {/* Sidebar */}
       <motion.aside
-        initial={{ x: -300 }}
-        animate={{ x: isOpen ? 0 : -300 }}
-        className={`fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 lg:static lg:z-0 lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        initial={{ x: -320 }}
+        animate={{ x: isOpen ? 0 : -320 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className={`fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 ${
+          !isOpen ? 'pointer-events-none' : ''
         }`}
+        style={{ willChange: 'transform' }}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-r from-purple-600 to-indigo-600">
                 {/* CluboraX Logo */}
-                <img src="C:\Users\User\Downloads\photo_2026-01-22_15-08-14.jpg" alt="CluboraX Logo" className="w-full h-full object-contain" />
+                <img src="/logo.png" alt="CluboraX Logo" className="w-full h-full object-contain" onError={(e) => {
+                  e.target.style.display = 'none'
+                }} />
               </div>
               <div>
                 <h2 className="text-lg font-bold text-gray-900">CluboraX</h2>

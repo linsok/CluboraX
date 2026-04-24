@@ -54,11 +54,21 @@ const GoogleCallback = () => {
         // Auto-login with Google user data
         login(userData, tokens.access_token, tokens.refresh_token || 'google_refresh_token')
         
+        // If admin user, also store admin-specific tokens for AdminDashboard
+        if (userData.role === 'admin' || user.role === 'admin') {
+          localStorage.setItem('admin_token', tokens.access_token)
+          localStorage.setItem('admin_user', JSON.stringify(userData))
+        }
+        
         toast.success('Successfully signed in with Google!')
         
-        // Navigate to dashboard
+        // Navigate based on user role
         setTimeout(() => {
-          navigate('/')
+          if (userData.role === 'admin' || user.role === 'admin') {
+            navigate('/admin/dashboard')
+          } else {
+            navigate('/')
+          }
         }, 100)
       } catch (error) {
         console.error('Google OAuth callback error:', error)

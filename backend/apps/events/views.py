@@ -36,40 +36,42 @@ class EventListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         """
         Get events based on user role and filters.
+        Only show events that are not finished (end_datetime >= now).
         """
         user = self.request.user
         queryset = Event.objects.all()
-        
+        now = timezone.now()
+        queryset = queryset.filter(end_datetime__gte=now)
+
         # Filter by status based on user role
-        if user.role == 'student':
-            # Students can only see approved events
-            queryset = queryset.filter(status='approved')
+        if not hasattr(user, 'role') or user.role == 'student':
+            queryset = queryset.filter(status__in=['approved', 'published'])
         elif user.role == 'organizer':
-            # Organizers can see their own events and approved events
             queryset = queryset.filter(
-                Q(created_by=user) | Q(status='approved')
+                Q(created_by=user) | Q(status__in=['approved', 'published'])
             )
-        elif user.role in ['approver', 'admin']:
-            # Approvers and admins can see all events
+        elif user.role in ['approver', 'admin'] or user.is_staff:
             pass
-        
+        else:
+            queryset = queryset.filter(status__in=['approved', 'published'])
+
         # Additional filters
         date_from = self.request.query_params.get('date_from')
         if date_from:
             queryset = queryset.filter(start_datetime__gte=date_from)
-        
+
         date_to = self.request.query_params.get('date_to')
         if date_to:
             queryset = queryset.filter(start_datetime__lte=date_to)
-        
+
         my_events = self.request.query_params.get('my_events')
         if my_events == 'true':
             queryset = queryset.filter(created_by=user)
-        
+
         registered = self.request.query_params.get('registered')
         if registered == 'true':
             queryset = queryset.filter(registrations__user=user)
-        
+
         return queryset.distinct()
     
     def get_serializer_class(self):
@@ -110,10 +112,10 @@ class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
         user = self.request.user
         
         if user.role == 'student':
-            return Event.objects.filter(status='approved')
+            return Event.objects.filter(status__in=['approved', 'published'])
         elif user.role == 'organizer':
             return Event.objects.filter(
-                Q(created_by=user) | Q(status='approved')
+                Q(created_by=user) | Q(status__in=['approved', 'published'])
             )
         else:
             return Event.objects.all()
@@ -487,7 +489,7 @@ class EventStatsView(APIView):
             
             # Base queryset
             if user.role == 'student':
-                events = Event.objects.filter(status='approved')
+                events = Event.objects.filter(status__in=['approved', 'published'])
             elif user.role == 'organizer':
                 events = Event.objects.filter(created_by=user)
             else:
@@ -563,10 +565,10 @@ class EventCalendarView(APIView):
             
             # Base queryset
             if user.role == 'student':
-                events = Event.objects.filter(status='approved')
+                events = Event.objects.filter(status__in=['approved', 'published'])
             elif user.role == 'organizer':
                 events = Event.objects.filter(
-                    Q(created_by=user) | Q(status='approved')
+                    Q(created_by=user) | Q(status__in=['approved', 'published'])
                 )
             else:
                 events = Event.objects.all()

@@ -74,41 +74,30 @@ def send_email_notification(notification):
 
 def send_push_notification(notification):
     """
-    Send push notification (placeholder for implementation).
+    Send push notification via polling/real-time fetch.
+    Push notifications are delivered through API polling or WebSocket.
+    The frontend polls /api/notifications/ to fetch new push notifications.
     """
     try:
-        # This would integrate with a push notification service
-        # like Firebase Cloud Messaging, OneSignal, etc.
+        # Notification is already created in database
+        # Frontend will fetch it via getUnreadNotifications() API call
+        # and display it as a dismissible toast alert
         
-        # For now, we'll just log it
-        logger.info(f"Push notification sent to {notification.user.email}: {notification.title}")
+        logger.info(f"Push notification prepared for {notification.user.email}: {notification.title}")
+        logger.info(f"Pull from API: GET /api/notifications/?unread=true")
         
-        # Example implementation with Firebase:
-        # from firebase_admin import messaging
-        # 
-        # # Get user's FCM token (would need to be stored in user profile)
-        # fcm_token = notification.user.profile.fcm_token
-        # 
-        # if fcm_token:
-        #     message = messaging.Message(
-        #         notification=messaging.Notification(
-        #             title=notification.title,
-        #             body=notification.message,
-        #         ),
-        #         data={
-        #             'notification_id': str(notification.id),
-        #             'action_url': notification.action_url or '',
-        #         },
-        #         token=fcm_token,
-        #     )
-        #     
-        #     response = messaging.send(message)
-        #     logger.info(f"Push notification sent: {response}")
+        # Push notification data available at:
+        # - notification.id: Unique identifier
+        # - notification.title: Notification title
+        # - notification.message: Notification message
+        # - notification.type: Notification type (event, club, system, etc)
+        # - notification.priority: Priority level (low, medium, high)
+        # - notification.action_url: Optional action link
         
         return True
         
     except Exception as e:
-        logger.error(f"Failed to send push notification: {e}")
+        logger.error(f"Failed to prepare push notification: {e}")
         raise
 
 

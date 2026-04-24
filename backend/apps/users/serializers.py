@@ -77,10 +77,19 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         # Set username to email for Django compatibility
         validated_data['username'] = validated_data['email']
         
+        # Extract first_name and last_name explicitly
+        first_name = validated_data.get('first_name', '')
+        last_name = validated_data.get('last_name', '')
+        
         user = User.objects.create_user(
             password=password,
-            **validated_data
+            first_name=first_name,
+            last_name=last_name,
+            **{k: v for k, v in validated_data.items() if k not in ['first_name', 'last_name']}
         )
+        
+        # Verify they were saved correctly
+        user.refresh_from_db()
         
         # Create user profile only if it doesn't exist
         from apps.users.models import UserProfile
@@ -206,6 +215,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
     """
     full_name = serializers.ReadOnlyField()
     profile_picture_url = serializers.SerializerMethodField()
+    phone = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    notification_preferences = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -213,9 +226,41 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'id', 'email', 'first_name', 'last_name', 'full_name',
             'role', 'phone', 'profile_picture', 'profile_picture_url',
             'is_verified', 'student_id', 'staff_id', 'faculty', 
-            'department', 'date_joined', 'last_login'
+            'department', 'date_joined', 'last_login', 'notification_preferences'
         ]
-        read_only_fields = ['id', 'email', 'role', 'is_verified', 'date_joined', 'last_login']
+        read_only_fields = ['id', 'email', 'role', 'is_verified', 'date_joined', 'last_login', 'full_name', 'notification_preferences']
+    
+    def get_notification_preferences(self, obj):
+        """
+        Get user's notification preferences.
+        """
+        try:
+            prefs = obj.notification_preferences
+            return {
+                'email_notifications': prefs.email_notifications,
+                'push_notifications': prefs.push_notifications,
+                'in_app_notifications': prefs.in_app_notifications,
+            }
+        except:
+            # Return defaults if preferences don't exist
+            return {
+                'email_notifications': True,
+                'push_notifications': True,
+                'in_app_notifications': True,
+            }
+    
+    def validate_phone(self, value):
+        """
+        Validate phone field - accept any format as long as it's not empty.
+        """
+        if value:
+            # Remove spaces and special characters for length check
+            clean_value = value.replace(' ', '').replace('-', '').replace('(', '').replace(')', '').replace('+', '')
+            if len(clean_value) < 7:
+                raise serializers.ValidationError("Phone number must have at least 7 digits.")
+            if len(clean_value) > 15:
+                raise serializers.ValidationError("Phone number cannot exceed 15 digits.")
+        return value
     
     def get_profile_picture_url(self, obj):
         """
@@ -227,6 +272,36 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.profile_picture.url)
             return obj.profile_picture.url
         return None
+    
+    def to_representation(self, instance):
+        """
+        Ensure first_name and last_name are always in the response.
+        """
+        data = super().to_representation(instance)
+        # Ensure first_name and last_name are always present, even if empty
+        data['first_name'] = instance.first_name or ''
+        data['last_name'] = instance.last_name or ''
+        data['full_name'] = instance.full_name or ''
+        return data
+    
+    def update(self, instance, validated_data):
+        """
+        Update user profile, handling phone field specially to bypass PhoneNumberField validation.
+        """
+        # Extract phone separately if present
+        phone = validated_data.pop('phone', None)
+        
+        # Update other fields normally
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Update phone field using queryset to bypass PhoneNumberField validation
+        if phone is not None:
+            User.objects.filter(pk=instance.pk).update(phone=phone)
+            instance.phone = phone
+        
+        instance.save()
+        return instance
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -234,6 +309,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     User update serializer.
     """
     profile_picture = serializers.ImageField(required=False)
+    phone = serializers.CharField(required=False, allow_blank=True, max_length=20)
     
     class Meta:
         model = User
@@ -241,6 +317,19 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'phone', 'profile_picture',
             'faculty', 'department'
         ]
+    
+    def validate_phone(self, value):
+        """
+        Validate phone field - accept any format as long as it's not empty.
+        """
+        if value:
+            # Remove spaces and special characters for length check
+            clean_value = value.replace(' ', '').replace('-', '').replace('(', '').replace(')', '').replace('+', '')
+            if len(clean_value) < 7:
+                raise serializers.ValidationError("Phone number must have at least 7 digits.")
+            if len(clean_value) > 15:
+                raise serializers.ValidationError("Phone number cannot exceed 15 digits.")
+        return value
     
     def validate_profile_picture(self, value):
         """
@@ -252,6 +341,28 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             if not is_valid:
                 raise serializers.ValidationError(error_message)
         return value
+    
+    def update(self, instance, validated_data):
+        """
+        Update user, handling phone field specially to bypass PhoneNumberField validation.
+        """
+        # Extract phone separately if present
+        phone = validated_data.pop('phone', None)
+        
+        # Update other fields normally
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Update phone field using queryset to bypass PhoneNumberField validation
+        if phone is not None:
+            User.objects.filter(pk=instance.pk).update(phone=phone)
+            instance.phone = phone
+        
+        instance.save(update_fields=[
+            'first_name', 'last_name', 'profile_picture', 'faculty', 'department'
+        ])
+        
+        return instance
 
 
 class ExtendedUserProfileSerializer(serializers.ModelSerializer):

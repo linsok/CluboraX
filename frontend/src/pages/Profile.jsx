@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 import { getUserAchievements } from '../api/courses'
+import { updateProfile } from '../api/profile'
+import toast from 'react-hot-toast'
 import { 
   UserCircleIcon, 
   EnvelopeIcon, 
@@ -19,14 +21,12 @@ import {
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [editFormData, setEditFormData] = useState({
     name: '',
     email: '',
-    phone: '',
-    bio: '',
-    major: '',
-    year: ''
+    phone: ''
   })
   const navigate = useNavigate()
   const location = useLocation()
@@ -79,7 +79,9 @@ const Profile = () => {
 
   // Use real user data if available
   const userData = {
-    name: user?.name || user?.full_name || '',
+    name: (user?.first_name?.trim() || '') + ' ' + (user?.last_name?.trim() || '')
+      ? [(user?.first_name || '').trim(), (user?.last_name || '').trim()].filter(Boolean).join(' ')
+      : user?.full_name?.trim() || user?.name || 'User',
     email: user?.email || '',
     phone: user?.phone || '',
     major: user?.major || '',
@@ -94,13 +96,15 @@ const Profile = () => {
 
   // Initialize edit form when opening modal
   const handleEditProfile = () => {
+    // Combine first_name and last_name, with fallback
+    const displayName = (user?.first_name && user?.last_name)
+      ? `${user.first_name} ${user.last_name}`.trim()
+      : (user?.name || user?.full_name || '').trim()
+    
     setEditFormData({
-      name: userData.name,
-      email: userData.email,
-      phone: userData.phone,
-      bio: userData.bio,
-      major: userData.major,
-      year: userData.year
+      name: displayName || '',
+      email: userData.email || '',
+      phone: userData.phone || ''
     })
     setIsEditing(true)
   }
@@ -115,12 +119,74 @@ const Profile = () => {
   }
 
   // Save profile changes
-  const handleSaveProfile = () => {
-    // TODO: Connect to backend API to save profile changes
-    console.log('Saving profile:', editFormData)
-    // For now, just close the modal
-    setIsEditing(false)
-    alert('Profile updated successfully!')
+  const handleSaveProfile = async () => {
+    setIsSaving(true)
+    try {
+      // Split name into first and last name
+      const nameParts = editFormData.name?.trim().split(/\s+/) || []
+      
+      // Validate required fields
+      if (!nameParts[0]?.trim()) {
+        toast.error('Name is required. Please enter at least a first name.')
+        setIsSaving(false)
+        return
+      }
+      
+      // Validate phone number format if provided
+      let phoneToSend = editFormData.phone?.trim() || ''
+      if (phoneToSend) {
+        // Remove common phone formatting characters for validation
+        const cleanPhone = phoneToSend.replace(/[\s\-()]/g, '')
+        
+        // Check if it only contains digits (and possibly a leading +)
+        // Accept formats like: 098890913, +85598098913, etc.
+        if (!/^(\+)?[\d]{7,15}$/.test(cleanPhone)) {
+          toast.error('Phone number must be 7-15 digits. Examples: 098890913 or +85598098913')
+          setIsSaving(false)
+          return
+        }
+        
+        // Keep the original format - backend will handle it
+        phoneToSend = editFormData.phone
+      }
+      
+      const payload = {
+        first_name: nameParts[0],
+        last_name: nameParts.slice(1).join(' ') || '',
+        phone: phoneToSend
+      }
+      
+      await updateProfile(payload)
+      setIsEditing(false)
+      toast.success('Profile updated successfully!')
+    } catch (err) {
+      console.error('Failed to update profile:', err)
+      
+      // Show specific error messages from backend
+      const errorData = err.response?.data
+      if (errorData?.data) {
+        // Handle validation errors from serializer
+        const errors = errorData.data
+        const errorMessages = Object.keys(errors)
+          .map(field => {
+            const fieldError = errors[field]
+            const errorMsg = Array.isArray(fieldError) ? fieldError[0] : fieldError
+            // Make phone error more user-friendly
+            if (field === 'phone') {
+              return `Phone: ${errorMsg} - Use format like +1 (555) 123-4567 or leave blank`
+            }
+            return `${field}: ${errorMsg}`
+          })
+          .join('\n')
+        toast.error(errorMessages || 'Failed to update profile. Please check your input.')
+      } else if (errorData?.message) {
+        toast.error(errorData.message)
+      } else {
+        toast.error(err?.message || 'Failed to update profile. Please try again.')
+      }
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // Cancel editing
@@ -242,56 +308,6 @@ const Profile = () => {
         >
           {activeTab === 'overview' && (
             <div className="space-y-8">
-              {/* Interests - Only show for students or if user has interests */}
-              {(user?.role !== 'organizer' || userData.interests?.length > 0) && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Interests</h3>
-                  {user?.role === 'organizer' ? (
-                    <p className="text-gray-500 italic">
-                      Organizers cannot join events or clubs. Switch to a student account to track interests.
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {userData.interests && userData.interests.length > 0 ? (
-                        userData.interests.map((interest, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
-                          >
-                            {interest}
-                          </span>
-                        ))
-                      ) : (
-                        <p className="text-gray-500">No interests added yet. Join clubs and events to build your interests!</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Club Memberships - Only show for students */}
-              {user?.role !== 'organizer' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Club Memberships</h3>
-                  <div className="space-y-3">
-                    {userData.clubs && userData.clubs.length > 0 ? (
-                      userData.clubs.map((club, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div>
-                            <h4 className="font-medium text-gray-900">{club.name}</h4>
-                            <p className="text-sm text-gray-600">{club.role} • Joined {club.joined}</p>
-                          </div>
-                          <button className="text-purple-600 hover:text-purple-700 font-medium text-sm">
-                            View →
-                          </button>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500">No club memberships yet. Join a club to get started!</p>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </motion.div>
@@ -344,75 +360,33 @@ const Profile = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Email *
+                          Email (Read-only)
                         </label>
                         <input
                           type="email"
                           name="email"
                           value={editFormData.email}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                          required
+                          disabled
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                         />
                       </div>
 
-                      <div>
+                      <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Phone
+                          Phone (Optional)
                         </label>
                         <input
                           type="tel"
                           name="phone"
                           value={editFormData.phone}
                           onChange={handleInputChange}
+                          placeholder="098890913 or +85598098913"
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Examples: 098890913 • +85598098913 • Must be 7-15 digits • Leave blank if not needed
+                        </p>
                       </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Major
-                        </label>
-                        <input
-                          type="text"
-                          name="major"
-                          value={editFormData.major}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Year
-                        </label>
-                        <select
-                          name="year"
-                          value={editFormData.year}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        >
-                          <option value="Freshman">Freshman</option>
-                          <option value="Sophomore">Sophomore</option>
-                          <option value="Junior">Junior</option>
-                          <option value="Senior">Senior</option>
-                          <option value="Graduate">Graduate</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Bio
-                      </label>
-                      <textarea
-                        name="bio"
-                        value={editFormData.bio}
-                        onChange={handleInputChange}
-                        rows="4"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder="Tell us about yourself..."
-                      />
                     </div>
                   </div>
 
@@ -426,9 +400,13 @@ const Profile = () => {
                     </button>
                     <button
                       onClick={handleSaveProfile}
-                      className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                      disabled={isSaving}
+                      className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      Save Changes
+                      {isSaving && (
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      )}
+                      {isSaving ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                 </div>

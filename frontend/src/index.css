@@ -6,10 +6,16 @@
   html {
     font-family: 'Inter', system-ui, sans-serif;
     scroll-behavior: smooth;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
   }
   
   body {
     @apply bg-gray-50 text-gray-900;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
   }
   
   ::selection {
@@ -228,5 +234,43 @@
 @media (prefers-color-scheme: dark) {
   .dark-mode-auto {
     @apply bg-gray-900 text-gray-100;
+  }
+}
+
+/* Navbar and Footer Styles - Match pp1 design */
+.brand-text {
+  font-family: 'Fredoka One', cursive;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 15px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 1024px) {
+  .nav-menu {
+    display: none !important;
+  }
+  .mobile-menu-toggle {
+    display: block !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand-text {
+    display: none !important;
+  }
+}
+
+/* Footer styles matching pp1 */
+.footer a {
+  transition: color 0.3s ease;
+}
+
+.footer a:hover {
+  color: white !important;
+}
+
+/* Custom utility overrides */
+@layer utilities {
+  .py-8 {
+    padding-top: 2rem;
+    padding-bottom: 5rem;
   }
 }

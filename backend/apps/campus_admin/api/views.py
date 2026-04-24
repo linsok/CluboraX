@@ -257,81 +257,116 @@ def proposals_list(request):
         type_filter = request.GET.get('type', '')
         status_filter = request.GET.get('status', '')
         priority_filter = request.GET.get('priority', '')
+        role_filter = request.GET.get('role', '')
         
-        # Mock data - replace with actual Proposal model when available
+        # Import proposal models
+        from apps.proposals.models import EventProposal, ClubProposal
+        
+        # Build querysets for both types of proposals
+        event_proposals = EventProposal.objects.select_related('submitted_by').all()
+        club_proposals = ClubProposal.objects.select_related('submitted_by').all()
+        
+        # Apply filters to event proposals
+        if search:
+            event_proposals = event_proposals.filter(
+                Q(title__icontains=search) |
+                Q(eventTitle__icontains=search) |
+                Q(description__icontains=search) |
+                Q(submitted_by__email__icontains=search) |
+                Q(submitted_by__first_name__icontains=search) |
+                Q(submitted_by__last_name__icontains=search)
+            )
+        
+        if type_filter and type_filter not in ['club', 'club_proposal']:
+            event_proposals = event_proposals.filter(type=type_filter) if hasattr(EventProposal, 'type') else event_proposals
+        
+        if status_filter:
+            event_proposals = event_proposals.filter(status=status_filter)
+        
+        if priority_filter:
+            event_proposals = event_proposals.filter(priority=priority_filter)
+        
+        if role_filter:
+            event_proposals = event_proposals.filter(submitted_by__role=role_filter)
+        
+        # Apply filters to club proposals
+        if search:
+            club_proposals = club_proposals.filter(
+                Q(name__icontains=search) |
+                Q(description__icontains=search) |
+                Q(submitted_by__email__icontains=search) |
+                Q(submitted_by__first_name__icontains=search) |
+                Q(submitted_by__last_name__icontains=search)
+            )
+        
+        if type_filter and type_filter not in ['event', 'event_proposal']:
+            club_proposals = club_proposals.filter(type=type_filter) if hasattr(ClubProposal, 'type') else club_proposals
+        
+        if status_filter:
+            club_proposals = club_proposals.filter(status=status_filter)
+        
+        if priority_filter:
+            club_proposals = club_proposals.filter(priority=priority_filter)
+        
+        if role_filter:
+            club_proposals = club_proposals.filter(submitted_by__role=role_filter)
+        
+        # Combine and convert to list
+        combined_proposals = []
+        
+        for ep in event_proposals:
+            combined_proposals.append({
+                'id': str(ep.id),
+                'title': ep.title or getattr(ep, 'eventTitle', ''),
+                'description': ep.description or '',
+                'type': 'event_proposal',
+                'status': ep.status,
+                'priority': getattr(ep, 'priority', 'medium'),
+                'submitted_by': ep.submitted_by.get_full_name() or ep.submitted_by.email,
+                'submitted_by_role': ep.submitted_by.role,
+                'submitted_by_id': str(ep.submitted_by.id),
+                'submitted_at': ep.submitted_date.isoformat() if hasattr(ep, 'submitted_date') else ep.created_at.isoformat() if hasattr(ep, 'created_at') else '',
+                'deadline': ep.deadline.isoformat() if hasattr(ep, 'deadline') and ep.deadline else None,
+                'budget': float(ep.budget) if hasattr(ep, 'budget') and ep.budget else None,
+                'tags': getattr(ep, 'tags', []),
+                'comments': getattr(ep, 'comments', []),
+                'attachments': getattr(ep, 'attachments', [])
+            })
+        
+        for cp in club_proposals:
+            combined_proposals.append({
+                'id': str(cp.id),
+                'title': cp.name or '',
+                'description': cp.description or '',
+                'type': 'club_proposal',
+                'status': cp.status,
+                'priority': getattr(cp, 'priority', 'medium'),
+                'submitted_by': cp.submitted_by.get_full_name() or cp.submitted_by.email,
+                'submitted_by_role': cp.submitted_by.role,
+                'submitted_by_id': str(cp.submitted_by.id),
+                'submitted_at': cp.submitted_date.isoformat() if hasattr(cp, 'submitted_date') else cp.created_at.isoformat() if hasattr(cp, 'created_at') else '',
+                'deadline': cp.deadline.isoformat() if hasattr(cp, 'deadline') and cp.deadline else None,
+                'budget': float(cp.budget) if hasattr(cp, 'budget') and cp.budget else None,
+                'tags': getattr(cp, 'tags', []),
+                'comments': getattr(cp, 'comments', []),
+                'attachments': getattr(cp, 'attachments', [])
+            })
+        
+        # Sort by submitted date
+        combined_proposals.sort(key=lambda x: x['submitted_at'], reverse=True)
+        
+        # Pagination
+        paginator = Paginator(combined_proposals, 12)
+        proposals_page = paginator.get_page(page)
+        
         proposals_data = {
-            'proposals': [
-                {
-                    'id': 1,
-                    'title': 'Computer Science Club Formation',
-                    'description': 'Proposal to establish a computer science club for students interested in programming and technology.',
-                    'type': 'club',
-                    'status': 'pending',
-                    'priority': 'high',
-                    'submitted_by': {
-                        'id': 1,
-                        'name': 'John Doe',
-                        'email': 'john@example.com'
-                    },
-                    'submitted_at': '2024-01-15T10:30:00Z',
-                    'deadline': '2024-02-15T23:59:59Z',
-                    'budget': 5000.00,
-                    'tags': ['programming', 'technology', 'education'],
-                    'comments': [],
-                    'attachments': []
-                },
-                {
-                    'id': 2,
-                    'title': 'Spring Festival 2024',
-                    'description': 'Annual spring festival with cultural activities, performances, and food stalls.',
-                    'type': 'event',
-                    'status': 'approved',
-                    'priority': 'medium',
-                    'submitted_by': {
-                        'id': 2,
-                        'name': 'Jane Smith',
-                        'email': 'jane@example.com'
-                    },
-                    'submitted_at': '2024-01-14T14:20:00Z',
-                    'deadline': '2024-03-15T23:59:59Z',
-                    'budget': 10000.00,
-                    'tags': ['festival', 'culture', 'entertainment'],
-                    'comments': [
-                        {
-                            'id': 1,
-                            'author': 'Admin',
-                            'content': 'Great proposal! Approved with some modifications.',
-                            'created_at': '2024-01-14T15:00:00Z'
-                        }
-                    ],
-                    'attachments': []
-                },
-                {
-                    'id': 3,
-                    'title': 'Research Project Funding',
-                    'description': 'Request for funding to support undergraduate research projects in computer science.',
-                    'type': 'funding',
-                    'status': 'under_review',
-                    'priority': 'urgent',
-                    'submitted_by': {
-                        'id': 3,
-                        'name': 'Mike Johnson',
-                        'email': 'mike@example.com'
-                    },
-                    'submitted_at': '2024-01-13T09:15:00Z',
-                    'deadline': '2024-01-30T23:59:59Z',
-                    'budget': 15000.00,
-                    'tags': ['research', 'funding', 'innovation'],
-                    'comments': [],
-                    'attachments': []
-                }
-            ],
+            'proposals': list(proposals_page),
             'pagination': {
                 'current_page': page,
-                'total_pages': 1,
-                'total_count': 3,
-                'has_next': False,
-                'has_previous': False
+                'total_pages': paginator.num_pages,
+                'total_count': paginator.count,
+                'has_next': proposals_page.has_next(),
+                'has_previous': proposals_page.has_previous()
             }
         }
         

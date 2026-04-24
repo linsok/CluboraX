@@ -1,13 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { changePassword } from '../api/auth'
+import { apiClient } from '../api/client'
 import { 
   CogIcon, 
   BellIcon, 
   ShieldCheckIcon, 
-  GlobeAltIcon,
   UserCircleIcon,
   PaintBrushIcon,
   DocumentTextIcon,
@@ -16,9 +16,11 @@ import {
 } from '@heroicons/react/24/outline'
 
 const Settings = () => {
-  const { user } = useAuth()
+  const { user, logout, setUser } = useAuth()
   const [activeSection, setActiveSection] = useState('general')
   const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -31,26 +33,127 @@ const Settings = () => {
   })
   const [notifications, setNotifications] = useState({
     email: true,
-    push: false,
-    sms: true,
-    marketing: false
+    push: false
   })
+
+  // Helper function to build display name from first and last name
+  const getDisplayName = (userData) => {
+    if (!userData) return ''
+    
+    let firstName = userData?.first_name || ''
+    let lastName = userData?.last_name || ''
+    
+    // Handle if fields contain the string "undefined"
+    if (firstName === 'undefined' || firstName === null) firstName = ''
+    if (lastName === 'undefined' || lastName === null) lastName = ''
+    
+    const combined = `${firstName} ${lastName}`.trim()
+    return combined && combined !== 'undefined' ? combined : ''
+  }
+
+  const [generalForm, setGeneralForm] = useState({
+    displayName: getDisplayName(user),
+    email: user?.email || ''
+  })
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Sync form when user data changes
+  useEffect(() => {
+    if (user) {
+      setGeneralForm({
+        displayName: getDisplayName(user),
+        email: user?.email || ''
+      })
+    }
+  }, [user])
 
   const sections = [
     { id: 'general', label: 'General', icon: CogIcon },
     { id: 'notifications', label: 'Notifications', icon: BellIcon },
-    { id: 'privacy', label: 'Privacy', icon: ShieldCheckIcon },
-    { id: 'appearance', label: 'Appearance', icon: PaintBrushIcon },
-    { id: 'account', label: 'Account', icon: UserCircleIcon },
-    { id: 'language', label: 'Language', icon: GlobeAltIcon },
-    { id: 'terms', label: 'Terms & Policies', icon: DocumentTextIcon }
+    { id: 'account', label: 'Account', icon: UserCircleIcon }
   ]
 
-  const handleNotificationChange = (key) => {
-    setNotifications(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }))
+  const handleNotificationChange = async (key) => {
+    const updated = { ...notifications, [key]: !notifications[key] }
+    setNotifications(updated)
+    try {
+      await apiClient.put('/api/notifications/preferences/', updated)
+      toast.success('Notification preference updated')
+    } catch (err) {
+      // Revert on failure
+      setNotifications(notifications)
+      toast.error('Failed to update notification preference')
+    }
+  }
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true)
+    try {
+      // Split display name into first and last name
+      const nameParts = generalForm.displayName?.trim().split(/\s+/) || []
+      
+      if (!nameParts[0]?.trim()) {
+        toast.error('Display name is required. Please enter at least a first name.')
+        setIsSaving(false)
+        return
+      }
+      
+      const payload = {
+        first_name: nameParts[0],
+        last_name: nameParts.slice(1).join(' ') || ''
+      }
+      
+      const result = await apiClient.patch('/api/auth/profile/', payload)
+      
+      // Update user data in AuthContext
+      if (user && result.data) {
+        const updatedUser = {
+          ...user,
+          first_name: result.data.first_name || nameParts[0] || '',
+          last_name: result.data.last_name || nameParts.slice(1).join(' ') || '',
+          name: result.data.first_name + (result.data.last_name ? ' ' + result.data.last_name : ''),
+          full_name: result.data.first_name + (result.data.last_name ? ' ' + result.data.last_name : '')
+        }
+        setUser(updatedUser)
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+        
+        // Also update the form to reflect saved values
+        const fullName = (result.data.first_name || '') + (result.data.last_name ? ' ' + result.data.last_name : '')
+        setGeneralForm(prev => ({
+          ...prev,
+          displayName: fullName.trim()
+        }))
+      }
+      
+      toast.success('Settings saved successfully!')
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.response?.data?.first_name?.[0] || err.response?.data?.last_name?.[0] || 'Failed to save settings'
+      toast.error(msg)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true)
+      return
+    }
+    
+    setIsDeletingAccount(true)
+    try {
+      const response = await apiClient.delete('/api/auth/profile/')
+      toast.success('Account deleted successfully. You will be logged out now.')
+      setTimeout(() => {
+        logout()
+      }, 1500)
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.response?.data?.message || 'Failed to delete account. Please contact support.'
+      toast.error(msg)
+      setShowDeleteConfirm(false)
+    } finally {
+      setIsDeletingAccount(false)
+    }
   }
 
   const handlePasswordChange = (e) => {
@@ -211,8 +314,10 @@ const Settings = () => {
                       </label>
                       <input
                         type="text"
-                        defaultValue={user?.full_name || user?.name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || ''}
+                        value={generalForm.displayName || ''}
+                        onChange={e => setGeneralForm(prev => ({ ...prev, displayName: e.target.value }))}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Enter your full name"
                       />
                     </div>
                     <div>
@@ -221,20 +326,10 @@ const Settings = () => {
                       </label>
                       <input
                         type="email"
-                        defaultValue={user?.email || ''}
+                        value={generalForm.email}
+                        onChange={e => setGeneralForm(prev => ({ ...prev, email: e.target.value }))}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Time Zone
-                      </label>
-                      <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                        <option>Eastern Time (ET)</option>
-                        <option>Central Time (CT)</option>
-                        <option>Mountain Time (MT)</option>
-                        <option>Pacific Time (PT)</option>
-                      </select>
                     </div>
                   </div>
                 </div>
@@ -246,9 +341,7 @@ const Settings = () => {
                   <div className="space-y-4">
                     {Object.entries({
                       email: 'Email Notifications',
-                      push: 'Push Notifications',
-                      sms: 'SMS Notifications',
-                      marketing: 'Marketing Communications'
+                      push: 'Push Notifications'
                     }).map(([key, label]) => (
                       <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div>
@@ -256,8 +349,6 @@ const Settings = () => {
                           <p className="text-sm text-gray-600">
                             {key === 'email' && 'Receive notifications via email'}
                             {key === 'push' && 'Receive push notifications in your browser'}
-                            {key === 'sms' && 'Receive notifications via SMS'}
-                            {key === 'marketing' && 'Receive marketing and promotional emails'}
                           </p>
                         </div>
                         <button
@@ -274,53 +365,6 @@ const Settings = () => {
                         </button>
                       </div>
                     ))}
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'privacy' && (
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Privacy Settings</h2>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <h3 className="font-medium text-gray-900 mb-2">Profile Visibility</h3>
-                      <p className="text-sm text-gray-600 mb-3">Control who can see your profile information</p>
-                      <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                        <option>Everyone</option>
-                        <option>Only Campus Members</option>
-                        <option>Only Friends</option>
-                        <option>Private</option>
-                      </select>
-                    </div>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <h3 className="font-medium text-gray-900 mb-2">Data Sharing</h3>
-                      <p className="text-sm text-gray-600">Manage how your data is shared with third parties</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'appearance' && (
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Appearance</h2>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <h3 className="font-medium text-gray-900 mb-2">Theme</h3>
-                      <div className="space-y-2">
-                        <label className="flex items-center space-x-3">
-                          <input type="radio" name="theme" defaultChecked className="text-purple-600" />
-                          <span>Light Theme</span>
-                        </label>
-                        <label className="flex items-center space-x-3">
-                          <input type="radio" name="theme" className="text-purple-600" />
-                          <span>Dark Theme</span>
-                        </label>
-                        <label className="flex items-center space-x-3">
-                          <input type="radio" name="theme" className="text-purple-600" />
-                          <span>System Default</span>
-                        </label>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
@@ -449,54 +493,49 @@ const Settings = () => {
                     <div className="p-4 bg-red-50 rounded-lg">
                       <h3 className="font-medium text-red-900 mb-2">Delete Account</h3>
                       <p className="text-sm text-red-600 mb-3">Permanently delete your account and all data</p>
-                      <button className="text-red-600 hover:text-red-700 font-medium">
-                        Delete Account
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'language' && (
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Language & Region</h2>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Language
-                      </label>
-                      <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                        <option>English (US)</option>
-                        <option>Spanish</option>
-                        <option>French</option>
-                        <option>German</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'terms' && (
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Terms & Policies</h2>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <h3 className="font-medium text-gray-900 mb-2">Terms of Service</h3>
-                      <button className="text-purple-600 hover:text-purple-700 font-medium">
-                        View Terms of Service →
-                      </button>
-                    </div>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <h3 className="font-medium text-gray-900 mb-2">Privacy Policy</h3>
-                      <button className="text-purple-600 hover:text-purple-700 font-medium">
-                        View Privacy Policy →
-                      </button>
-                    </div>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <h3 className="font-medium text-gray-900 mb-2">Cookie Policy</h3>
-                      <button className="text-purple-600 hover:text-purple-700 font-medium">
-                        View Cookie Policy →
-                      </button>
+                      
+                      {!showDeleteConfirm ? (
+                        <button
+                          onClick={handleDeleteAccount}
+                          className="text-red-600 hover:text-red-700 font-medium hover:underline"
+                        >
+                          Delete Account
+                        </button>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="p-3 bg-red-100 border border-red-300 rounded">
+                            <p className="text-sm text-red-900 font-medium">
+                              ⚠️ Are you absolutely sure? This action is permanent and cannot be undone.
+                            </p>
+                            <p className="text-xs text-red-700 mt-2">
+                              All your data will be permanently deleted, including your profile, events, clubs, and all associated information.
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setShowDeleteConfirm(false)}
+                              disabled={isDeletingAccount}
+                              className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleDeleteAccount}
+                              disabled={isDeletingAccount}
+                              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                              {isDeletingAccount ? (
+                                <>
+                                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                  Deleting...
+                                </>
+                              ) : (
+                                'Permanently Delete'
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -504,8 +543,12 @@ const Settings = () => {
 
               {/* Save Button */}
               <div className="mt-8 flex justify-end">
-                <button className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors duration-300">
-                  Save Changes
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors duration-300 disabled:opacity-60"
+                >
+                  {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>

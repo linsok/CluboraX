@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 from .models import (
-    Gallery, MediaFile, MediaLike, MediaComment, MediaTag,
+    Gallery, Album, MediaFile, MediaLike, MediaComment, MediaTag,
     MediaCollection, MediaReport
 )
 from apps.users.serializers import UserProfileSerializer
@@ -9,6 +9,34 @@ from apps.core.utils import validate_image_file
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class AlbumSerializer(serializers.ModelSerializer):
+    """
+    Album serializer with media files.
+    """
+    created_by = UserProfileSerializer(read_only=True)
+    media_count = serializers.ReadOnlyField()
+    cover_image_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Album
+        fields = [
+            'id', 'gallery', 'name', 'description', 'cover_image',
+            'cover_image_url', 'is_public', 'order', 'created_by',
+            'media_count', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+    
+    def get_cover_image_url(self, obj):
+        """Get cover image URL."""
+        cover_url = obj.cover_image_url
+        if cover_url:
+            request = self.context.get('request')
+            if request and not cover_url.startswith('http'):
+                return request.build_absolute_uri(cover_url)
+            return cover_url
+        return None
 
 
 class GallerySerializer(serializers.ModelSerializer):
@@ -82,6 +110,7 @@ class MediaFileSerializer(serializers.ModelSerializer):
     """
     uploaded_by = UserProfileSerializer(read_only=True)
     gallery_title = serializers.CharField(source='gallery.title', read_only=True)
+    album_name = serializers.CharField(source='album.name', read_only=True)
     media_type_display = serializers.CharField(source='get_media_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     file_url = serializers.SerializerMethodField()
@@ -92,7 +121,7 @@ class MediaFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = MediaFile
         fields = [
-            'id', 'gallery', 'gallery_title', 'title', 'description',
+            'id', 'gallery', 'gallery_title', 'album', 'album_name', 'title', 'description',
             'media_type', 'media_type_display', 'file', 'file_url',
             'thumbnail', 'thumbnail_url', 'original_filename', 'file_size',
             'width', 'height', 'duration', 'status', 'status_display',
@@ -390,22 +419,60 @@ class MediaReportCreateSerializer(serializers.ModelSerializer):
         return value
 
 
+class AlbumWithMediaSerializer(serializers.ModelSerializer):
+    """
+    Album serializer with media files included.
+    """
+    created_by = UserProfileSerializer(read_only=True)
+    media_count = serializers.ReadOnlyField()
+    cover_image_url = serializers.SerializerMethodField()
+    media_files = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Album
+        fields = [
+            'id', 'name', 'description', 'cover_image', 'cover_image_url',
+            'is_public', 'order', 'created_by', 'media_count', 'media_files',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+    
+    def get_cover_image_url(self, obj):
+        """Get cover image URL."""
+        cover_url = obj.cover_image_url
+        if cover_url:
+            request = self.context.get('request')
+            if request and not cover_url.startswith('http'):
+                return request.build_absolute_uri(cover_url)
+            return cover_url
+        return None
+    
+    def get_media_files(self, obj):
+        """Get media files for this album."""
+        media_files = obj.media_files.filter(is_approved=True).order_by('-created_at')[:20]
+        return MediaFileSerializer(media_files, many=True, context=self.context).data
+
+
 class GalleryListSerializer(serializers.ModelSerializer):
     """
-    Gallery list serializer (for overview).
+    Gallery list serializer with albums.
     """
     created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
     media_count = serializers.ReadOnlyField()
     total_likes = serializers.ReadOnlyField()
     cover_image_url = serializers.SerializerMethodField()
     gallery_type_display = serializers.CharField(source='get_gallery_type_display', read_only=True)
+    club_name = serializers.CharField(source='club.name', read_only=True)
+    event_title = serializers.CharField(source='event.title', read_only=True)
+    albums = AlbumWithMediaSerializer(many=True, read_only=True)
     
     class Meta:
         model = Gallery
         fields = [
             'id', 'title', 'gallery_type', 'gallery_type_display',
             'cover_image', 'cover_image_url', 'is_public', 'is_featured',
-            'created_by_name', 'media_count', 'total_likes', 'created_at'
+            'created_by_name', 'club_name', 'event_title', 'media_count',
+            'total_likes', 'albums', 'created_at'
         ]
     
     def get_cover_image_url(self, obj):

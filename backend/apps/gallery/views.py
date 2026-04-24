@@ -78,9 +78,51 @@ class GalleryListCreateView(generics.ListCreateAPIView):
     
     def perform_create(self, serializer):
         """
-        Create gallery with current user.
+        Create gallery with current user and handle uploaded images.
         """
         gallery = serializer.save(created_by=self.request.user)
+        
+        # Get album name from request (default to "Default Album" if not provided)
+        album_name = self.request.data.get('album_name', 'Default Album')
+        
+        # Check if album already exists for this gallery with this name
+        from apps.gallery.models import Album
+        album, created = Album.objects.get_or_create(
+            gallery=gallery,
+            name=album_name,
+            defaults={
+                'created_by': self.request.user,
+                'description': self.request.data.get('album_description', ''),
+                'is_public': True
+            }
+        )
+        
+        # Handle multiple image uploads
+        images = self.request.FILES.getlist('images')
+        if images:
+            first_image = True
+            for image in images:
+                media_file = MediaFile.objects.create(
+                    gallery=gallery,
+                    album=album,
+                    title=f"{gallery.title} - Image",
+                    media_type='image',
+                    file=image,
+                    original_filename=image.name,
+                    file_size=image.size,
+                    uploaded_by=self.request.user,
+                    status='approved',  # Auto-approve for organizers
+                    is_approved=True
+                )
+                # Set first image as album cover
+                if first_image and not album.cover_image:
+                    album.cover_image = media_file.file
+                    album.save(update_fields=['cover_image'])
+                # Set first image as gallery cover
+                if first_image and not gallery.cover_image:
+                    gallery.cover_image = media_file.file
+                    gallery.save(update_fields=['cover_image'])
+                    first_image = False
         
         # Log user action
         log_user_action(

@@ -13,6 +13,7 @@ const Login = () => {
     password: ''
   })
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const navigate = useNavigate()
@@ -40,7 +41,7 @@ const Login = () => {
       if (response.success) {
         // Authenticate user with tokens
         if (response.data && response.data.access_token) {
-          login(response.data.user, response.data.access_token, 'mock_refresh_token')
+          login(response.data.user, response.data.access_token, 'mock_refresh_token', rememberMe)
           
           // If admin user, also store admin-specific tokens for AdminDashboard
           if (response.data.user.role === 'admin') {
@@ -214,6 +215,8 @@ const Login = () => {
                     id="remember-me"
                     name="remember-me"
                     type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                     className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                   />
                   <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">

@@ -54,6 +54,7 @@ export default {
         'slide-up': 'slide-up 0.3s ease-out',
         'slide-down': 'slide-down 0.3s ease-out',
         'fade-in': 'fade-in 0.5s ease-out',
+        'loading-bar': 'loading-bar 1.4s ease-in-out infinite',
       },
       keyframes: {
         float: {
@@ -75,6 +76,11 @@ export default {
         'fade-in': {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
+        },
+        'loading-bar': {
+          '0%': { transform: 'translateX(-100%)' },
+          '50%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(100%)' },
         },
       },
       backgroundImage: {

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useQuery } from '@tanstack/react-query'
+import { getAdminStats, getAdminUsers, getAdminRequests } from '../../api/admin'
 import { 
   UsersIcon,
   DocumentTextIcon,
@@ -38,29 +40,67 @@ const AdminUI = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
   const [showUserModal, setShowUserModal] = useState(false)
+  const [proposalType, setProposalType] = useState('all')
+  const [proposalStatus, setProposalStatus] = useState('all')
+  const [proposalSubmittedBy, setProposalSubmittedBy] = useState('all')
+  const [showFilters, setShowFilters] = useState(false)
 
-  // Mock data for demonstration
+  // Fetch real data from API
+  const { data: statsData = {} } = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: getAdminStats,
+    staleTime: 60 * 1000,
+    retry: 1,
+  })
+
+  const { data: usersData = [] } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: getAdminUsers,
+    staleTime: 60 * 1000,
+    retry: 1,
+  })
+
+  const { data: requestsData = [] } = useQuery({
+    queryKey: ['admin-requests', proposalType, proposalStatus, proposalSubmittedBy],
+    queryFn: () => getAdminRequests({
+      proposalType,
+      status: proposalStatus,
+      submittedBy: proposalSubmittedBy
+    }),
+    staleTime: 60 * 1000,
+    retry: 1,
+  })
+
+  // Normalize stats
   const stats = {
-    totalUsers: 1247,
-    activeUsers: 892,
-    pendingProposals: 34,
-    totalProposals: 156,
-    totalRevenue: 45678,
-    monthlyRevenue: 12345
+    totalUsers: statsData.total_users ?? statsData.totalUsers ?? 0,
+    activeUsers: statsData.active_users ?? statsData.activeUsers ?? 0,
+    pendingProposals: statsData.pending_proposals ?? statsData.pendingProposals ?? 0,
+    totalProposals: statsData.total_proposals ?? statsData.totalProposals ?? 0,
+    totalRevenue: statsData.total_revenue ?? statsData.totalRevenue ?? 0,
+    monthlyRevenue: statsData.monthly_revenue ?? statsData.monthlyRevenue ?? 0,
   }
 
-  const recentUsers = [
-    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Student', status: 'active', joinDate: '2024-01-15' },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Faculty', status: 'active', joinDate: '2024-01-14' },
-    { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'Student', status: 'pending', joinDate: '2024-01-13' },
-    { id: 4, name: 'Sarah Wilson', email: 'sarah@example.com', role: 'Admin', status: 'active', joinDate: '2024-01-12' }
-  ]
+  // Normalize recent users (take last 4)
+  const recentUsers = (Array.isArray(usersData) ? usersData : []).slice(0, 4).map(u => ({
+    id: u.id,
+    name: u.full_name || u.name || u.email,
+    email: u.email,
+    role: u.role ? (u.role.charAt(0).toUpperCase() + u.role.slice(1)) : 'User',
+    status: u.is_active ? 'active' : 'inactive',
+    joinDate: u.date_joined ? new Date(u.date_joined).toLocaleDateString() : '',
+  }))
 
-  const recentProposals = [
-    { id: 1, title: 'Computer Science Club', type: 'Club', status: 'pending', submittedBy: 'John Doe', submittedAt: '2024-01-15' },
-    { id: 2, title: 'Spring Festival 2024', type: 'Event', status: 'approved', submittedBy: 'Jane Smith', submittedAt: '2024-01-14' },
-    { id: 3, title: 'Research Project Funding', type: 'Funding', status: 'under_review', submittedBy: 'Mike Johnson', submittedAt: '2024-01-13' }
-  ]
+  // Normalize recent proposals (take last 3)
+  const recentProposals = (Array.isArray(requestsData) ? requestsData : []).slice(0, 3).map(r => ({
+    id: r.id,
+    title: r.title || r.name || 'Untitled',
+    type: r.proposal_type === 'club' ? 'Club' : r.proposal_type === 'event' ? 'Event' : (r.type || 'Other'),
+    status: r.status || 'pending',
+    submittedBy: r.submitted_by?.full_name || r.created_by?.full_name || 'Unknown',
+    submittedAt: r.created_at ? new Date(r.created_at).toLocaleDateString() : '',
+    role: r.submitted_by?.role || 'unknown',
+  }))
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon },
@@ -323,41 +363,151 @@ const AdminUI = () => {
     </div>
   )
 
-  const renderProposals = () => (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Proposal Management</h2>
-            <p className="text-gray-600">Review and manage all proposals</p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search proposals..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-              />
+  const renderProposals = () => {
+    // Filter proposals based on selected filters
+    const filteredProposals = (Array.isArray(requestsData) ? requestsData : []).map(r => ({
+      id: r.id,
+      title: r.title || r.name || 'Untitled',
+      type: r.proposal_type === 'club' ? 'Club' : r.proposal_type === 'event' ? 'Event' : (r.type || 'Other'),
+      status: r.status || 'pending',
+      submittedBy: r.submitted_by?.full_name || r.created_by?.full_name || 'Unknown',
+      submittedAt: r.created_at ? new Date(r.created_at).toLocaleDateString() : '',
+      role: r.submitted_by?.role || 'unknown',
+    })).filter(p => {
+      if (searchTerm && !p.title.toLowerCase().includes(searchTerm.toLowerCase())) return false
+      return true
+    })
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Proposal Management</h2>
+              <p className="text-gray-600">Review and manage all proposals</p>
             </div>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              Filter
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search proposals..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <FunnelIcon className="w-5 h-5" />
+                Filter
+              </button>
+            </div>
           </div>
+
+          {/* Filters Section */}
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="border-t border-gray-200 pt-4 mt-4"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Proposal Type Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Proposal Type</label>
+                  <select
+                    value={proposalType}
+                    onChange={(e) => setProposalType(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="all">All Proposals</option>
+                    <option value="event">Event Proposals</option>
+                    <option value="club">Club Proposals</option>
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
+                  <select
+                    value={proposalStatus}
+                    onChange={(e) => setProposalStatus(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="all">All Proposals</option>
+                    <option value="pending">Pending Review</option>
+                    <option value="approved">Approved</option>
+                    <option value="published">Published</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="returned_for_revision">Returned for Revision</option>
+                  </select>
+                </div>
+
+                {/* Submitted By Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Submitted by</label>
+                  <select
+                    value={proposalSubmittedBy}
+                    onChange={(e) => setProposalSubmittedBy(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="all">All</option>
+                    <option value="organizer">Organizers</option>
+                    <option value="student">Students</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Clear Filters Button */}
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => {
+                    setProposalType('all')
+                    setProposalStatus('all')
+                    setProposalSubmittedBy('all')
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Active Filters Display */}
+        {(proposalType !== 'all' || proposalStatus !== 'all' || proposalSubmittedBy !== 'all') && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+            <div className="text-sm text-blue-800">
+              <span className="font-medium">Active Filters:</span>
+              {proposalType !== 'all' && <span className="ml-2">Type: {proposalType}</span>}
+              {proposalStatus !== 'all' && <span className="ml-2">Status: {proposalStatus}</span>}
+              {proposalSubmittedBy !== 'all' && <span className="ml-2">Submitted by: {proposalSubmittedBy}</span>}
+            </div>
+          </div>
+        )}
+
+        {/* Proposals Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProposals.length > 0 ? (
+            filteredProposals.map((proposal) => (
+              <ProposalCard key={proposal.id} proposal={proposal} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <DocumentTextIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">No proposals found matching your filters</p>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Proposals Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recentProposals.map((proposal) => (
-          <ProposalCard key={proposal.id} proposal={proposal} />
-        ))}
-      </div>
-    </div>
-  )
+    )
+  }
 
   const renderContent = () => {
     switch (activeSection) {

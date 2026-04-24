@@ -12,47 +12,65 @@ logger = logging.getLogger(__name__)
 def club_post_save(sender, instance, created, **kwargs):
     """
     Handle club post-save signals.
+    Notify organizer on approval and all students on new clubs.
     """
     if created:
         # Send notification to relevant users
         if instance.status == 'approved':
             send_notification(
                 instance.created_by,
-                'Club Approved',
-                f'Your club "{instance.name}" has been approved',
-                'club_update'
+                'Club Published 🎉',
+                f'Your club "{instance.name}" has been published! Students can now join.',
+                'club_update',
+                priority='medium'
             )
-            
-            # Notify students about new club
-            from apps.users.models import User
-            students = User.objects.filter(role='student', is_active=True)
-            for student in students:
-                send_notification(
-                    student,
-                    'New Club',
-                    f'New club "{instance.name}" is now available for membership',
-                    'club_update'
-                )
     
     elif not created:
-        # Handle club updates
+        # Handle club updates and status changes
         if hasattr(instance, '_old_status'):
             old_status = instance._old_status
             if old_status != instance.status:
                 if instance.status == 'approved':
                     send_notification(
                         instance.created_by,
-                        'Club Approved',
-                        f'Your club "{instance.name}" has been approved',
-                        'club_update'
+                        'Club Approved ✅',
+                        f'Your club "{instance.name}" has been approved and is now published!',
+                        'club_update',
+                        priority='medium'
                     )
+                
                 elif instance.status == 'rejected':
                     send_notification(
                         instance.created_by,
-                        'Club Rejected',
-                        f'Your club "{instance.name}" has been rejected',
-                        'club_update'
+                        'Club Rejected ❌',
+                        f'Your club "{instance.name}" has been rejected. Please review and try again.',
+                        'club_update',
+                        priority='high'
                     )
+                    
+                    logger.warning(f"Club '{instance.name}' rejected by admin.")
+                
+                elif instance.status == 'dissolved':
+                    send_notification(
+                        instance.created_by,
+                        'Club Dissolved 🚫',
+                        f'Your club "{instance.name}" has been dissolved.',
+                        'club_update',
+                        priority='high'
+                    )
+                    
+                    # Notify all club members
+                    memberships = ClubMembership.objects.filter(club=instance, status='approved')
+                    for membership in memberships:
+                        send_notification(
+                            membership.user,
+                            'Club Dissolved 🚫',
+                            f'The club "{instance.name}" has been dissolved.',
+                            'club_update',
+                            priority='high'
+                        )
+                    
+                    logger.info(f"Club '{instance.name}' dissolved. Notified {memberships.count()} members.")
 
 
 @receiver(pre_save, sender=Club)
@@ -68,72 +86,36 @@ def club_pre_save(sender, instance, **kwargs):
             pass
 
 
+@receiver(pre_save, sender=ClubMembership)
+def membership_pre_save(sender, instance, **kwargs):
+    """
+    Store old status before saving membership.
+    """
+    if instance.pk:
+        try:
+            old_instance = sender.objects.get(pk=instance.pk)
+            instance._old_status = old_instance.status
+        except sender.DoesNotExist:
+            pass
+
+
 @receiver(post_save, sender=ClubMembership)
 def membership_post_save(sender, instance, created, **kwargs):
     """
     Handle club membership post-save signals.
+    Notify user, club leaders, and other members when someone joins.
+    DISABLED: Membership notifications disabled per admin request
     """
     if created:
-        # Send notification to user
-        if instance.status == 'approved':
-            send_notification(
-                instance.user,
-                'Membership Approved',
-                f'Your membership in "{instance.club.name}" has been approved',
-                'club_update'
-            )
-            
-            # Notify club leaders
-            leaders = instance.club.memberships.filter(role='leader', status='approved')
-            for leader in leaders:
-                send_notification(
-                    leader.user,
-                    'New Member',
-                    f'{instance.user.full_name} has joined "{instance.club.name}"',
-                    'club_update'
-                )
-        
-        elif instance.status == 'pending':
-            # Send notification to club leaders about new request
-            leaders = instance.club.memberships.filter(role='leader', status='approved')
-            for leader in leaders:
-                send_notification(
-                    leader.user,
-                    'New Membership Request',
-                    f'{instance.user.full_name} has requested to join "{instance.club.name}"',
-                    'club_update'
-                )
+        # Membership created - notifications disabled
+        logger.info(f"Membership created: {instance.user.email} joined {instance.club.name}")
     
     else:
-        # Handle membership status changes
+        # Handle membership status updates - notifications disabled
         if hasattr(instance, '_old_status'):
             old_status = instance._old_status
             if old_status != instance.status:
-                if instance.status == 'approved':
-                    send_notification(
-                        instance.user,
-                        'Membership Approved',
-                        f'Your membership in "{instance.club.name}" has been approved',
-                        'club_update'
-                    )
-                    
-                    # Notify club leaders
-                    leaders = instance.club.memberships.filter(role='leader', status='approved')
-                    for leader in leaders:
-                        send_notification(
-                            leader.user,
-                            'New Member Approved',
-                            f'{instance.user.full_name} has been approved for "{instance.club.name}"',
-                            'club_update'
-                        )
-                
-                elif instance.status == 'rejected':
-                    send_notification(
-                        instance.user,
-                        'Membership Rejected',
-                        f'Your membership in "{instance.club.name}" has been rejected',
-                        'club_update'
-                    )
+                logger.info(f"Membership status changed: {instance.user.email} - {instance.club.name} - {instance.status}")
 
 
 @receiver(pre_save, sender=ClubMembership)

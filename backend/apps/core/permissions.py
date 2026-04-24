@@ -13,8 +13,14 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
+        # Admins can modify anything
+        if request.user.is_authenticated and request.user.role == 'admin':
+            return True
+
         # Write permissions are only allowed to the owner of the object.
-        return obj.user == request.user
+        # Support both 'user' and 'created_by' owner fields.
+        owner = getattr(obj, 'user', None) or getattr(obj, 'created_by', None)
+        return owner == request.user
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):

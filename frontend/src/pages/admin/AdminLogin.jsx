@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { 
@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { adminLogin } from '../../api/admin'
+import { useAuth } from '../../contexts/AuthContext'
 
 const AdminLogin = () => {
   const [formData, setFormData] = useState({
@@ -19,6 +20,14 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const { user, isAuthenticated } = useAuth()
+
+  // Redirect if already authenticated as admin
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'admin') {
+      navigate('/admin/dashboard')
+    }
+  }, [isAuthenticated, user, navigate])
 
   const handleChange = (e) => {
     setFormData(prev => ({
@@ -35,10 +44,8 @@ const AdminLogin = () => {
       const response = await adminLogin(formData)
       
       if (response.success) {
-        // Store admin session
         localStorage.setItem('admin_token', response.data.access_token)
         localStorage.setItem('admin_user', JSON.stringify(response.data.user))
-        
         toast.success('Admin login successful!')
         navigate('/admin/dashboard')
       } else {
@@ -46,13 +53,7 @@ const AdminLogin = () => {
       }
     } catch (error) {
       console.error('Admin login error:', error)
-      if (error.response?.data?.message) {
-        toast.error(error.response.data.message)
-      } else if (error.response?.data?.error) {
-        toast.error(error.response.data.error)
-      } else {
-        toast.error('Login failed. Please try again.')
-      }
+      toast.error(error?.detail || error?.message || 'Invalid admin credentials. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -147,9 +148,8 @@ const AdminLogin = () => {
               <div className="flex items-start space-x-3">
                 <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500 mt-0.5" />
                 <div className="text-sm text-gray-300">
-                  <p className="font-medium text-yellow-500">Demo Credentials:</p>
-                  <p className="mt-1">Email: admin@cluborax.com</p>
-                  <p>Password: admin123</p>
+                  <p className="font-medium text-yellow-500">Restricted Access</p>
+                  <p className="mt-1">This portal is for authorized administrators only. Contact the system administrator if you need access.</p>
                 </div>
               </div>
             </div>

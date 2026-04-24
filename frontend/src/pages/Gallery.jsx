@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../api/client'
 import FloatingChatbot from '../components/FloatingChatbot'
 import { 
@@ -26,6 +26,7 @@ import toast from 'react-hot-toast'
 
 const Gallery = () => {
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showDetailsModal, setShowDetailsModal] = useState(false)
@@ -112,7 +113,7 @@ const Gallery = () => {
   }
 
   // Handler for album submission
-  const handleUploadSubmit = () => {
+  const handleUploadSubmit = async () => {
     // Validation
     if (!uploadForm.title.trim()) {
       toast.error('Please enter an album title')
@@ -123,33 +124,43 @@ const Gallery = () => {
       return
     }
 
-    // Create new album object
-    const newAlbum = {
-      id: Date.now(),
-      ...uploadForm,
-      likes: 0,
-      comments: 0,
-      date: new Date().toISOString().split('T')[0],
-      imageUrl: uploadForm.images[0]?.url || '/api/placeholder/400/300',
-      images: uploadForm.images.map(img => img.url)
+    try {
+      const formData = new FormData()
+      formData.append('title', uploadForm.title)
+      formData.append('gallery_type', uploadForm.category.toLowerCase().replace(/\s+/g, '_'))
+      formData.append('description', uploadForm.description || '')
+      if (uploadForm.eventDate) formData.append('date_taken', uploadForm.eventDate)
+      if (uploadForm.eventLocation) formData.append('location', uploadForm.eventLocation)
+      formData.append('is_public', 'true')
+      // Append each image file
+      uploadForm.images.forEach(img => {
+        if (img.file) formData.append('images', img.file)
+      })
+
+      await apiClient.post('/api/gallery/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+
+      toast.success('Album uploaded successfully!')
+      queryClient.invalidateQueries(['gallery'])
+
+      // Reset form and close modal
+      setUploadForm({
+        title: '',
+        category: 'Events',
+        description: '',
+        longDescription: '',
+        eventDate: '',
+        eventLocation: '',
+        images: [],
+        author: user?.name || 'Unknown',
+        tags: []
+      })
+      setShowUploadModal(false)
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.response?.data?.title?.[0] || 'Failed to upload album. Please try again.'
+      toast.error(msg)
     }
-
-    console.log('Creating album:', newAlbum)
-    toast.success('Album uploaded successfully!')
-
-    // Reset form and close modal
-    setUploadForm({
-      title: '',
-      category: 'Events',
-      description: '',
-      longDescription: '',
-      eventDate: '',
-      eventLocation: '',
-      images: [],
-      author: user?.name || 'Unknown',
-      tags: []
-    })
-    setShowUploadModal(false)
   }
 
   const { data: galleryItemsRaw = [], isLoading: galleryLoading } = useQuery({
@@ -157,26 +168,50 @@ const Gallery = () => {
     queryFn: async () => {
       const res = await apiClient.get('/api/gallery/?is_public=true&ordering=-created_at')
       const raw = res.data?.results || (Array.isArray(res.data) ? res.data : [])
-      return raw.map(g => ({
-        id: g.id,
-        title: g.title,
-        category: g.gallery_type_display || g.gallery_type || 'General',
-        description: g.description || '',
-        longDescription: g.description || '',
-        imageUrl: g.cover_image_url || 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=400&h=300&fit=crop',
-        images: g.cover_image_url ? [g.cover_image_url] : [],
-        likes: g.total_likes || 0,
-        comments: g.total_comments || 0,
-        author: g.created_by?.full_name || g.created_by?.username || 'Campus',
-        date: g.date_taken || (g.created_at ? g.created_at.substring(0, 10) : ''),
-        eventDate: g.date_taken || '',
-        eventLocation: g.location || '',
-        eventDuration: '',
-        participants: 0,
-        tags: Array.isArray(g.tags) ? g.tags : [],
-        organizer: g.created_by?.full_name || '',
-        highlights: [],
-      }))
+      
+      // Group galleries by club/event to avoid duplicate cards
+      const groupedByEntity = raw.reduce((acc, g) => {
+        const key = g.club_name || g.event_title || g.title
+        
+        if (!acc[key]) {
+          acc[key] = {
+            id: g.id,
+            title: g.club_name || g.event_title || g.title,
+            category: g.gallery_type_display || g.gallery_type || 'General',
+            description: g.description || '',
+            imageUrl: g.cover_image_url || 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=400&h=300&fit=crop',
+            likes: g.total_likes || 0,
+            comments: g.total_comments || 0,
+            author: g.created_by_name || g.created_by?.full_name || 'Campus',
+            date: g.created_at ? g.created_at.substring(0, 10) : '',
+            albums: []
+          }
+        }
+        
+        // Add albums from this gallery
+        if (g.albums && Array.isArray(g.albums)) {
+          g.albums.forEach(album => {
+            acc[key].albums.push({
+              id: album.id,
+              name: album.name,
+              description: album.description || '',
+              coverImage: album.cover_image_url || '',
+              mediaCount: album.media_count || 0,
+              images: (album.media_files || []).map(mf => ({
+                id: mf.id,
+                url: mf.file_url,
+                thumbnail: mf.thumbnail_url || mf.file_url,
+                filename: mf.original_filename,
+                uploadedAt: mf.created_at
+              }))
+            })
+          })
+        }
+        
+        return acc
+      }, {})
+      
+      return Object.values(groupedByEntity)
     },
     staleTime: 5 * 60 * 1000,
   })
@@ -482,120 +517,73 @@ const Gallery = () => {
                 </div>
               </div>
 
-              {/* Content */}
+              {/* Content - Show Albums */}
               <div className="p-6 space-y-6 overflow-y-auto flex-1">
-                {/* Main Image */}
-                <div className="relative h-96 bg-gray-100 rounded-lg overflow-hidden">
-                  <div className="w-full h-full bg-gradient-to-r from-purple-400 to-indigo-400 flex items-center justify-center">
-                    <PhotoIcon className="h-20 w-20 text-white" />
-                  </div>
-                  <div className="absolute bottom-4 right-4">
-                    <button
-                      onClick={() => {
-                        setShowDetailsModal(false)
-                        handleViewAlbum(selectedItem)
-                      }}
-                      className="bg-white text-gray-900 px-4 py-2 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2"
-                    >
-                      <EyeIcon className="w-4 h-4" />
-                      View Album
-                    </button>
-                  </div>
-                </div>
-
-                {/* Description */}
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">About This Event</h3>
-                  <p className="text-gray-600 leading-relaxed">{selectedItem.longDescription}</p>
-                </div>
-
-                {/* Event Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-900 mb-3">Event Information</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Date:</span>
-                        <span className="font-medium text-gray-900">{selectedItem.eventDate}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Location:</span>
-                        <span className="font-medium text-gray-900">{selectedItem.eventLocation}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Duration:</span>
-                        <span className="font-medium text-gray-900">{selectedItem.eventDuration}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Participants:</span>
-                        <span className="font-medium text-gray-900">{selectedItem.participants}</span>
-                      </div>
-                    </div>
-                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Albums ({selectedItem.albums?.length || 0})</h3>
                   
-                  <div className="bg-indigo-50 rounded-lg p-4">
-                    <h4 className="font-semibold text-indigo-900 mb-3">Organization</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Organizer:</span>
-                        <span className="font-medium text-gray-900">{selectedItem.organizer}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Photographer:</span>
-                        <span className="font-medium text-gray-900">{selectedItem.author}</span>
-                      </div>
+                  {selectedItem.albums && selectedItem.albums.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedItem.albums.map(album => (
+                        <div 
+                          key={album.id}
+                          onClick={() => {
+                            setShowDetailsModal(false)
+                            setSelectedItem({
+                              ...selectedItem,
+                              currentAlbum: album,
+                              images: album.images.map(img => img.url)
+                            })
+                            setCurrentImageIndex(0)
+                            setShowAlbumModal(true)
+                          }}
+                          className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
+                        >
+                          <div className="aspect-video bg-gradient-to-r from-purple-400 to-indigo-400 relative overflow-hidden">
+                            {album.coverImage ? (
+                              <img 
+                                src={album.coverImage} 
+                                alt={album.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : album.images && album.images.length > 0 ? (
+                              <img 
+                                src={album.images[0].thumbnail} 
+                                alt={album.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <PhotoIcon className="h-16 w-16 text-white" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300" />
+                          </div>
+                          <div className="p-4">
+                            <h4 className="font-semibold text-gray-900 mb-1">{album.name}</h4>
+                            {album.description && (
+                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{album.description}</p>
+                            )}
+                            <div className="flex items-center justify-between text-sm text-gray-500">
+                              <span className="flex items-center">
+                                <PhotoIcon className="h-4 w-4 mr-1" />
+                                {album.images?.length || 0} photos
+                              </span>
+                              <button className="text-purple-600 hover:text-purple-700 font-medium">
+                                View →
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                </div>
-
-                {/* Tags */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Tags</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedItem.tags.map((tag, index) => (
-                      <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Highlights */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Event Highlights</h4>
-                  <ul className="space-y-2">
-                    {selectedItem.highlights.map((highlight, index) => (
-                      <li key={index} className="flex items-start space-x-2 text-sm text-gray-600">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mt-1 flex-shrink-0"></span>
-                        <span>{highlight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Stats */}
-                <div className="flex items-center justify-around bg-gray-50 rounded-lg p-4">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center space-x-1 text-gray-600 mb-1">
-                      <HeartIcon className="w-5 h-5" />
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <PhotoIcon className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                      <p className="text-lg font-medium">No albums yet</p>
+                      <p className="text-sm mt-1">Albums will appear here once images are uploaded</p>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">{selectedItem.likes}</p>
-                    <p className="text-xs text-gray-500">Likes</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center space-x-1 text-gray-600 mb-1">
-                      <ChatBubbleLeftIcon className="w-5 h-5" />
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900">{selectedItem.comments}</p>
-                    <p className="text-xs text-gray-500">Comments</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center space-x-1 text-gray-600 mb-1">
-                      <PhotoIcon className="w-5 h-5" />
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900">{selectedItem.images.length}</p>
-                    <p className="text-xs text-gray-500">Photos</p>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -604,19 +592,9 @@ const Gallery = () => {
                 <div className="flex items-center justify-end space-x-4">
                   <button
                     onClick={() => setShowDetailsModal(false)}
-                    className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
                   >
                     Close
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowDetailsModal(false)
-                      handleViewAlbum(selectedItem)
-                    }}
-                    className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 font-medium"
-                  >
-                    <EyeIcon className="w-5 h-5" />
-                    View Album
                   </button>
                 </div>
               </div>
@@ -627,10 +605,10 @@ const Gallery = () => {
     </AnimatePresence>
   )
 
-  // Album Modal
+  // Album Modal - Shows images from selected album
   const AlbumModal = () => (
     <AnimatePresence>
-      {showAlbumModal && selectedItem && (
+      {showAlbumModal && selectedItem && selectedItem.images && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
             {/* Backdrop */}
@@ -638,7 +616,7 @@ const Gallery = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
               onClick={() => setShowAlbumModal(false)}
             />
             
@@ -654,8 +632,8 @@ const Gallery = () => {
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold mb-1">{selectedItem.title}</h2>
-                    <p className="text-blue-100">Photo Album - {selectedItem.images.length} photos</p>
+                    <h2 className="text-2xl font-bold mb-1">{selectedItem.currentAlbum?.name || selectedItem.title}</h2>
+                    <p className="text-blue-100">{selectedItem.images?.length || 0} photos</p>
                   </div>
                   <button
                     onClick={() => setShowAlbumModal(false)}
@@ -667,69 +645,30 @@ const Gallery = () => {
               </div>
 
               {/* Image Gallery */}
-              <div className="flex-1 bg-black overflow-y-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+              <div className="flex-1 bg-gray-50 overflow-y-auto p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {selectedItem.images.map((image, index) => (
                       <div 
                         key={index}
                         className="relative group cursor-pointer"
                         onClick={() => setCurrentImageIndex(index)}
                       >
-                        <div className="aspect-square bg-gray-800 rounded-lg overflow-hidden">
+                        <div className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
                           <img
                             src={image}
-                            alt={`${selectedItem.title} - Image ${index + 1}`}
+                            alt={`${selectedItem.currentAlbum?.name || selectedItem.title} - Image ${index + 1}`}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         </div>
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center rounded-lg">
                           <div className="opacity-0 group-hover:opacity-100 text-white text-center">
-                            <p className="text-sm font-medium">Image {index + 1}</p>
-                            <p className="text-xs">Click to view</p>
+                            <EyeIcon className="h-8 w-8 mx-auto mb-1" />
+                            <p className="text-sm font-medium">View</p>
                           </div>
                         </div>
-                        {currentImageIndex === index && (
-                          <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
-                            Current
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
-                </div>
-
-              {/* Footer */}
-              <div className="p-4 border-t border-gray-200 bg-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{selectedItem.title}</h3>
-                    <p className="text-sm text-gray-600">
-                      {selectedItem.images.length} photos • Currently viewing: Image {currentImageIndex + 1}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={() => setCurrentImageIndex(Math.max(0, currentImageIndex - 1))}
-                      disabled={currentImageIndex === 0}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => setCurrentImageIndex(Math.min(selectedItem.images.length - 1, currentImageIndex + 1))}
-                      disabled={currentImageIndex === selectedItem.images.length - 1}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Next
-                    </button>
-                    <button
-                      onClick={() => setShowAlbumModal(false)}
-                      className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
               </div>
             </motion.div>
           </div>
@@ -895,12 +834,12 @@ const Gallery = () => {
                 <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                   <div className="flex items-center space-x-4">
                     <span className="flex items-center">
-                      <HeartIcon className="h-4 w-4 mr-1" />
-                      {item.likes}
+                      <PhotoIcon className="h-4 w-4 mr-1" />
+                      {item.albums?.length || 0} {item.albums?.length === 1 ? 'Album' : 'Albums'}
                     </span>
                     <span className="flex items-center">
-                      <ChatBubbleLeftIcon className="h-4 w-4 mr-1" />
-                      {item.comments}
+                      <HeartIcon className="h-4 w-4 mr-1" />
+                      {item.likes}
                     </span>
                   </div>
                   <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded">

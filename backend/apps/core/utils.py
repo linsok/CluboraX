@@ -257,7 +257,7 @@ def is_qr_code_expired(qr_created_at, expiry_hours=None):
     return timezone.now() > expiry_time
 
 
-def send_notification(user, title, message, notification_type='system'):
+def send_notification(user, title, message, notification_type='system', priority='medium'):
     """
     Send notification to user (placeholder for actual notification implementation).
     
@@ -266,6 +266,7 @@ def send_notification(user, title, message, notification_type='system'):
         title (str): Notification title
         message (str): Notification message
         notification_type (str): Type of notification
+        priority (str): Notification priority (low, medium, high)
     
     Returns:
         bool: True if successful
@@ -277,7 +278,8 @@ def send_notification(user, title, message, notification_type='system'):
             user=user,
             title=title,
             message=message,
-            type=notification_type
+            type=notification_type,
+            priority=priority
         )
         
         # Here you would also send email/push notification

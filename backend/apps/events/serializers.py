@@ -192,7 +192,13 @@ class EventUpdateSerializer(EventSerializer):
     Event update serializer.
     """
     class Meta(EventSerializer.Meta):
-        read_only_fields = EventSerializer.Meta.read_only_fields + ['created_by']
+        read_only_fields = [f for f in EventSerializer.Meta.read_only_fields if f != 'status'] + ['created_by']
+
+    def validate_status(self, value):
+        user = self.context['request'].user
+        if user.role not in ['admin', 'approver']:
+            raise serializers.ValidationError("Only admins can change event status.")
+        return value
 
 
 class EventRegistrationSerializer(serializers.ModelSerializer):

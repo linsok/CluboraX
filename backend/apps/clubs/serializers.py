@@ -143,7 +143,13 @@ class ClubUpdateSerializer(ClubSerializer):
     Club update serializer.
     """
     class Meta(ClubSerializer.Meta):
-        read_only_fields = ClubSerializer.Meta.read_only_fields + ['created_by']
+        read_only_fields = [f for f in ClubSerializer.Meta.read_only_fields if f != 'status'] + ['created_by']
+
+    def validate_status(self, value):
+        user = self.context['request'].user
+        if user.role not in ['admin', 'approver']:
+            raise serializers.ValidationError("Only admins can change club status.")
+        return value
 
 
 class ClubMembershipSerializer(serializers.ModelSerializer):

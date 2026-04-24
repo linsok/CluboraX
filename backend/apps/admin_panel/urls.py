@@ -18,7 +18,7 @@ urlpatterns = [
     
     # Request Management
     path('requests/', views.AdminRequestListView.as_view(), name='request_list'),
-    path('requests/<uuid:pk>/', views.AdminRequestDetailView.as_view(), name='request_detail'),
+    path('requests/<int:pk>/', views.AdminRequestDetailView.as_view(), name='request_detail'),
     
     # Admin activities
     path('activities/', views.AdminActivityListView.as_view(), name='activity_list'),

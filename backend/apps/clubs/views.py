@@ -40,36 +40,36 @@ class ClubListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         """
         Get clubs based on user role and filters.
+        Only show clubs that are not 'inactive' or 'finished'.
         """
         user = self.request.user
-        queryset = Club.objects.all()
-        
+        queryset = Club.objects.exclude(status__in=['inactive', 'finished'])
+
         # Filter by status based on user role
-        if user.role == 'student':
-            # Students can only see approved clubs
-            queryset = queryset.filter(status='approved')
-        elif user.role == 'organizer':
-            # Organizers can see their own clubs and approved clubs
-            queryset = queryset.filter(
-                Q(created_by=user) | Q(status='approved')
-            )
-        elif user.role in ['approver', 'admin']:
-            # Approvers and admins can see all clubs
+        if user.is_staff or user.is_superuser or (hasattr(user, 'role') and user.role in ['approver', 'admin']):
             pass
-        
+        elif hasattr(user, 'role') and user.role == 'organizer':
+            queryset = queryset.filter(
+                Q(created_by=user) | Q(status__in=['approved', 'active', 'published'])
+            )
+        elif hasattr(user, 'role') and user.role == 'student':
+            queryset = queryset.filter(status__in=['approved', 'active', 'published'])
+        else:
+            queryset = queryset.filter(status__in=['approved', 'active', 'published'])
+
         # Additional filters
         my_clubs = self.request.query_params.get('my_clubs')
         if my_clubs == 'true':
             queryset = queryset.filter(created_by=user)
-        
+
         member_of = self.request.query_params.get('member_of')
         if member_of == 'true':
             queryset = queryset.filter(memberships__user=user, memberships__status='approved')
-        
+
         can_join = self.request.query_params.get('can_join')
         if can_join == 'true':
-            queryset = queryset.filter(status='approved')
-        
+            queryset = queryset.filter(status__in=['approved', 'active', 'published'])
+
         return queryset.distinct()
     
     def get_serializer_class(self):
@@ -82,9 +82,16 @@ class ClubListCreateView(generics.ListCreateAPIView):
     
     def perform_create(self, serializer):
         """
-        Create club with current user.
+        Create club with current user and auto-assign as leader.
         """
         club = serializer.save(created_by=self.request.user)
+        
+        # Automatically create leader membership for the club creator
+        ClubMembership.objects.get_or_create(
+            club=club,
+            user=self.request.user,
+            defaults={'role': 'leader', 'status': 'approved'}
+        )
         
         # Log user action
         log_user_action(
@@ -109,14 +116,17 @@ class ClubDetailView(generics.RetrieveUpdateDestroyAPIView):
         """
         user = self.request.user
         
-        if user.role == 'student':
-            return Club.objects.filter(status='approved')
-        elif user.role == 'organizer':
-            return Club.objects.filter(
-                Q(created_by=user) | Q(status='approved')
-            )
-        else:
+        # Check if user is admin/staff first (includes admin panel access)
+        if user.is_staff or user.is_superuser or (hasattr(user, 'role') and user.role in ['approver', 'admin']):
             return Club.objects.all()
+        elif hasattr(user, 'role') and user.role == 'organizer':
+            return Club.objects.filter(
+                Q(created_by=user) | Q(status__in=['approved', 'active', 'published'])
+            )
+        elif hasattr(user, 'role') and user.role == 'student':
+            return Club.objects.filter(status__in=['approved', 'active', 'published'])
+        else:
+            return Club.objects.filter(status__in=['approved', 'active', 'published'])
     
     def get_serializer_class(self):
         """
@@ -167,17 +177,33 @@ class ClubMembershipListCreateView(generics.ListCreateAPIView):
     
     def get_queryset(self):
         """
-        Get memberships based on user role.
+        Get memberships based on user role and permissions.
+        Allow access to:
+        - Own memberships (all users)
+        - All memberships in clubs they created (organizers)
+        - All memberships in clubs where they are leaders (students with leader role)
+        - Everything (admins)
         """
         user = self.request.user
         
-        if user.role == 'student':
-            return ClubMembership.objects.filter(user=user)
-        elif user.role == 'organizer':
-            # Organizers can see memberships for their clubs
-            return ClubMembership.objects.filter(club__created_by=user)
-        else:
+        if user.role in ['admin', 'approver']:
             return ClubMembership.objects.all()
+        
+        # Get clubs where user is creator or leader
+        from django.db.models import Q
+        created_clubs = Club.objects.filter(created_by=user)
+        leader_clubs = Club.objects.filter(
+            memberships__user=user,
+            memberships__role='leader',
+            memberships__status='approved'
+        )
+        
+        # Return memberships for: own membership + clubs they manage
+        return ClubMembership.objects.filter(
+            Q(user=user) |  # Own memberships
+            Q(club__in=created_clubs) |  # Clubs they created
+            Q(club__in=leader_clubs)  # Clubs where they are leaders
+        ).distinct()
     
     def get_serializer_class(self):
         """
@@ -208,20 +234,79 @@ class ClubMembershipDetailView(generics.RetrieveUpdateDestroyAPIView):
     Club membership detail view.
     """
     serializer_class = ClubMembershipSerializer
-    permission_classes = [permissions.IsAuthenticated, IsClubMember]
+    permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
         """
-        Get memberships based on user role.
+        Get memberships based on user role and permissions.
+        Allow access to:
+        - Own memberships (all users)
+        - All memberships in clubs they created (organizers)
+        - All memberships in clubs where they are leaders (students with leader role)
+        - Everything (admins)
         """
         user = self.request.user
         
-        if user.role == 'student':
-            return ClubMembership.objects.filter(user=user)
-        elif user.role == 'organizer':
-            return ClubMembership.objects.filter(club__created_by=user)
-        else:
+        if user.role in ['admin', 'approver']:
             return ClubMembership.objects.all()
+        
+        # Get clubs where user is creator or leader
+        from django.db.models import Q
+        created_clubs = Club.objects.filter(created_by=user)
+        leader_clubs = Club.objects.filter(
+            memberships__user=user,
+            memberships__role='leader',
+            memberships__status='approved'
+        )
+        
+        # Return memberships for: own membership + clubs they manage
+        return ClubMembership.objects.filter(
+            Q(user=user) |  # Own memberships
+            Q(club__in=created_clubs) |  # Clubs they created
+            Q(club__in=leader_clubs)  # Clubs where they are leaders
+        ).distinct()
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete membership - allow club creators, leaders, or the member themselves.
+        """
+        membership = self.get_object()
+        user = request.user
+        
+        # Allow if: admin, club creator, club leader, or the member themselves
+        is_admin = user.role in ['admin', 'approver']
+        is_club_creator = str(membership.club.created_by.id) == str(user.id)
+        is_club_leader = membership.club.is_leader(user)
+        is_self = str(membership.user.id) == str(user.id)
+        
+        if not (is_admin or is_club_creator or is_club_leader or is_self):
+            return Response({
+                'error': True,
+                'message': 'Permission denied. Only club creators, leaders, or the member can remove membership.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().destroy(request, *args, **kwargs)
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Update membership - allow club creators and leaders to manage any membership.
+        """
+        membership = self.get_object()
+        user = request.user
+        
+        # Allow if: admin, club creator, club leader, or the member themselves
+        is_admin = user.role in ['admin', 'approver']
+        is_club_creator = str(membership.club.created_by.id) == str(user.id)
+        is_club_leader = membership.club.is_leader(user)
+        is_self = str(membership.user.id) == str(user.id)
+        
+        if not (is_admin or is_club_creator or is_club_leader or is_self):
+            return Response({
+                'error': True,
+                'message': 'Permission denied.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().update(request, *args, **kwargs)
 
 
 class ClubMembershipActionView(APIView):
@@ -237,15 +322,20 @@ class ClubMembershipActionView(APIView):
         try:
             membership = ClubMembership.objects.get(id=membership_id)
             
-            # Check permissions
+            # Check permissions - allow admin, approver, club creator, or club leaders
             user = request.user
-            if not (
-                user.role in ['admin', 'approver'] or
-                membership.club.is_leader(user)
-            ):
+            is_club_creator = str(membership.club.created_by.id) == str(user.id)
+            is_club_leader = membership.club.is_leader(user)
+            is_admin_or_approver = user.role in ['admin', 'approver']
+            
+            logger.info(f"Member action permission check: user={user.email}, user_id={user.id}, role={user.role}, "
+                       f"club_creator_id={membership.club.created_by.id}, is_creator={is_club_creator}, "
+                       f"is_leader={is_club_leader}, is_admin={is_admin_or_approver}, club={membership.club.name}")
+            
+            if not (is_admin_or_approver or is_club_creator or is_club_leader):
                 return Response({
                     'error': True,
-                    'message': 'Permission denied'
+                    'message': f'Permission denied. Only club creators, leaders, or admins can manage members. (is_admin={is_admin_or_approver}, is_creator={is_club_creator}, is_leader={is_club_leader})'
                 }, status=status.HTTP_403_FORBIDDEN)
             
             serializer = ClubMembershipActionSerializer(data=request.data)
@@ -622,10 +712,13 @@ class ClubStatsView(APIView):
         try:
             user = request.user
             
+            # Safely get user role
+            user_role = getattr(user, 'role', 'student')
+            
             # Base queryset
-            if user.role == 'student':
+            if user_role == 'student':
                 clubs = Club.objects.filter(status='approved')
-            elif user.role == 'organizer':
+            elif user_role == 'organizer':
                 clubs = Club.objects.filter(created_by=user)
             else:
                 clubs = Club.objects.all()
@@ -638,18 +731,20 @@ class ClubStatsView(APIView):
             }
             
             # Membership statistics
-            if user.role == 'student':
+            if user_role == 'student':
                 stats['my_memberships'] = ClubMembership.objects.filter(
                     user=user
                 ).count()
                 stats['total_memberships'] = ClubMembership.objects.filter(
                     club__in=clubs
                 ).count()
-            elif user.role == 'organizer':
+            elif user_role == 'organizer':
+                stats['my_memberships'] = 0  # Organizers don't have memberships
                 stats['total_memberships'] = ClubMembership.objects.filter(
                     club__in=clubs
                 ).count()
             else:
+                stats['my_memberships'] = 0  # Admins don't have memberships
                 stats['total_memberships'] = ClubMembership.objects.count()
             
             # Clubs by category

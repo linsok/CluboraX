@@ -34,8 +34,8 @@ export const getUserAchievements = async (user = null) => {
     const response = await apiClient.get('/api/users/achievements/')
     return response.data.results || []
   } catch (error) {
-    console.error('Failed to fetch user achievements:', error)
-    throw error
+    // Silently return empty array if endpoint doesn't exist (404) - feature not yet implemented
+    return []
   }
 }
 
@@ -45,8 +45,8 @@ export const getUserCertificates = async (user = null) => {
     const response = await apiClient.get('/api/users/certificates/')
     return response.data.results || []
   } catch (error) {
-    console.error('Failed to fetch user certificates:', error)
-    throw error
+    // Silently return empty array if endpoint doesn't exist (404) - feature not yet implemented
+    return []
   }
 }
 

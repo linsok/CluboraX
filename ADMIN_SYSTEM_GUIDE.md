@@ -1,5 +1,8 @@
 # Campus Hub Admin System Guide
+admin@cluborax.com
+admin1234
 
+cd backend; python manage.py runserver 0.0.0.0:8888
 ## Overview
 
 The Campus Hub Admin System provides comprehensive administrative control over the campus management platform. It includes user management, proposal tracking, system monitoring, and configuration management.

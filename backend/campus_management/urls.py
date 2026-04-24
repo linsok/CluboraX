@@ -13,7 +13,8 @@ urlpatterns = [
     path('api/events/', include('apps.events.urls')),
     path('api/notifications/', include('apps.notifications.urls')),
     path('api/proposals/', include('apps.proposals.urls')),
-    # path('api/payments/', include('apps.payments.urls')),  # TODO: Implement payments app
+    path('api/payments/', include('apps.payments.urls')),
+    path('api/ai-advisor/', include('apps.ai_advisor.urls')),
     path('api/gallery/', include('apps.gallery.urls')),
     path('api/stats/public/', PublicStatsView.as_view(), name='public_stats'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

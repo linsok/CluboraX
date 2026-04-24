@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check User Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        pre {
+            background: #000;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin right: 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .danger {
+            background: #ef4444;
+        }
+        .danger:hover {
+            background: #dc2626;
+        }
+        .success {
+            background: #10b981;
+        }
+        .warning {
+            color: #fbbf24;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 User Data Inspector</h1>
+        <p>Check what's stored in localStorage for the logged-in user</p>
+        
+        <div style="margin: 20px 0;">
+            <button onclick="checkUserData()">Check User Data</button>
+            <button class="danger" onclick="clearUserData()">Clear User Data (Logout)</button>
+            <button class="success" onclick="location.reload()">Refresh Page</button>
+        </div>
+        
+        <div id="output"></div>
+    </div>
+
+    <script>
+        function checkUserData() {
+            const output = document.getElementById('output');
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            const userStr = localStorage.getItem('user');
+            
+            let html = '<h2>localStorage Contents:</h2>';
+            
+            // Access Token
+            html += '<h3>Access Token:</h3>';
+            if (accessToken) {
+                html += `<pre>${accessToken.substring(0, 50)}...</pre>`;
+            } else {
+                html += '<p class="warning">⚠️ No access token found</p>';
+            }
+            
+            // Refresh Token
+            html += '<h3>Refresh Token:</h3>';
+            if (refreshToken) {
+                html += `<pre>${refreshToken.substring(0, 50)}...</pre>`;
+            } else {
+                html += '<p class="warning">⚠️ No refresh token found</p>';
+            }
+            
+            // User Object
+            html += '<h2>User Object:</h2>';
+            if (userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    html += '<pre>' + JSON.stringify(user, null, 2) + '</pre>';
+                    
+                    // Check for role field
+                    if (user.role) {
+                        html += `<p style="color: #10b981;">✅ Role field found: <strong>${user.role}</strong></p>`;
+                    } else {
+                        html += '<p class="warning">⚠️ WARNING: No role field in user object!</p>';
+                        html += '<p>This is likely why the Create Club button is not showing.</p>';
+                        html += '<p><strong>Solution:</strong> Click "Clear User Data" above and log in again.</p>';
+                    }
+                } catch (e) {
+                    html += `<p class="warning">⚠️ Error parsing user data: ${e.message}</p>`;
+                    html += `<pre>${userStr}</pre>`;
+                }
+            } else {
+                html += '<p class="warning">⚠️ No user data found - not logged in</p>';
+            }
+            
+            output.innerHTML = html;
+        }
+        
+        function clearUserData() {
+            if (confirm('This will log you out. Continue?')) {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('user');
+                alert('User data cleared! Please log in again.');
+                location.href = 'http://localhost:5175/login';
+            }
+        }
+        
+        // Auto-check on page load
+        window.onload = checkUserData;
+    </script>
+</body>
+</html>

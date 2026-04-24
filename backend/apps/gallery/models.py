@@ -80,6 +80,52 @@ class Gallery(TimeStampedModel):
         )['total'] or 0
 
 
+class Album(TimeStampedModel):
+    """
+    Album model for organizing media files within a gallery.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    gallery = models.ForeignKey(
+        Gallery,
+        on_delete=models.CASCADE,
+        related_name='albums'
+    )
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    cover_image = models.ImageField(upload_to='album_covers/', null=True, blank=True)
+    is_public = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='created_albums'
+    )
+    
+    class Meta:
+        db_table = 'albums'
+        verbose_name = 'Album'
+        verbose_name_plural = 'Albums'
+        ordering = ['order', '-created_at']
+    
+    def __str__(self):
+        return f"{self.gallery.title} - {self.name}"
+    
+    @property
+    def media_count(self):
+        return self.media_files.filter(is_approved=True).count()
+    
+    @property
+    def cover_image_url(self):
+        if self.cover_image:
+            return self.cover_image.url
+        # Use first approved image as cover if no cover set
+        first_media = self.media_files.filter(
+            is_approved=True,
+            media_type='image'
+        ).first()
+        return first_media.file_url if first_media else None
+
+
 class MediaFile(TimeStampedModel):
     """
     Media file model for photos and videos.
@@ -101,6 +147,13 @@ class MediaFile(TimeStampedModel):
         Gallery, 
         on_delete=models.CASCADE, 
         related_name='media_files'
+    )
+    album = models.ForeignKey(
+        'Album',
+        on_delete=models.CASCADE,
+        related_name='media_files',
+        null=True,
+        blank=True
     )
     title = models.CharField(max_length=200, blank=True, null=True)
     description = models.TextField(blank=True, null=True)

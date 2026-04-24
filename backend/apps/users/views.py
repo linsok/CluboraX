@@ -37,6 +37,9 @@ class RegisterView(APIView):
             if serializer.is_valid():
                 user = serializer.save()
                 
+                # Log the saved user data for debugging
+                logger.info(f"User registered: {user.email}, first_name: {user.first_name}, last_name: {user.last_name}")
+                
                 # Log user activity
                 log_user_action(request, 'create', 'User', user.id, new_values=serializer.data)
                 
@@ -49,12 +52,16 @@ class RegisterView(APIView):
                     # Generate JWT token for immediate login
                     token = generate_jwt_token(user)
                     
+                    # Get serialized user data with fresh data
+                    user_data = UserProfileSerializer(user, context={'request': request}).data
+                    logger.info(f"Returning user data: {user_data}")
+                    
                     return Response({
                         'success': True,
                         'message': 'Registration successful! You are now logged in.',
                         'data': {
                             'access_token': token,
-                            'user': UserProfileSerializer(user, context={'request': request}).data,
+                            'user': user_data,
                             'requires_verification': False
                         }
                     }, status=status.HTTP_201_CREATED)
@@ -72,6 +79,7 @@ class RegisterView(APIView):
                         }
                     }, status=status.HTTP_201_CREATED)
             
+            logger.error(f"Registration validation error: {serializer.errors}")
             return Response({
                 'error': True,
                 'message': 'Registration failed',
@@ -161,9 +169,6 @@ class LoginView(APIView):
                     ip_address=get_client_ip(request),
                     user_agent=request.META.get('HTTP_USER_AGENT', '')
                 )
-                
-                # Send notification
-                send_notification(user, 'Login Alert', 'You logged into your account', 'system')
                 
                 return Response({
                     'success': True,
@@ -322,9 +327,9 @@ class LogoutView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class ProfileView(generics.RetrieveUpdateAPIView):
+class ProfileView(generics.RetrieveUpdateDestroyAPIView):
     """
-    User profile view.
+    User profile view - supports GET, PATCH, PUT, and DELETE.
     """
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -368,6 +373,35 @@ class ProfileView(generics.RetrieveUpdateAPIView):
             return Response({
                 'error': True,
                 'message': 'Profile update failed'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete user account permanently.
+        """
+        try:
+            instance = self.get_object()
+            user_email = instance.email
+            user_id = instance.id
+            
+            # Log user activity before deletion
+            log_user_action(request, 'delete', 'User', user_id, old_values={'email': user_email})
+            
+            # Delete the user
+            instance.delete()
+            
+            logger.info(f"User account deleted: {user_email} (ID: {user_id})")
+            
+            return Response({
+                'success': True,
+                'message': 'Account deleted successfully'
+            }, status=status.HTTP_204_NO_CONTENT)
+            
+        except Exception as e:
+            logger.error(f"Account deletion error: {e}")
+            return Response({
+                'error': True,
+                'message': 'Failed to delete account. Please try again or contact support.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -784,7 +818,7 @@ class PublicStatsView(APIView):
 
             total_events = Event.objects.filter(status='approved').count()
             upcoming_events = Event.objects.filter(status='approved').count()
-            total_clubs = Club.objects.filter(status='active').count()
+            total_clubs = Club.objects.filter(status='approved').count()
             total_participants = EventRegistration.objects.filter(status='confirmed').count()
             total_users = User.objects.filter(is_active=True).count()
 

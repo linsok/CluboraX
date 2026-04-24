@@ -7,6 +7,7 @@ from django.db.models import Q, Count, Sum, Avg
 from django.db import connection
 from django_filters.rest_framework import DjangoFilterBackend
 from django.core.cache import cache
+from datetime import datetime, time
 from .models import (
     SystemOverview, AdminActivity, SystemReport, SystemSetting,
     SystemAlert, SystemBackup, SystemMaintenance
@@ -235,62 +236,177 @@ class AdminRequestListView(APIView):
     
     def get(self, request):
         """
-        Get all requests for admin management.
+        Get all requests for admin management including proposals.
+        Supports filtering by search, type, status, priority, and role.
         """
         try:
-            # Combine events and clubs as requests
+            # Clear any Django ORM caches to get fresh data
+            from django.db import connection
+            connection.close()  # Close and reopen to flush cache
+            connection.ensure_connection()
+            
+            # Get query parameters
+            search = request.GET.get('search', '').lower()
+            type_filter = request.GET.get('type', '')
+            status_filter = request.GET.get('status', '')
+            priority_filter = request.GET.get('priority', '')
+            role_filter = request.GET.get('role', '')
+            
+            # Fetch proposals (the actual submissions)
+            from apps.proposals.models import EventProposal, ClubProposal
             from apps.events.models import Event
             from apps.clubs.models import Club
             
-            events = Event.objects.all()
-            clubs = Club.objects.all()
-            
-            # Convert to request format
+            # Start with empty list
             requests = []
             
-            for event in events:
+            # Add Event Proposals (primary source for event submissions)
+            # Use select_related and fresh queries to avoid caching
+            event_proposals = EventProposal.objects.select_related('submitted_by').all().order_by('-submitted_date')
+            
+            # Apply role filter
+            if role_filter:
+                event_proposals = event_proposals.filter(submitted_by__role=role_filter)
+            
+            # Apply type filter
+            if type_filter and type_filter not in ['club', 'club_proposal']:
+                if hasattr(EventProposal, 'type'):
+                    event_proposals = event_proposals.filter(type=type_filter)
+            elif type_filter == 'club_proposal':
+                event_proposals = event_proposals.none()  # Skip event proposals if filtering for club
+            
+            # Apply status filter
+            if status_filter:
+                event_proposals = event_proposals.filter(status=status_filter)
+            
+            for proposal in event_proposals:
+                # Apply search filter
+                if search:
+                    search_fields = [
+                        proposal.title or '',
+                        proposal.eventTitle or '',
+                        proposal.description or '',
+                        proposal.submitted_by.email if proposal.submitted_by else '',
+                        proposal.submitted_by.first_name if proposal.submitted_by else '',
+                        proposal.submitted_by.last_name if proposal.submitted_by else '',
+                    ]
+                    if not any(search in field.lower() for field in search_fields):
+                        continue
+                
                 requests.append({
-                    'id': str(event.id),
-                    'type': 'event',
-                    'title': event.title,
-                    'description': event.description,
-                    'status': event.status,
-                    'submittedBy': event.organizer.email if event.organizer else 'Unknown',
-                    'submittedDate': event.created_at.strftime('%Y-%m-%d'),
+                    'id': str(proposal.id),
+                    'type': 'event_proposal',
+                    'title': proposal.title or proposal.eventTitle or 'Untitled Event',
+                    'description': proposal.description or '',
+                    'status': proposal.status,
+                    'submitted_by': proposal.submitted_by.get_full_name() if proposal.submitted_by else proposal.submitted_by.email if proposal.submitted_by else 'Unknown',
+                    'submitted_by_role': proposal.submitted_by.role if proposal.submitted_by else 'unknown',
+                    'submitted_by_id': str(proposal.submitted_by.id) if proposal.submitted_by else None,
+                    'submittedBy': proposal.submitted_by.email if proposal.submitted_by else 'Unknown',
+                    'submittedDate': proposal.submitted_date.strftime('%Y-%m-%d'),
+                    'submitted_at': proposal.submitted_date.isoformat(),
                     'priority': 'medium',
                     'details': {
-                        'date': event.start_datetime.strftime('%Y-%m-%d') if event.start_datetime else None,
-                        'time': event.start_datetime.strftime('%H:%M') if event.start_datetime else None,
-                        'location': event.location,
-                        'expectedAttendees': getattr(event, 'max_attendees', None)
+                        'date': proposal.eventDate.strftime('%Y-%m-%d') if proposal.eventDate else (
+                            proposal.startDate.strftime('%Y-%m-%d') if proposal.startDate else None
+                        ),
+                        'startDate': proposal.startDate.strftime('%Y-%m-%d') if proposal.startDate else None,
+                        'endDate': proposal.endDate.strftime('%Y-%m-%d') if proposal.endDate else None,
+                        'duration': proposal.eventDurationDays,
+                        'location': f"{proposal.province}, {proposal.specificLocation}" if proposal.province else proposal.venue,
+                        'venue': proposal.venue,
+                        'expectedAttendees': proposal.capacity or proposal.expected_participants,
+                        'budget': str(proposal.budget) if proposal.budget else '0',
+                        'organizer': proposal.organizerName,
+                        'organizerEmail': proposal.organizerEmail,
+                        'organizerPhone': proposal.organizerPhone,
+                        'ticketPrice': str(proposal.ticketPrice) if proposal.ticketPrice else '0',
+                        'catering': proposal.catering,
+                        'sponsor': proposal.sponsor
                     }
                 })
             
-            for club in clubs:
+            # Add Club Proposals
+            club_proposals = ClubProposal.objects.select_related('submitted_by').all().order_by('-submitted_date')
+            
+            # Apply role filter
+            if role_filter:
+                club_proposals = club_proposals.filter(submitted_by__role=role_filter)
+            
+            # Apply type filter
+            if type_filter and type_filter not in ['event', 'event_proposal']:
+                if hasattr(ClubProposal, 'type'):
+                    club_proposals = club_proposals.filter(type=type_filter)
+            elif type_filter == 'event_proposal':
+                club_proposals = club_proposals.none()  # Skip club proposals if filtering for events
+            
+            # Apply status filter
+            if status_filter:
+                club_proposals = club_proposals.filter(status=status_filter)
+            
+            for proposal in club_proposals:
+                # Apply search filter
+                if search:
+                    search_fields = [
+                        proposal.name or '',
+                        proposal.description or '',
+                        proposal.mission or '',
+                        proposal.submitted_by.email if proposal.submitted_by else '',
+                        proposal.submitted_by.first_name if proposal.submitted_by else '',
+                        proposal.submitted_by.last_name if proposal.submitted_by else '',
+                    ]
+                    if not any(search in field.lower() for field in search_fields):
+                        continue
+                
                 requests.append({
-                    'id': str(club.id),
-                    'type': 'club',
-                    'title': club.name,
-                    'description': club.description,
-                    'status': club.status,
-                    'submittedBy': club.organizer.email if club.organizer else 'Unknown',
-                    'submittedDate': club.created_at.strftime('%Y-%m-%d'),
+                    'id': str(proposal.id),
+                    'type': 'club_proposal',
+                    'title': proposal.name,
+                    'description': proposal.description or proposal.mission,
+                    'status': proposal.status,
+                    'submitted_by': proposal.submitted_by.get_full_name() if proposal.submitted_by else proposal.submitted_by.email if proposal.submitted_by else 'Unknown',
+                    'submitted_by_role': proposal.submitted_by.role if proposal.submitted_by else 'unknown',
+                    'submitted_by_id': str(proposal.submitted_by.id) if proposal.submitted_by else None,
+                    'submittedBy': proposal.submitted_by.email if proposal.submitted_by else 'Unknown',
+                    'submittedDate': proposal.submitted_date.strftime('%Y-%m-%d'),
+                    'submitted_at': proposal.submitted_date.isoformat(),
                     'priority': 'high',
                     'details': {
-                        'category': club.category,
-                        'meetingTime': getattr(club, 'meeting_time', 'Not specified'),
-                        'location': club.location,
-                        'capacity': getattr(club, 'max_members', None)
+                        'clubType': proposal.club_type,
+                        'mission': proposal.mission,
+                        'objectives': proposal.objectives,
+                        'activities': proposal.activities,
+                        'presidentName': proposal.president_name,
+                        'presidentEmail': proposal.president_email,
+                        'advisorName': proposal.advisor_name,
+                        'expectedMembers': proposal.expected_members,
+                        'requirements': proposal.requirements
                     }
                 })
+            
+            # NOTE: We do NOT include published Clubs and Events in the proposals list.
+            # They create duplicates and cause issues when trying to fetch proposal details.
+            # Only show actual ClubProposal and EventProposal objects - these are the pending submissions.
+            
+            # Sort by submission date (most recent first)
+            requests.sort(key=lambda x: x['submitted_at'], reverse=True)
+            
+            # Debug logging for club proposals
+            club_reqs = [r for r in requests if r['type'] == 'club_proposal']
+            if club_reqs:
+                logger.info(f"🔵 [LIST] Returning {len(club_reqs)} club proposals")
+                for req in club_reqs[:3]:  # Log first 3
+                    logger.info(f"🔵 [LIST] Club proposal: id={req['id']} title={req['title']} status={req['status']}")
             
             return Response(requests)
             
         except Exception as e:
             logger.error(f"Admin requests error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return Response({
                 'error': True,
-                'message': 'Failed to load requests'
+                'message': f'Failed to load requests: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -303,12 +419,41 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
     def get_queryset(self):
         """
         Get request by ID for admin management.
+        Needs to return a queryset for the base class to work properly.
         """
-        return []
+        from apps.proposals.models import EventProposal, ClubProposal
+        from django.db.models import Q
+        # Return a combined queryset of proposals
+        # Note: This is used for permission verification, actual lookup happens in get_object()
+        return EventProposal.objects.all().union(ClubProposal.objects.all())
+    
+    def get_object(self):
+        """
+        Custom get_object to find proposals by ID from either model.
+        """
+        from apps.proposals.models import EventProposal, ClubProposal
+        from rest_framework.exceptions import NotFound
+        
+        request_id = self.kwargs.get('pk')
+        
+        # Try EventProposal first
+        try:
+            return EventProposal.objects.get(id=request_id)
+        except EventProposal.DoesNotExist:
+            pass
+        
+        # Try ClubProposal
+        try:
+            return ClubProposal.objects.get(id=request_id)
+        except ClubProposal.DoesNotExist:
+            pass
+        
+        # Not found in either model
+        raise NotFound(f"Request with id {request_id} not found")
     
     def update(self, request, *args, **kwargs):
         """
-        Update request status.
+        Update request status for proposals, events, and clubs.
         """
         try:
             request_id = kwargs.get('pk')
@@ -320,7 +465,175 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
                     'message': 'Status is required'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Try to update event
+            # Try to update event proposal first (most common case)
+            from apps.proposals.models import EventProposal, ClubProposal
+            try:
+                logger.info(f"🟢 [EVENT] Attempting to find EventProposal with id={request_id}")
+                event_proposal = EventProposal.objects.get(id=request_id)
+                logger.info(f"🟢 [EVENT] Found EventProposal: {event_proposal.title} (status: {event_proposal.status})")
+                event_proposal.status = new_status
+                event_proposal.reviewed_by = request.user
+                event_proposal.reviewed_date = timezone.now()
+                if request.data.get('comments'):
+                    event_proposal.review_comments = request.data.get('comments')
+                event_proposal.save()
+                
+                # Force database flush to ensure commit
+                from django.db import connection
+                connection.ensure_connection()
+                
+                logger.info(f"🟢 [EVENT] Successfully saved EventProposal with new status: {new_status}")
+                
+                # Verify immediately that the update persisted
+                refreshed = EventProposal.objects.get(id=request_id)
+                logger.info(f"🟢 [EVENT] Verification: Status in DB is now: {refreshed.status}")
+                
+                # If status is 'published', create an Event from the proposal
+                if new_status == 'published':
+                    from apps.events.models import Event
+                    from datetime import datetime, time
+                    
+                    # Determine event dates
+                    if event_proposal.eventDurationDays > 1 and event_proposal.startDate and event_proposal.endDate:
+                        start_date = event_proposal.startDate
+                        end_date = event_proposal.endDate
+                    elif event_proposal.eventDate:
+                        start_date = event_proposal.eventDate
+                        end_date = event_proposal.eventDate
+                    elif event_proposal.proposed_date:
+                        start_date = event_proposal.proposed_date
+                        end_date = event_proposal.proposed_date
+                    else:
+                        # Default to today if no date provided
+                        start_date = timezone.now().date()
+                        end_date = start_date
+                    
+                    # Convert dates to datetimes (start at 9 AM, end at 5 PM by default)
+                    start_datetime = timezone.make_aware(datetime.combine(start_date, time(9, 0)))
+                    end_datetime = timezone.make_aware(datetime.combine(end_date, time(17, 0)))
+                    
+                    # Get the event title
+                    event_title = event_proposal.title or event_proposal.eventTitle or 'Untitled Event'
+                    
+                    # Check if event already exists with same title and date (to avoid duplicates)
+                    existing_event = Event.objects.filter(
+                        title__iexact=event_title,
+                        start_datetime__date=start_date
+                    ).first()
+                    
+                    if not existing_event:
+                        # Create Event from EventProposal
+                        Event.objects.create(
+                            title=event_title,
+                            description=event_proposal.description or '',
+                            category='General',
+                            event_type='social',  # Default type, can be customized
+                            start_datetime=start_datetime,
+                            end_datetime=end_datetime,
+                            venue=', '.join(filter(None, [
+                                event_proposal.venue,
+                                event_proposal.specificLocation,
+                                event_proposal.province
+                            ])) or 'TBD',
+                            max_participants=event_proposal.expected_participants or event_proposal.capacity,
+                            is_paid=bool(event_proposal.ticketPrice and event_proposal.ticketPrice > 0),
+                            price=event_proposal.ticketPrice if event_proposal.ticketPrice else 0,
+                            status='published',
+                            created_by=event_proposal.submitted_by,
+                            requirements=f"Catering: {event_proposal.catering or 'No'}\nSponsor: {event_proposal.sponsor or 'No'}" if event_proposal.catering or event_proposal.sponsor else None,
+                        )
+                
+                # Log user action
+                log_user_action(
+                    request,
+                    'update',
+                    'EventProposal',
+                    event_proposal.id,
+                    new_values={'status': new_status}
+                )
+                
+                return Response({
+                    'success': True,
+                    'message': 'Event proposal status updated successfully' + (' and event published' if new_status == 'published' else ''),
+                    'data': {'status': new_status}
+                })
+            except EventProposal.DoesNotExist:
+                pass
+            
+            # Try to update club proposal
+            try:
+                logger.info(f"🔶 [CLUB] Attempting to find ClubProposal with id={request_id}")
+                club_proposal = ClubProposal.objects.get(id=request_id)
+                logger.info(f"🔶 [CLUB] Found ClubProposal: {club_proposal.name} (status: {club_proposal.status})")
+                
+                club_proposal.status = new_status
+                club_proposal.reviewed_by = request.user
+                club_proposal.reviewed_date = timezone.now()
+                if request.data.get('comments'):
+                    club_proposal.review_comments = request.data.get('comments')
+                club_proposal.save()
+                
+                # Force database flush to ensure commit
+                from django.db import connection
+                connection.ensure_connection()
+                
+                logger.info(f"🔶 [CLUB] Successfully saved ClubProposal with new status: {new_status}")
+                
+                # Verify immediately that the update persisted
+                refreshed = ClubProposal.objects.get(id=request_id)
+                logger.info(f"🔶 [CLUB] Verification: Status in DB is now: {refreshed.status}")
+
+                
+                # If status is 'published', create a Club from the proposal
+                if new_status == 'published':
+                    from apps.clubs.models import Club
+                    
+                    logger.info(f"🔶 [CLUB] Status is 'published', attempting to create Club...")
+                    # Check if club already exists for this proposal (to avoid duplicates)
+                    existing_club = Club.objects.filter(name__iexact=club_proposal.name).first()
+                    if not existing_club:
+                        logger.info(f"🔶 [CLUB] Creating new Club from proposal: {club_proposal.name}")
+                        # Create Club from ClubProposal
+                        Club.objects.create(
+                            name=club_proposal.name,
+                            description=club_proposal.description or '',
+                            category=club_proposal.club_type,
+                            mission_statement=club_proposal.mission or '',
+                            status='published',
+                            advisor_name=club_proposal.advisor_name or '',
+                            advisor_email=club_proposal.advisor_email or '',
+                            created_by=club_proposal.submitted_by,
+                            requirements=club_proposal.requirements or '',
+                        )
+                        logger.info(f"🔶 [CLUB] Club created successfully")
+                    else:
+                        logger.info(f"🔶 [CLUB] Club already exists, skipping creation")
+                
+                # Log user action
+                log_user_action(
+                    request,
+                    'update',
+                    'ClubProposal',
+                    club_proposal.id,
+                    new_values={'status': new_status}
+                )
+                
+                logger.info(f"🔶 [CLUB] Returning success response for ClubProposal update")
+                return Response({
+                    'success': True,
+                    'message': 'Club proposal status updated successfully' + (' and club published' if new_status == 'published' else ''),
+                    'data': {'status': new_status}
+                })
+            except ClubProposal.DoesNotExist:
+                logger.warning(f"🔶 [CLUB] ClubProposal not found with id={request_id}")
+                pass
+            except Exception as e:
+                logger.error(f"🔶 [CLUB] ERROR updating ClubProposal: {type(e).__name__}: {str(e)}")
+                import traceback
+                logger.error(f"🔶 [CLUB] Traceback: {traceback.format_exc()}")
+                pass
+            
+            # Try to update event (for published events)
             from apps.events.models import Event
             try:
                 event = Event.objects.get(id=request_id)
@@ -338,13 +651,13 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
                 
                 return Response({
                     'success': True,
-                    'message': 'Request status updated successfully',
+                    'message': 'Event status updated successfully',
                     'data': {'status': new_status}
                 })
             except Event.DoesNotExist:
                 pass
             
-            # Try to update club
+            # Try to update club (for published clubs)
             from apps.clubs.models import Club
             try:
                 club = Club.objects.get(id=request_id)
@@ -362,7 +675,7 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
                 
                 return Response({
                     'success': True,
-                    'message': 'Request status updated successfully',
+                    'message': 'Club status updated successfully',
                     'data': {'status': new_status}
                 })
             except Club.DoesNotExist:
@@ -375,9 +688,11 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
             
         except Exception as e:
             logger.error(f"Request update error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return Response({
                 'error': True,
-                'message': 'Failed to update request'
+                'message': f'Failed to update request: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
