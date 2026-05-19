@@ -40,10 +40,11 @@ class AIAdviceCreateSerializer(serializers.Serializer):
 class ChatMessageSerializer(serializers.Serializer):
     message = serializers.CharField()
     mode = serializers.ChoiceField(
-        choices=['general', 'event', 'club', 'budget', 'policy'],
+        choices=['general', 'event', 'club', 'budget', 'policy', 'content'],
         default='general',
     )
     session_id = serializers.CharField(required=False, allow_blank=True)
+    context = serializers.DictField(required=False, default=dict)
 
 
 class ChatHistoryClearSerializer(serializers.Serializer):

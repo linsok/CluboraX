@@ -9,6 +9,7 @@ from .views import (
     AIAdviceListView,
     AIAdviceDetailView,
     AIAdviceFeedbackView,
+    AIAdvisorStatsView,
 )
 
 urlpatterns = [
@@ -18,6 +19,7 @@ urlpatterns = [
     path('analyze-club/', AnalyzeClubView.as_view(), name='ai-analyze-club'),
     path('suggest/', SuggestView.as_view(), name='ai-suggest'),
     path('check-compliance/', ComplianceCheckView.as_view(), name='ai-check-compliance'),
+    path('stats/', AIAdvisorStatsView.as_view(), name='ai-stats'),
     path('advices/', AIAdviceListView.as_view(), name='ai-advice-list'),
     path('advices/<uuid:pk>/', AIAdviceDetailView.as_view(), name='ai-advice-detail'),
     path('advices/<uuid:pk>/feedback/', AIAdviceFeedbackView.as_view(), name='ai-advice-feedback'),
