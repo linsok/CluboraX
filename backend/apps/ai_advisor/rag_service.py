@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import threading
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -37,6 +38,41 @@ class RAGChatService:
     _device = None
 
     _ollama = None
+
+    _ANSWER_PREFIX_RE = re.compile(r'^\s*(?:A|Answer)\s*:\s*', re.IGNORECASE)
+    _ANSWER_MARKER_RE = re.compile(r'(?:^|\n)\s*(?:A|Answer)\s*:\s*', re.IGNORECASE)
+    _NEXT_QUESTION_RE = re.compile(r'(?im)^\s*Q\s*\d+\.|^\s*Q\d+\.|^\s*Q\s*:|^\s*Q:')
+
+    @classmethod
+    def _clean_answer_text(cls, text: str) -> str:
+        if not text:
+            return ''
+        cleaned = text.strip()
+        cleaned = cls._ANSWER_PREFIX_RE.sub('', cleaned)
+        return cleaned.strip()
+
+    @classmethod
+    def _extract_first_answer_block(cls, doc: str) -> str:
+        """Extract the first answer block from a Q&A chunk.
+
+        Many of our embedded chunks contain multiple Q/A pairs. We want the response
+        to include only the first answer (after the first A:/Answer: marker) and not
+        leak subsequent Q2/Q3 blocks (which may contain additional `A:` markers).
+        """
+        if not doc:
+            return ''
+
+        m = cls._ANSWER_MARKER_RE.search(doc)
+        if m:
+            answer = doc[m.end():]
+        else:
+            answer = doc
+
+        next_q = cls._NEXT_QUESTION_RE.search(answer)
+        if next_q:
+            answer = answer[:next_q.start()]
+
+        return cls._clean_answer_text(answer)
 
     def __init__(self):
         self.available = False
@@ -239,14 +275,15 @@ class RAGChatService:
 
             # Tier 1: direct retrieval
             if distance < threshold_high:
-                answer = top_doc.split('\n', 1)[-1] if '\n' in top_doc else top_doc
-                answer = answer.lstrip('A:').strip()
+                # Extract just the first answer block (avoid returning multiple Q/A pairs)
+                answer = self.__class__._extract_first_answer_block(top_doc or '')
                 return RAGResult(answer=answer, kind='retrieved', distance=distance, contexts=docs)
 
             # Tier 2: LLM fallback with contexts
             if distance < threshold_medium and use_ollama and self.__class__._ollama is not None:
                 generated = self._ollama_generate(query, docs[:3])
                 if generated:
+                    generated = self.__class__._clean_answer_text(generated)
                     return RAGResult(answer=generated, kind='generated', distance=distance, contexts=docs)
 
             # Tier 3: refuse if low confidence

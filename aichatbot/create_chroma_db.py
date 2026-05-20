@@ -7,7 +7,8 @@ from chromadb.utils import embedding_functions
 embedding_files = [
     "aichatbot/Event_QA_emb.json",
     "aichatbot/Club_QA_emb.json",
-    "aichatbot/Others_QA_emb.json"
+    "aichatbot/Others_QA_emb.json",
+    "aichatbot/Rules_QA_emb.json"
 ]
 
 # Create or load a Chroma DB collection with persistent storage
