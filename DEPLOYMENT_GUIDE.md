@@ -527,7 +527,7 @@ CACHES = {
 
 ---
 
-## 📋 Deployment Checklist
+## - Deployment Checklist
 
 Before going live:
 - [ ] All tests passing

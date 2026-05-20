@@ -10,6 +10,7 @@ import { getUnreadNotifications } from '../api/notifications'
 export const usePushNotifications = (enabled = true) => {
   const seenNotificationsRef = useRef(new Set())
   const pollingIntervalRef = useRef(null)
+  const isFirstFetchRef = useRef(true)
 
   useEffect(() => {
     if (!enabled) return
@@ -28,25 +29,29 @@ export const usePushNotifications = (enabled = true) => {
           if (!seenNotificationsRef.current.has(notifId)) {
             seenNotificationsRef.current.add(notifId)
 
+            // Skip showing toasts on the very first fetch after page load/mount
+            // This prevents old unread notifications from popping up every time the user refreshes
+            if (isFirstFetchRef.current) return
+
             // Determine toast style based on priority/type
             const getToastStyle = () => {
               if (notif.priority === 'high') {
                 return {
                   background: '#fee2e2',
                   border: '1px solid #fecaca',
-                  icon: '🔴'
+                  icon: ''
                 }
               } else if (notif.priority === 'medium') {
                 return {
                   background: '#fef3c7',
                   border: '1px solid #fcd34d',
-                  icon: '🟡'
+                  icon: ''
                 }
               } else {
                 return {
                   background: '#f0fdf4',
                   border: '1px solid #bbf7d0',
-                  icon: '🟢'
+                  icon: ''
                 }
               }
             }
@@ -77,7 +82,7 @@ export const usePushNotifications = (enabled = true) => {
                               rel="noopener noreferrer"
                               className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block"
                             >
-                              View Details →
+                              View Details 
                             </a>
                           )}
                         </div>
@@ -88,7 +93,7 @@ export const usePushNotifications = (enabled = true) => {
                       className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-lg leading-none"
                       aria-label="Close notification"
                     >
-                      ✕
+                      
                     </button>
                   </div>
                 </div>
@@ -107,6 +112,11 @@ export const usePushNotifications = (enabled = true) => {
             )
           }
         })
+
+        // After the first successful fetch, allow subsequent ones to show toasts
+        if (isFirstFetchRef.current) {
+          isFirstFetchRef.current = false
+        }
       } catch (error) {
         console.error('Error polling for push notifications:', error)
       }

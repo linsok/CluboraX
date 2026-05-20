@@ -48,6 +48,7 @@ import {
   TagIcon
 } from '@heroicons/react/24/outline'
 import { getDashboardStats, getRecentActivities, getUserCourses, getMyEventRegistrations, getMyClubMemberships } from '../api/dashboard'
+import { verifyPayment as adminVerifyPayment } from '../api/admin'
 import { getUserAchievements, getUserCertificates } from '../api/courses'
 import { getEventRegistrations } from '../api/events'
 import { getClubMembers, updateMembershipStatus, leaveClub } from '../api/clubs'
@@ -321,7 +322,7 @@ const ProposalCard = ({ proposal, queryClient, getStatusColor, getStatusIcon, ge
                       status === 'needs_revision' ? 'bg-yellow-500 text-white' :
                       'bg-gray-200 text-gray-500'
                     }`}>
-                      {status === 'completed' ? '✓' : stage.num}
+                      {status === 'completed' ? '' : stage.num}
                     </div>
                     <div className="text-[10px] text-gray-600 mt-1 text-center font-medium">
                       {stage.label}
@@ -1257,10 +1258,26 @@ const CreateEventModal = React.memo(({
   const [aiEvalProgress, setAiEvalProgress] = React.useState(0)
   const [aiEvalDone, setAiEvalDone] = React.useState(false)
   const [paymentProof, setPaymentProof] = React.useState(null)
+  const [eventPosterPreview, setEventPosterPreview] = React.useState(null)
 
   const isPaidEvent = Number(eventForm.price) > 0
   const platformFee = calculatePlatformFee()
   const totalRevenue = Number(eventForm.price) * Number(eventForm.maxAttendees)
+
+  // Fetch Telegram Connect Link for organizers
+  const { data: telegramLinkData } = useQuery({
+    queryKey: ['telegram-connect-link'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/api/notifications/telegram/connect-link/')
+        return res.data
+      } catch (err) {
+        console.error('Failed to get Telegram link', err)
+        return null
+      }
+    },
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  })
 
   // Progress bar steps — 4 steps: form, payment, AI eval, submit
   const STEPS = isPaidEvent ? ['Event Details', 'Payment', 'AI Evaluation', 'Submit'] : ['Event Details', 'AI Evaluation', 'Submit']
@@ -1273,6 +1290,7 @@ const CreateEventModal = React.memo(({
     setAiEvalProgress(0)
     setAiEvalDone(false)
     setPaymentProof(null)
+    setEventPosterPreview(null)
   }, [setShowCreateEventModal])
 
   const triggerAiEval = React.useCallback(() => {
@@ -1358,7 +1376,11 @@ const CreateEventModal = React.memo(({
       agenda: eventForm.agenda || '',
       special_requirements: eventForm.requirements || '',
       requirements: eventForm.requirements || '',
-      status: 'pending_review',
+      status: isPaidEvent ? 'pending_payment' : 'pending_review',
+      payment_status: isPaidEvent ? 'pending' : 'not_required',
+      platform_fee_receipt: paymentProof,
+      event_poster: eventForm.posterImage,
+      agenda_pdf: eventForm.agendaPdf,
     }
     
     try {
@@ -1380,7 +1402,7 @@ const CreateEventModal = React.memo(({
         : user?.name || 'Event Organizer',
       requirements: '', tags: []
     })
-  }, [eventForm, calculatePlatformFee, setEventForm, user, queryClient])
+  }, [eventForm, calculatePlatformFee, setEventForm, user, queryClient, paymentProof, isPaidEvent])
 
   return (
     <motion.div
@@ -1415,7 +1437,7 @@ const CreateEventModal = React.memo(({
               <React.Fragment key={label}>
                 <div className="flex flex-col items-center">
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i < currentStepIdx ? 'bg-green-400 text-white' : i === currentStepIdx ? 'bg-white text-purple-700' : 'bg-white/20 text-white/60'}`}>
-                    {i < currentStepIdx ? '✓' : i + 1}
+                    {i < currentStepIdx ? '' : i + 1}
                   </div>
                   <span className={`text-xs mt-1 hidden sm:block ${i === currentStepIdx ? 'text-white font-semibold' : 'text-white/60'}`}>{label}</span>
                 </div>
@@ -1616,7 +1638,7 @@ const CreateEventModal = React.memo(({
               <div className="flex items-center space-x-4">
                 <button onClick={closeCreateEventModal} className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium hover:bg-gray-100 rounded-lg transition-all">Cancel</button>
                 <button onClick={handleCreateEvent} className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 font-medium transition-all flex items-center gap-2">
-                  {isPaidEvent ? 'Next: Payment →' : 'Next: AI Evaluation →'}
+                  {isPaidEvent ? 'Next: Payment ' : 'Next: AI Evaluation '}
                 </button>
               </div>
             </div>
@@ -1674,24 +1696,32 @@ const CreateEventModal = React.memo(({
                   </svg>
                   How to Pay Platform Fee
                 </h4>
-                <ol className="space-y-2 text-sm text-blue-900">
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold min-w-[20px]">1.</span>
-                    <span>Transfer <strong className="text-red-600">${platformFee.toFixed(2)}</strong> to our payment account</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold min-w-[20px]">2.</span>
-                    <span>Take a screenshot or photo of your payment confirmation</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold min-w-[20px]">3.</span>
-                    <span>Upload the payment proof below</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold min-w-[20px]">4.</span>
-                    <span>Click "Continue to AI Evaluation" to proceed</span>
-                  </li>
-                </ol>
+                <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
+                  <ol className="space-y-3 text-sm text-blue-900 flex-1 mt-1">
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold min-w-[20px]">1.</span>
+                      <span>Scan the QR code or transfer <strong className="text-red-600">${platformFee.toFixed(2)}</strong> to our payment account</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold min-w-[20px]">2.</span>
+                      <span>Take a screenshot or photo of your payment confirmation</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold min-w-[20px]">3.</span>
+                      <span>Upload the payment proof below</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold min-w-[20px]">4.</span>
+                      <span>Click "Continue to AI Evaluation" to proceed</span>
+                    </li>
+                  </ol>
+                  <div className="bg-white p-3 rounded-xl border border-blue-200 shadow-sm flex flex-col items-center shrink-0">
+                    <div className="w-32 h-32 bg-white flex items-center justify-center mb-2">
+                      <QRCode value="ABA_PAY_ADMIN_PLATFORM_FEE_123456789" size={128} level="H" />
+                    </div>
+                    <span className="text-xs font-bold text-gray-700 tracking-wide uppercase">Scan to Pay</span>
+                  </div>
+                </div>
               </div>
 
               {/* Payment Proof Upload */}
@@ -1736,6 +1766,33 @@ const CreateEventModal = React.memo(({
                     </label>
                   </div>
                 )}
+                
+                {paymentProof && telegramLinkData?.connect_url && (
+                  <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                    <div className="bg-blue-100 p-2 rounded-full shrink-0">
+                      <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-blue-900 text-sm mb-1">Get Approval Notifications Instantly</h5>
+                      <p className="text-sm text-blue-800 mb-2">
+                        Connect to our Telegram bot to receive an immediate notification when the admin approves or rejects this event proposal.
+                      </p>
+                      <a 
+                        href={telegramLinkData.connect_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#0088cc] text-white text-sm font-bold rounded hover:bg-[#0077b3] transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+                        </svg>
+                        Join Telegram Bot
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1745,14 +1802,14 @@ const CreateEventModal = React.memo(({
                 onClick={() => setCreateEventStep('form')}
                 className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium hover:bg-gray-100 rounded-lg transition-all"
               >
-                ← Back to Form
+                 Back to Form
               </button>
               <button
                 onClick={handleProceedToAiEval}
                 disabled={!paymentProof}
                 className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Continue to AI Evaluation →
+                Continue to AI Evaluation 
               </button>
             </div>
           </div>
@@ -1779,7 +1836,7 @@ const CreateEventModal = React.memo(({
                   <div key={i} className="flex items-start gap-3">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-500 ${i < aiEvalProgress ? 'bg-green-100' : 'bg-gray-100'}`}>
                       {i < aiEvalProgress
-                        ? <span className="text-green-600 text-xs font-bold">✓</span>
+                        ? <span className="text-green-600 text-xs font-bold"></span>
                         : i === aiEvalProgress
                           ? <div className="w-3 h-3 bg-indigo-500 rounded-full animate-pulse" />
                           : <div className="w-3 h-3 bg-gray-300 rounded-full" />}
@@ -1848,7 +1905,7 @@ const CreateEventModal = React.memo(({
             </div>
             <div className="text-center">
               <button onClick={closeCreateEventModal} className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all">
-                View My Events →
+                View My Events 
               </button>
             </div>
           </div>
@@ -1867,7 +1924,7 @@ const Dashboard = () => {
   const [highlightedCardId, setHighlightedCardId] = useState(null)
   
   // Debug: Log current user
-  console.log('👤 Current User:', user?.email, '| Role:', user?.role, '| ID:', user?.id)
+  console.log(' Current User:', user?.email, '| Role:', user?.role, '| ID:', user?.id)
   const isOrganizer = user?.role === 'organizer'
   
   // Handle URL tab parameter and highlight parameter
@@ -2045,9 +2102,9 @@ const Dashboard = () => {
   const { data: clubProposals = [], isLoading: loadingClubProposals, error: clubProposalsError } = useQuery({
     queryKey: ['my-club-proposals'],
     queryFn: async () => {
-      console.log('🔍 Fetching club proposals for user:', user?.email)
+      console.log(' Fetching club proposals for user:', user?.email)
       const data = await getClubProposals()
-      console.log('📊 Club proposals received:', data)
+      console.log(' Club proposals received:', data)
       // Handle paginated response format
       const proposals = data?.results || data
       return Array.isArray(proposals) ? proposals : []
@@ -2056,7 +2113,7 @@ const Dashboard = () => {
     enabled: !!user,
     staleTime: 30 * 1000, // Cache for 30 seconds
     onError: (error) => {
-      console.error('❌ Failed to fetch club proposals:', error)
+      console.error(' Failed to fetch club proposals:', error)
     }
   })
   
@@ -2065,8 +2122,8 @@ const Dashboard = () => {
   const safeClubProposals = Array.isArray(clubProposals) ? clubProposals : []
   
   // Debug logging
-  console.log('📋 Safe Event Proposals:', safeEventProposals.length, safeEventProposals)
-  console.log('📋 Safe Club Proposals:', safeClubProposals.length, safeClubProposals)
+  console.log(' Safe Event Proposals:', safeEventProposals.length, safeEventProposals)
+  console.log(' Safe Club Proposals:', safeClubProposals.length, safeClubProposals)
   
   // Filter published content (approved proposals that are now live)
   const publishedEvents = safeEventProposals.filter(p => p.status === 'published')
@@ -2079,7 +2136,7 @@ const Dashboard = () => {
     ...safeClubProposals.map(p => ({ ...p, type: 'club' }))
   ]
   
-  console.log('🎯 All Proposals Combined:', allProposals.length, allProposals)
+  console.log(' All Proposals Combined:', allProposals.length, allProposals)
   
   // Filter proposals based on active tab
   // Map student-friendly tab IDs to actual backend status values
@@ -2261,6 +2318,8 @@ const Dashboard = () => {
       case 'pending':
       case 'pending_review':
         return 'bg-yellow-100 text-yellow-800'
+      case 'pending_payment':
+        return 'bg-blue-100 text-blue-800'
       case 'under_review':
         return 'bg-blue-100 text-blue-800'
       case 'approved':
@@ -2285,6 +2344,8 @@ const Dashboard = () => {
     switch (status) {
       case 'pending_review':
         return 'Pending'
+      case 'pending_payment':
+        return 'Pending Payment'
       case 'returned_for_revision':
         return 'Pending' // Show as Pending when student resubmits
       case 'approved':
@@ -2294,7 +2355,7 @@ const Dashboard = () => {
       case 'rejected':
         return 'Rejected'
       default:
-        return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'
+        return status ? status.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Unknown'
     }
   }
 
@@ -2308,6 +2369,7 @@ const Dashboard = () => {
         return <XCircleIcon className="w-5 h-5" />
       case 'pending':
       case 'pending_review':
+      case 'pending_payment':
       case 'returned_for_revision':
       case 'under_review':
         return <ClockIcon className="w-5 h-5" />
@@ -3196,11 +3258,22 @@ const Dashboard = () => {
     const confirmedCount = Object.values(paymentStatuses).filter(s => s === 'confirmed').length
     const totalCollected = confirmedCount * (selectedEventForRegistrations?.price || 0)
 
-    const confirmPayment = (reg) => {
+    const confirmPayment = async (reg) => {
+      try {
+        // Call admin API to mark payment as confirmed
+        await adminVerifyPayment(reg.id, 'approve', 'Confirmed by organizer')
+      } catch (err) {
+        console.error('confirmPayment API error', err)
+      }
       setPaymentStatuses(prev => ({ ...prev, [reg.id]: 'confirmed' }))
       toast.success(`Payment confirmed for ${reg.name}`)
     }
-    const rejectPayment = (reg) => {
+    const rejectPayment = async (reg) => {
+      try {
+        await adminVerifyPayment(reg.id, 'reject', 'Rejected by organizer')
+      } catch (err) {
+        console.error('rejectPayment API error', err)
+      }
       setPaymentStatuses(prev => ({ ...prev, [reg.id]: 'rejected' }))
       toast.error(`Payment rejected for ${reg.name} — student will be notified`)
     }
@@ -4466,17 +4539,17 @@ const Dashboard = () => {
                 <div className="flex flex-wrap gap-3">
                   {club?.instagram && (
                     <a href={`https://instagram.com/${club.instagram}`} target="_blank" rel="noopener noreferrer" className="text-pink-600 hover:text-pink-800 text-sm font-medium">
-                      📷 {club.instagram}
+                       {club.instagram}
                     </a>
                   )}
                   {club?.linkedin && (
                     <a href={`https://linkedin.com/company/${club.linkedin}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                      💼 {club.linkedin}
+                       {club.linkedin}
                     </a>
                   )}
                   {club?.github && (
                     <a href={`https://github.com/${club.github}`} target="_blank" rel="noopener noreferrer" className="text-gray-800 hover:text-gray-900 text-sm font-medium">
-                      🐙 {club.github}
+                       {club.github}
                     </a>
                   )}
                 </div>

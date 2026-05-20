@@ -254,6 +254,9 @@ QR_CODE_EXPIRY_HOURS = config('QR_CODE_EXPIRY_HOURS', default=2, cast=int)
 KHQR_API_URL = config('KHQR_API_URL', default='https://api.bakong.gov.kh/v1/')
 KHQR_API_KEY = config('KHQR_API_KEY', default='')
 
+# Telegram Settings
+TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
+
 # AI Settings
 AI_MODEL_PATH = config('AI_MODEL_PATH', default='models/')
 

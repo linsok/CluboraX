@@ -19,7 +19,8 @@ urlpatterns = [
     # Request Management
     path('requests/', views.AdminRequestListView.as_view(), name='request_list'),
     path('requests/<int:pk>/', views.AdminRequestDetailView.as_view(), name='request_detail'),
-    
+    path('requests/<int:pk>/verify-payment/', views.AdminVerifyPaymentView.as_view(), name='verify_payment'),
+
     # Admin activities
     path('activities/', views.AdminActivityListView.as_view(), name='activity_list'),
     

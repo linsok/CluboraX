@@ -37,6 +37,6 @@ if user:
     print(f'\n✅ Check the Notifications page - should see toast appear in 5 seconds!')
 else:
     print(f'❌ User not found: cchhounpiseth@gmail.com')
-    print(f'\n📋 Available users:')
+    print(f'\n- Available users:')
     for u in User.objects.all()[:10]:
         print(f'   - {u.email}')

@@ -31,6 +31,7 @@ class User(AbstractUser):
     otp_code = models.CharField(max_length=6, blank=True, null=True)
     otp_expires_at = models.DateTimeField(blank=True, null=True)
     last_login_ip = models.GenericIPAddressField(blank=True, null=True)
+    telegram_chat_id = models.CharField(max_length=50, blank=True, null=True, help_text="Telegram chat ID for notifications")
     
     objects = UserManager()
     

@@ -34,9 +34,9 @@ function testToastDisplay() {
   // This requires react-hot-toast to be available globally
   if (window.toast) {
     window.toast.custom(
-      <div style={{ 
-        padding: '16px', 
-        background: '#4CAF50', 
+      <div style={{
+        padding: '16px',
+        background: '#4CAF50',
         color: 'white',
         borderRadius: '8px'
       }}>
@@ -65,15 +65,15 @@ function testMonitorAPIcalls() {
   console.log("📊 Monitoring API calls for 10 seconds...");
   const originalFetch = window.fetch;
   let callCount = 0;
-  
-  window.fetch = function(...args) {
+
+  window.fetch = function (...args) {
     if (args[0].includes('/api/')) {
       callCount++;
       console.log(`[${callCount}] API Call: ${args[0]}`);
     }
     return originalFetch.apply(this, args);
   };
-  
+
   setTimeout(() => {
     window.fetch = originalFetch;
     console.log(`✅ Monitoring complete. Total API calls: ${callCount}`);
@@ -109,7 +109,7 @@ async function testCreateEvent() {
       capacity: 5,
       status: 'approved'
     };
-    
+
     const response = await fetch('http://localhost:8888/api/events/', {
       method: 'POST',
       headers: {
@@ -118,7 +118,7 @@ async function testCreateEvent() {
       },
       body: JSON.stringify(eventData)
     });
-    
+
     if (response.ok) {
       const event = await response.json();
       console.log("✅ Event created:", event);
@@ -143,7 +143,7 @@ async function testRegisterEvent(eventId) {
       },
       body: JSON.stringify({})
     });
-    
+
     if (response.ok) {
       console.log("✅ Registration successful");
       console.log("📬 Check for notification in 5 seconds...");
@@ -168,7 +168,7 @@ async function testMarkAsRead(notificationId) {
       },
       body: JSON.stringify({ is_read: true })
     });
-    
+
     if (response.ok) {
       console.log("✅ Notification marked as read");
     } else {
@@ -189,7 +189,7 @@ async function testDeleteNotification(notificationId) {
         'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`
       }
     });
-    
+
     if (response.ok || response.status === 204) {
       console.log("✅ Notification deleted");
     } else {
@@ -205,32 +205,32 @@ async function testDeleteNotification(notificationId) {
 // Sequence 1: Full notification flow test
 async function quickTestSequence() {
   console.log("\n🚀 Starting quick test sequence...\n");
-  
+
   // Step 1: Check auth
   console.log("Step 1: Checking authentication...");
   const user = await testAuthStatus();
   if (!user) return;
-  
+
   // Step 2: Fetch current notifications
   console.log("\nStep 2: Fetching current notifications...");
   const notifs = await testFetchNotifications();
-  
+
   // Step 3: Create event
   console.log("\nStep 3: Creating test event...");
   // const event = await testCreateEvent();
   // if (!event) return;
-  
+
   // Step 4: Register for event
   // console.log("\nStep 4: Registering for event...");
   // await testRegisterEvent(event.id);
-  
+
   // Step 5: Wait and check notifications
   console.log("\nStep 5: Waiting 8 seconds for notification...");
   await new Promise(resolve => setTimeout(resolve, 8000));
-  
+
   console.log("\nStep 6: Checking for new notifications...");
   await testFetchNotifications();
-  
+
   console.log("\n✅ Test sequence complete!");
 }
 
@@ -276,14 +276,14 @@ QUICK TESTS - Copy & paste one line at a time into console:
 function debugNotificationRequests() {
   console.log("🔍 Logging all API requests containing 'notification'...");
   const originalFetch = window.fetch;
-  
-  window.fetch = function(url, options) {
+
+  window.fetch = function (url, options) {
     if (url.includes('notification')) {
       console.log(`[API] ${new Date().toLocaleTimeString()} - ${url}`);
     }
     return originalFetch.apply(this, arguments);
   };
-  
+
   console.log("✅ Monitoring enabled. All notification API calls will be logged.");
 }
 
@@ -310,7 +310,7 @@ console.log(`
 ║        NOTIFICATION TESTING CONSOLE - Ready to test!          ║
 ╚═══════════════════════════════════════════════════════════════╝
 
-📋 Quick Commands:
+- Quick Commands:
   • testAuthStatus() - Check if logged in
   • testFetchNotifications() - Get all unread notifications
   • testPollingStatus() - Check if polling is running

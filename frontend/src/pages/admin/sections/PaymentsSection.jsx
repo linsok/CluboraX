@@ -219,13 +219,34 @@ const PaymentsSection = ({ feeSubmissions = [], feeLoading, confirmFeePayment, r
               <div className="flex flex-col items-center justify-center bg-gray-700 rounded-xl p-8 gap-3">
                 <DocumentTextIcon className="w-16 h-16 text-gray-400" />
                 <p className="text-sm text-gray-400">PDF receipt uploaded by organizer</p>
-                <button className="text-xs text-blue-400 underline">Download PDF</button>
+                {selectedFeeProof.proofUrl ? (
+                  <a 
+                    href={selectedFeeProof.proofUrl.startsWith('http') ? selectedFeeProof.proofUrl : `http://localhost:8888${selectedFeeProof.proofUrl}`}
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="text-sm text-blue-400 hover:text-blue-300 underline font-semibold mt-2"
+                  >
+                    View / Download PDF
+                  </a>
+                ) : (
+                  <p className="text-xs text-gray-500">No PDF path available</p>
+                )}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center bg-gray-700 rounded-xl p-8 gap-3">
-                <PhotoIcon className="w-16 h-16 text-gray-400" />
-                <p className="text-sm text-gray-400">Payment screenshot uploaded by organizer</p>
-                <p className="text-xs text-gray-500">(Image preview requires backend integration)</p>
+              <div className="flex flex-col items-center justify-center bg-gray-700 rounded-xl p-4 gap-3">
+                {selectedFeeProof.proofUrl ? (
+                  <img 
+                    src={selectedFeeProof.proofUrl.startsWith('http') ? selectedFeeProof.proofUrl : `http://localhost:8888${selectedFeeProof.proofUrl}`}
+                    alt="Payment receipt proof" 
+                    className="max-h-96 w-auto object-contain rounded-lg border border-gray-600 shadow-lg" 
+                  />
+                ) : (
+                  <>
+                    <PhotoIcon className="w-16 h-16 text-gray-400" />
+                    <p className="text-sm text-gray-400">Payment screenshot uploaded by organizer</p>
+                    <p className="text-xs text-gray-500">(No screenshot image URL available)</p>
+                  </>
+                )}
               </div>
             )}
             <div className="flex gap-3 mt-5">

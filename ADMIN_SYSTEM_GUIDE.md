@@ -17,7 +17,7 @@ The Campus Hub Admin System provides comprehensive administrative control over t
 - **Activity Tracking**: Monitor user login, actions, and behavior
 - **Session Management**: Track active user sessions
 
-### 📋 Proposal Management
+### - Proposal Management
 - **Multi-Type Proposals**: Clubs, Events, Projects, Funding, Complaints, Suggestions
 - **Priority Levels**: Low, Medium, High, Urgent
 - **Status Tracking**: Pending, Under Review, Approved, Rejected, Implemented, Cancelled

@@ -570,7 +570,7 @@ const Gallery = () => {
                                 {album.images?.length || 0} photos
                               </span>
                               <button className="text-purple-600 hover:text-purple-700 font-medium">
-                                View →
+                                View 
                               </button>
                             </div>
                           </div>

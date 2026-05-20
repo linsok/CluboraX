@@ -20,7 +20,7 @@ docker-compose up -d
 # Admin Panel: http://localhost:8000/admin/
 ```
 
-## 📋 Features
+## - Features
 
 ### ✅ Core Features (Implemented)
 - **User Management**: Role-based access control (Students, Organizers, Approvers, Admins)

@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 
 
 import { motion, AnimatePresence } from 'framer-motion'
@@ -8,12 +8,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 
 import { useNavigate } from 'react-router-dom'
+import { verifyPayment } from '../api/admin'
 
 
 import FloatingChatbot from '../components/FloatingChatbot'
 
 
-import { 
+import {
 
 
   CalendarIcon,
@@ -145,7 +146,7 @@ const FallbackQRCode = ({ value, size = 200 }) => {
   return (
 
 
-    <div 
+    <div
 
 
       className="bg-gray-100 border-2 border-gray-300 rounded-lg flex items-center justify-center"
@@ -172,13 +173,10 @@ const FallbackQRCode = ({ value, size = 200 }) => {
               key={i}
 
 
-              className={`w-2 h-2 ${
+              className={`w-2 h-2 ${Math.random() > 0.5 ? 'bg-black' : 'bg-white'
 
 
-                Math.random() > 0.5 ? 'bg-black' : 'bg-white'
-
-
-              }`}
+                }`}
 
 
             />
@@ -313,13 +311,10 @@ const StableRegistrationForm = React.memo(({ registrationData, onChange, onSubmi
             autoComplete="off"
 
 
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${emailError ? 'border-red-400' : 'border-gray-300'
 
 
-              emailError ? 'border-red-400' : 'border-gray-300'
-
-
-            }`}
+              }`}
 
 
             placeholder="Enter your email"
@@ -550,7 +545,7 @@ const StableRegistrationForm = React.memo(({ registrationData, onChange, onSubmi
         >
 
 
-          Complete Registration
+          {selectedEvent.price > 0 ? 'Next: Payment' : 'Complete Registration'}
 
 
         </button>
@@ -721,1702 +716,9 @@ const CHECKLIST_DELAYS = [0, 0.5, 1.0, 1.5]
 
 
 
-const PaymentModal = React.memo(({
 
 
-  show, step, selectedEvent, paymentProof, paymentProofPreview,
 
-
-  rejectionReason, abaTransactionId, onProofUpload, onSubmitProof, onReupload, onClose,
-
-
-  onProceedToUpload, onStartAbaQr, onSimulateApprove, onSimulateReject
-
-
-}) => {
-
-
-  const [timeLeft, setTimeLeft] = React.useState(10 * 60)
-
-
-  const [pollCount, setPollCount] = React.useState(0)
-
-
-  const [pollStatus, setPollStatus] = React.useState('pending') // 'pending'|'checking'
-
-
-
-
-
-  // ”” Countdown timer (info step) ””””””””””””””””””””””””””””””””””
-
-
-  React.useEffect(() => {
-
-
-    if (!show || step !== 'info') return
-
-
-    setTimeLeft(10 * 60)
-
-
-    const timer = setInterval(() => {
-
-
-      setTimeLeft(prev => {
-
-
-        if (prev <= 1) { clearInterval(timer); return 0 }
-
-
-        return prev - 1
-
-
-      })
-
-
-    }, 1000)
-
-
-    return () => clearInterval(timer)
-
-
-  }, [show, step])
-
-
-
-
-
-  // ”” Polling loop (qr_scanning step) ””””””””””””””””””””””””””””””
-
-
-  // When connected to a real backend, replace the simulate block below with:
-
-
-  //   const res = await fetch(`/api/payments/status/${abaTransactionId}/`)
-
-
-  //   const data = await res.json()
-
-
-  //   if (data.status === 'paid')   { onSimulateApprove() }
-
-
-  //   if (data.status === 'failed') { onSimulateReject()  }
-
-
-  React.useEffect(() => {
-
-
-    if (!show || step !== 'qr_scanning' || !abaTransactionId) return
-
-
-    setPollCount(0)
-
-
-    setPollStatus('pending')
-
-
-    const interval = setInterval(() => {
-
-
-      setPollStatus('checking')
-
-
-      setPollCount(prev => prev + 1)
-
-
-      setTimeout(() => setPollStatus('pending'), 600)
-
-
-      // DEMO AUTO-COMPLETE after ~12 s (4 polls Ã— 3 s) ” remove in production
-
-
-      // In production this setInterval just polls and only resolves via webhook/DB
-
-
-    }, 3000)
-
-
-    return () => clearInterval(interval)
-
-
-  }, [show, step, abaTransactionId])
-
-
-
-
-
-  const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0')
-
-
-  const secs = String(timeLeft % 60).padStart(2, '0')
-
-
-  const isExpired = timeLeft === 0
-
-
-  const amount = selectedEvent?.price || 0
-
-
-
-
-
-  if (!show || !selectedEvent) return null
-
-
-
-
-
-  return (
-
-
-    <AnimatePresence>
-
-
-      {show && (
-
-
-        <div className="fixed inset-0 z-[55] overflow-y-auto">
-
-
-          <div className="flex min-h-full items-center justify-center p-4">
-
-
-            <motion.div
-
-
-              initial={{ opacity: 0 }}
-
-
-              animate={{ opacity: 1 }}
-
-
-              exit={{ opacity: 0 }}
-
-
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm"
-
-
-              onClick={onClose}
-
-
-            />
-
-
-            <motion.div
-
-
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-
-
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-
-
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-
-
-              onClick={e => e.stopPropagation()}
-
-
-              className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
-
-
-            >
-
-
-
-
-
-              {/* ••••••••••••••• STEP: info ••••••••••••••• */}
-
-
-              {step === 'info' && (
-
-
-                <>
-
-
-                  <div className="bg-gradient-to-r from-red-700 to-red-500 p-6 text-white">
-
-
-                    <div className="flex items-center justify-between mb-3">
-
-
-                      <div className="flex items-center gap-3">
-
-
-                        <div className="bg-white text-red-700 text-sm font-extrabold px-2.5 py-1 rounded-lg tracking-wide">ABA</div>
-
-
-                        <div>
-
-
-                          <h2 className="text-xl font-bold">ABA PayWay</h2>
-
-
-                          <p className="text-red-100 text-sm mt-0.5 truncate max-w-xs">{selectedEvent.title}</p>
-
-
-                        </div>
-
-
-                      </div>
-
-
-                      <button onClick={onClose} className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
-
-
-                        <XMarkIcon className="w-5 h-5" />
-
-
-                      </button>
-
-
-                    </div>
-
-
-                    {/* Countdown timer */}
-
-
-                    <div className={`flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg ${isExpired ? 'bg-red-900/40 text-red-200' : 'bg-white/15 text-red-100'}`}>
-
-
-                      <ClockIcon className="w-4 h-4 flex-shrink-0" />
-
-
-                      {isExpired
-
-
-                        ? 'š ï¸ Payment window expired. Please re-register.'
-
-
-                        : `Payment window: ${mins}:${secs} remaining`}
-
-
-                    </div>
-
-
-                  </div>
-
-
-
-
-
-                  <div className="p-6 space-y-5">
-
-
-                    {/* Amount card */}
-
-
-                    <div className="bg-gradient-to-r from-red-50 to-rose-50 rounded-2xl p-4 flex items-center justify-between border border-red-100">
-
-
-                      <div>
-
-
-                        <p className="text-xs text-gray-500 mb-1">Total Amount Due</p>
-
-
-                        <p className="text-4xl font-extrabold text-red-700">${amount.toFixed(2)}</p>
-
-
-                        <p className="text-xs text-gray-400 mt-1">{selectedEvent.title}</p>
-
-
-                      </div>
-
-
-                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center shadow-inner">
-
-
-                        <CurrencyDollarIcon className="w-8 h-8 text-red-600" />
-
-
-                      </div>
-
-
-                    </div>
-
-
-
-
-
-                    {/* ABA QR block ” always shown */}
-
-
-                    <div className="border-2 border-red-100 rounded-2xl p-5 space-y-4">
-
-
-                      <div className="flex items-center justify-between">
-
-
-                        <div>
-
-
-                          <p className="font-bold text-gray-800 text-sm">Scan to Pay</p>
-
-
-                          <p className="text-xs text-gray-400">Page auto-completes after payment ” no button needed</p>
-
-
-                        </div>
-
-
-                        <div className="bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg tracking-wide">PayWay</div>
-
-
-                      </div>
-
-
-
-
-
-                      {/* QR preview */}
-
-
-                      <div className="flex justify-center">
-
-
-                        <div className="bg-white p-4 rounded-2xl shadow-md border-2 border-red-100">
-
-
-                          <QRCode
-
-
-                            value={`aba-payway://pay?merchant=CAMPUS_EVENTS&amount=${amount.toFixed(2)}&ref=EVT${selectedEvent?.id}`}
-
-
-                            size={160}
-
-
-                            level="H"
-
-
-                            bgColor="#ffffff"
-
-
-                            fgColor="#991b1b"
-
-
-                          />
-
-
-                        </div>
-
-
-                      </div>
-
-
-
-
-
-                      <div className="text-center space-y-1">
-
-
-                        <p className="text-3xl font-extrabold text-red-700">${amount.toFixed(2)}</p>
-
-
-                        <p className="text-xs text-gray-400">Open ABA Mobile ’ Scan QR ’ Confirm</p>
-
-
-                      </div>
-
-
-
-
-
-                      <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-xs text-red-600 leading-relaxed space-y-1">
-
-
-                        <p className="font-semibold">Two ways to complete:</p>
-
-
-                        <p>¢ <strong>Auto:</strong> Once you pay in ABA Mobile, our server detects it automatically via webhook.</p>
-
-
-                        <p>¢ <strong>Manual:</strong> Paid but page didn™t update? Upload your receipt for finance review (1“3 days).</p>
-
-
-                      </div>
-
-
-
-
-
-                      <button
-
-
-                        disabled={isExpired}
-
-
-                        onClick={onStartAbaQr}
-
-
-                        className="w-full py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl font-bold disabled:opacity-40 hover:from-red-700 hover:to-rose-700 transition-all shadow-sm text-base"
-
-
-                      >
-
-
-                        ðŸ“± Open Full QR + Auto-Detect
-
-
-                      </button>
-
-
-                      <button
-
-
-                        disabled={isExpired}
-
-
-                        onClick={onProceedToUpload}
-
-
-                        className="w-full py-2.5 border-2 border-red-300 text-red-700 rounded-xl font-semibold disabled:opacity-40 hover:bg-red-50 transition-all text-sm"
-
-
-                      >
-
-
-                        I™ve Already Paid ” Upload Proof
-
-
-                      </button>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                </>
-
-
-              )}
-
-
-
-
-
-              {/* ••••••••••••••• STEP: qr_scanning ••••••••••••••• */}
-
-
-              {step === 'qr_scanning' && (
-
-
-                <>
-
-
-                  {/* ABA-branded header */}
-
-
-                  <div className="bg-gradient-to-r from-red-700 to-red-500 p-6 text-white">
-
-
-                    <div className="flex items-center justify-between">
-
-
-                      <div>
-
-
-                        <div className="flex items-center gap-2 mb-1">
-
-
-                          <span className="bg-white text-red-700 text-xs font-extrabold px-2 py-0.5 rounded">ABA</span>
-
-
-                          <h2 className="text-xl font-bold">Waiting for Payment</h2>
-
-
-                        </div>
-
-
-                        <p className="text-red-100 text-sm">Scan the QR code with ABA Mobile app</p>
-
-
-                      </div>
-
-
-                      <button onClick={onClose} className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
-
-
-                        <XMarkIcon className="w-5 h-5" />
-
-
-                      </button>
-
-
-                    </div>
-
-
-                  </div>
-
-
-
-
-
-                  <div className="p-6 space-y-5">
-
-
-                    {/* Transaction ID pill */}
-
-
-                    <div className="flex items-center justify-center">
-
-
-                      <span className="bg-gray-100 text-gray-500 text-xs font-mono px-3 py-1.5 rounded-full">
-
-
-                        TXN: {abaTransactionId}
-
-
-                      </span>
-
-
-                    </div>
-
-
-
-
-
-                    {/* QR with pulsing ring */}
-
-
-                    <div className="flex justify-center">
-
-
-                      <div className="relative">
-
-
-                        {/* Outer pulse ring */}
-
-
-                        <motion.div
-
-
-                          animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0, 0.5] }}
-
-
-                          transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
-
-
-                          className="absolute inset-0 rounded-2xl bg-red-400"
-
-
-                          style={{ margin: '-10px' }}
-
-
-                        />
-
-
-                        <motion.div
-
-
-                          animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0, 0.3] }}
-
-
-                          transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut', delay: 0.5 }}
-
-
-                          className="absolute inset-0 rounded-2xl bg-red-300"
-
-
-                          style={{ margin: '-18px' }}
-
-
-                        />
-
-
-                        <div className="relative bg-white p-4 rounded-2xl shadow-xl border-2 border-red-200">
-
-
-                          <QRCode
-
-
-                            value={`aba-payway://pay?merchant=CAMPUS_EVENTS&amount=${(selectedEvent?.price || 0).toFixed(2)}&ref=EVT${selectedEvent?.id}&tran=${abaTransactionId}`}
-
-
-                            size={200}
-
-
-                            level="H"
-
-
-                            bgColor="#ffffff"
-
-
-                            fgColor="#991b1b"
-
-
-                          />
-
-
-                        </div>
-
-
-                      </div>
-
-
-                    </div>
-
-
-
-
-
-                    {/* Amount */}
-
-
-                    <div className="text-center">
-
-
-                      <p className="text-3xl font-extrabold text-gray-800">${(selectedEvent?.price || 0).toFixed(2)}</p>
-
-
-                      <p className="text-sm text-gray-400">{selectedEvent?.title}</p>
-
-
-                    </div>
-
-
-
-
-
-                    {/* Live polling status */}
-
-
-                    <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
-
-
-                      <div className="flex items-center justify-between">
-
-
-                        <div className="flex items-center gap-2">
-
-
-                          <motion.div
-
-
-                            animate={{ opacity: pollStatus === 'checking' ? [1, 0.2, 1] : 1,
-
-
-                                       scale: pollStatus === 'checking' ? [1, 1.3, 1] : 1 }}
-
-
-                            transition={{ duration: 0.5 }}
-
-
-                            className="w-2.5 h-2.5 rounded-full bg-green-500"
-
-
-                          />
-
-
-                          <span className="text-sm font-semibold text-gray-700">
-
-
-                            {pollStatus === 'checking' ? 'Checking payment status...' : 'Listening for payment'}
-
-
-                          </span>
-
-
-                        </div>
-
-
-                        <span className="text-xs text-gray-400 font-mono">Poll #{pollCount} · every 3s</span>
-
-
-                      </div>
-
-
-                      <div className="flex items-center gap-1.5">
-
-
-                        {[...Array(5)].map((_, i) => (
-
-
-                          <motion.div
-
-
-                            key={i}
-
-
-                            animate={{ scaleY: [1, 2.5, 1] }}
-
-
-                            transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.12 }}
-
-
-                            className="w-1.5 h-3 bg-red-400 rounded-full origin-bottom"
-
-
-                          />
-
-
-                        ))}
-
-
-                        <span className="ml-2 text-xs text-gray-400">Waiting for ABA webhook...</span>
-
-
-                      </div>
-
-
-                    </div>
-
-
-
-
-
-                    {/* Steps guide */}
-
-
-                    <ol className="space-y-2 text-sm text-gray-600">
-
-
-                      {[
-
-
-                        ['1', 'Open ABA Mobile app', 'text-red-700 bg-red-100'],
-
-
-                        ['2', 'Tap Scan QR ’ point at code above', 'text-red-700 bg-red-100'],
-
-
-                        ['3', 'Confirm the amount and pay', 'text-red-700 bg-red-100'],
-
-
-                        ['4', 'This page completes automatically “', 'text-green-700 bg-green-100'],
-
-
-                      ].map(([num, text, cls]) => (
-
-
-                        <li key={num} className="flex items-center gap-3">
-
-
-                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${cls}`}>{num}</span>
-
-
-                          <span>{text}</span>
-
-
-                        </li>
-
-
-                      ))}
-
-
-                    </ol>
-
-
-
-
-
-                    {/* Demo controls */}
-
-
-                    <div className="border-t border-gray-100 pt-4">
-
-
-                      <p className="text-xs text-center text-gray-400 mb-3 font-medium">” DEMO: Simulate ABA Webhook Response ”</p>
-
-
-                      <div className="grid grid-cols-2 gap-3">
-
-
-                        <button
-
-
-                          onClick={onSimulateApprove}
-
-
-                          className="py-2.5 bg-green-600 text-white text-sm rounded-xl font-semibold hover:bg-green-700 transition-all"
-
-
-                        >
-
-
-                          “ Payment Received
-
-
-                        </button>
-
-
-                        <button
-
-
-                          onClick={onSimulateReject}
-
-
-                          className="py-2.5 bg-red-500 text-white text-sm rounded-xl font-semibold hover:bg-red-600 transition-all"
-
-
-                        >
-
-
-                          — Payment Failed
-
-
-                        </button>
-
-
-                      </div>
-
-
-                    </div>
-
-
-
-
-
-                    {/* Manual fallback ” matches spec: Upload Proof ’ Finance Verification path */}
-
-
-                    <div className="border-t border-gray-100 pt-4">
-
-
-                      <p className="text-xs text-gray-500 text-center mb-2">Page didn™t auto-complete after paying?</p>
-
-
-                      <button
-
-
-                        onClick={onProceedToUpload}
-
-
-                        className="w-full py-2.5 border-2 border-gray-200 text-gray-600 rounded-xl font-semibold hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all text-sm"
-
-
-                      >
-
-
-                        Upload Proof of Payment Instead ’
-
-
-                      </button>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                </>
-
-
-              )}
-
-
-
-
-
-              {/* ••••••••••••••• STEP: upload ••••••••••••••• */}
-
-
-              {step === 'upload' && (
-
-
-                <>
-
-
-                  <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
-
-
-                    <div className="flex items-center justify-between">
-
-
-                      <div>
-
-
-                        <h2 className="text-xl font-bold">Upload Proof of Payment</h2>
-
-
-                        <p className="text-blue-100 text-sm mt-0.5">Submit your receipt for finance review</p>
-
-
-                      </div>
-
-
-                      <button onClick={onClose} className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
-
-
-                        <XMarkIcon className="w-5 h-5" />
-
-
-                      </button>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                  <div className="p-6 space-y-5">
-
-
-                    {/* Amount reminder */}
-
-
-                    <div className="bg-blue-50 rounded-xl p-3 flex items-center gap-3 border border-blue-100">
-
-
-                      <CurrencyDollarIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
-
-
-                      <p className="text-sm text-blue-700">Amount paid: <strong>${amount.toFixed(2)}</strong> · {selectedEvent.title}</p>
-
-
-                    </div>
-
-
-
-
-
-                    {/* Upload zone */}
-
-
-                    <label htmlFor="payment-proof-upload" className="block cursor-pointer">
-
-
-                      <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
-
-
-                        paymentProof
-
-
-                          ? 'border-green-400 bg-green-50'
-
-
-                          : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50/50'
-
-
-                      }`}>
-
-
-                        {paymentProof ? (
-
-
-                          <div className="space-y-3">
-
-
-                            {paymentProofPreview && (
-
-
-                              <img src={paymentProofPreview} alt="Proof preview" className="max-h-44 mx-auto rounded-xl object-contain shadow-md" />
-
-
-                            )}
-
-
-                            <p className="text-sm font-semibold text-green-700">“ {paymentProof.name}</p>
-
-
-                            <p className="text-xs text-gray-400">{(paymentProof.size / 1024).toFixed(1)} KB · Click to change</p>
-
-
-                          </div>
-
-
-                        ) : (
-
-
-                          <div className="space-y-2 py-4">
-
-
-                            <ArrowUpTrayIcon className="w-12 h-12 text-gray-300 mx-auto" />
-
-
-                            <p className="text-sm font-semibold text-gray-600">Click or drag to upload receipt</p>
-
-
-                            <p className="text-xs text-gray-400">JPG, PNG or PDF · Max 5 MB</p>
-
-
-                          </div>
-
-
-                        )}
-
-
-                      </div>
-
-
-                      <input
-
-
-                        id="payment-proof-upload"
-
-
-                        type="file"
-
-
-                        accept="image/*,.pdf"
-
-
-                        onChange={onProofUpload}
-
-
-                        className="hidden"
-
-
-                      />
-
-
-                    </label>
-
-
-
-
-
-                    {/* Finance checklist */}
-
-
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-
-
-                      <p className="text-xs font-semibold text-amber-700 mb-2">ðŸ“‹ Finance Verification Checklist</p>
-
-
-                      <ul className="text-xs text-amber-600 space-y-1.5 list-disc list-inside">
-
-
-                        <li>Transfer amount must exactly match <strong>${amount.toFixed(2)}</strong></li>
-
-
-                        <li>Transaction date and reference number must be visible</li>
-
-
-                        <li>Image must not be cropped, edited, or blurred</li>
-
-
-                        <li>Estimated verification time: <strong>1“3 business days</strong></li>
-
-
-                      </ul>
-
-
-                    </div>
-
-
-
-
-
-                    <div className="flex gap-3 pt-1">
-
-
-                      <button onClick={onClose} className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all">
-
-
-                        Cancel
-
-
-                      </button>
-
-
-                      <button
-
-
-                        onClick={onSubmitProof}
-
-
-                        disabled={!paymentProof}
-
-
-                        className="flex-[2] py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold disabled:opacity-40 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm"
-
-
-                      >
-
-
-                        Submit for Verification
-
-
-                      </button>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                </>
-
-
-              )}
-
-
-
-
-
-              {/* ••••••••••••••• STEP: verifying ••••••••••••••• */}
-
-
-              {step === 'verifying' && (
-
-
-                <>
-
-
-                  <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white">
-
-
-                    <div className="flex items-center justify-between">
-
-
-                      <div>
-
-
-                        <h2 className="text-xl font-bold">Under Finance Review</h2>
-
-
-                        <p className="text-amber-100 text-sm mt-0.5">Your proof has been received</p>
-
-
-                      </div>
-
-
-                      <button onClick={onClose} className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
-
-
-                        <XMarkIcon className="w-5 h-5" />
-
-
-                      </button>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                  <div className="p-6 space-y-5">
-
-
-                    <div className="flex flex-col items-center py-4 space-y-3">
-
-
-                      <div className="relative">
-
-
-                        <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
-
-
-                          <ShieldCheckIcon className="w-10 h-10 text-amber-600" />
-
-
-                        </div>
-
-
-                        <motion.div
-
-
-                          animate={{ rotate: 360 }}
-
-
-                          transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
-
-
-                          className="absolute inset-0 rounded-full border-4 border-transparent border-t-amber-500 border-r-amber-300"
-
-
-                        />
-
-
-                      </div>
-
-
-                      <p className="text-lg font-bold text-gray-800">Verification in Progress</p>
-
-
-                      <p className="text-sm text-gray-500 text-center max-w-xs">
-
-
-                        Our finance team is reviewing your proof. This typically takes <strong>1“3 business days</strong>.
-
-
-                        You'll receive an email and app notification once verified.
-
-
-                      </p>
-
-
-                    </div>
-
-
-
-
-
-                    {/* Verification checklist (animated) */}
-
-
-                    <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
-
-
-                      {[
-
-
-                        ['Amount Match',       `Verifying transfer equals $${amount.toFixed(2)}`],
-
-
-                        ['Transfer Code Valid', 'Validating transaction reference number'],
-
-
-                        ['Duplicate Check',    'Scanning for previously submitted receipts'],
-
-
-                        ['Image Authenticity', 'Detecting edited or altered screenshots'],
-
-
-                      ].map(([title, desc], i) => (
-
-
-                        <div key={title} className="flex items-start gap-3">
-
-
-                          <motion.div
-
-
-                            animate={{ opacity: [0.3, 1, 0.3] }}
-
-
-                            transition={{ repeat: Infinity, duration: 1.8, delay: CHECKLIST_DELAYS[i] }}
-
-
-                            className="mt-1 w-3.5 h-3.5 rounded-full bg-amber-400 flex-shrink-0"
-
-
-                          />
-
-
-                          <div>
-
-
-                            <p className="text-sm font-semibold text-gray-700">{title}</p>
-
-
-                            <p className="text-xs text-gray-400">{desc}</p>
-
-
-                          </div>
-
-
-                        </div>
-
-
-                      ))}
-
-
-                    </div>
-
-
-
-
-
-                    {/* Demo simulation */}
-
-
-                    <div className="border-t border-gray-100 pt-4">
-
-
-                      <p className="text-xs text-center text-gray-400 mb-3 font-medium">” DEMO ONLY: Simulate Finance Decision ”</p>
-
-
-                      <div className="grid grid-cols-2 gap-3">
-
-
-                        <button
-
-
-                          onClick={onSimulateApprove}
-
-
-                          className="py-2.5 bg-green-600 text-white text-sm rounded-xl font-semibold hover:bg-green-700 transition-all shadow-sm"
-
-
-                        >
-
-
-                          “ Approve Payment
-
-
-                        </button>
-
-
-                        <button
-
-
-                          onClick={onSimulateReject}
-
-
-                          className="py-2.5 bg-red-500 text-white text-sm rounded-xl font-semibold hover:bg-red-600 transition-all shadow-sm"
-
-
-                        >
-
-
-                          — Reject Payment
-
-
-                        </button>
-
-
-                      </div>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                </>
-
-
-              )}
-
-
-
-
-
-              {/* ••••••••••••••• STEP: rejected ••••••••••••••• */}
-
-
-              {step === 'rejected' && (
-
-
-                <>
-
-
-                  <div className="bg-gradient-to-r from-red-600 to-rose-600 p-6 text-white">
-
-
-                    <div className="flex items-center justify-between">
-
-
-                      <div>
-
-
-                        <h2 className="text-xl font-bold">Payment Rejected</h2>
-
-
-                        <p className="text-red-100 text-sm mt-0.5">Action required ” please re-upload your proof</p>
-
-
-                      </div>
-
-
-                      <button onClick={onClose} className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
-
-
-                        <XMarkIcon className="w-5 h-5" />
-
-
-                      </button>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                  <div className="p-6 space-y-5">
-
-
-                    {/* Rejection reason */}
-
-
-                    <div className="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-2">
-
-
-                      <div className="flex items-center gap-2">
-
-
-                        <ExclamationTriangleIcon className="w-5 h-5 text-red-600 flex-shrink-0" />
-
-
-                        <p className="font-bold text-red-700">Rejection Reason</p>
-
-
-                      </div>
-
-
-                      <p className="text-sm text-red-600 leading-relaxed">
-
-
-                        {rejectionReason || 'Payment verification failed. Please upload a valid proof of payment.'}
-
-
-                      </p>
-
-
-                    </div>
-
-
-
-
-
-                    {/* Required actions */}
-
-
-                    <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
-
-
-                      <p className="text-sm font-semibold text-gray-700">Required Actions:</p>
-
-
-                      <ul className="text-sm text-gray-600 space-y-1.5 list-disc list-inside">
-
-
-                        <li>Ensure the exact amount of <strong>${amount.toFixed(2)}</strong> was transferred</li>
-
-
-                        <li>Upload a clear, unedited screenshot or bank receipt</li>
-
-
-                        <li>Include visible transaction date and reference number</li>
-
-
-                        <li>Do not crop or edit the image in any way</li>
-
-
-                      </ul>
-
-
-                    </div>
-
-
-
-
-
-                    <div className="flex gap-3">
-
-
-                      <button onClick={onClose} className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all">
-
-
-                        Cancel
-
-
-                      </button>
-
-
-                      <button
-
-
-                        onClick={onReupload}
-
-
-                        className="flex-[2] py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-rose-700 transition-all shadow-sm"
-
-
-                      >
-
-
-                        Re-upload Proof
-
-
-                      </button>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                </>
-
-
-              )}
-
-
-
-
-
-              {/* ••••••••••••••• STEP: approved ••••••••••••••• */}
-
-
-              {step === 'approved' && (
-
-
-                <>
-
-
-                  <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white">
-
-
-                    <div className="flex items-center justify-between">
-
-
-                      <div>
-
-
-                        <h2 className="text-xl font-bold">Payment Approved! ðŸŽ‰</h2>
-
-
-                        <p className="text-green-100 text-sm mt-0.5">Registration activated ” your ticket is ready</p>
-
-
-                      </div>
-
-
-                      <button onClick={onClose} className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
-
-
-                        <XMarkIcon className="w-5 h-5" />
-
-
-                      </button>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                  <div className="p-6 space-y-5">
-
-
-                    <div className="flex flex-col items-center py-6 space-y-4">
-
-
-                      <motion.div
-
-
-                        initial={{ scale: 0 }}
-
-
-                        animate={{ scale: 1 }}
-
-
-                        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-
-
-                        className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center shadow-inner"
-
-
-                      >
-
-
-                        <CheckCircleIcon className="w-14 h-14 text-green-600" />
-
-
-                      </motion.div>
-
-
-                      <p className="text-xl font-bold text-gray-800">Registration Activated!</p>
-
-
-                      <p className="text-sm text-gray-500 text-center max-w-xs">
-
-
-                        Your payment has been verified. Your QR code ticket will appear in a moment.
-
-
-                      </p>
-
-
-                    </div>
-
-
-
-
-
-                    {/* What was stored */}
-
-
-                    <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-2">
-
-
-                      {[
-
-
-                        'Payment Record Stored (Receipt, Invoice ID, Amount, Timestamp)',
-
-
-                        'QR Code Ticket Generated',
-
-
-                        'Email Confirmation Sent',
-
-
-                        'Event Reminder Scheduled (1 day before)',
-
-
-                      ].map(item => (
-
-
-                        <div key={item} className="flex items-center gap-2 text-sm text-green-700">
-
-
-                          <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
-
-
-                          <span>{item}</span>
-
-
-                        </div>
-
-
-                      ))}
-
-
-                    </div>
-
-
-
-
-
-                    <button onClick={onClose} className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-sm">
-
-
-                      View My Ticket ’
-
-
-                    </button>
-
-
-                  </div>
-
-
-                </>
-
-
-              )}
-
-
-
-
-
-            </motion.div>
-
-
-          </div>
-
-
-        </div>
-
-
-      )}
-
-
-    </AnimatePresence>
-
-
-  )
-
-
-})
 
 
 
@@ -2428,157 +730,487 @@ const PaymentModal = React.memo(({
 // type on re-render ” prevents the "type one letter ’ flicker/focus lost" bug
 
 
-const RegistrationFormModal = React.memo(({ show, selectedEvent, registrationData, onRegistrationChange, onRegistrationSubmit, onClose }) => (
-
-
-  <AnimatePresence>
-
-
-    {show && selectedEvent && (
-
-
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-
-
-        <div className="flex min-h-full items-center justify-center p-4">
-
-
-          {/* Backdrop */}
-
-
-          <motion.div
-
-
-            initial={{ opacity: 0 }}
-
-
-            animate={{ opacity: 1 }}
-
-
-            exit={{ opacity: 0 }}
-
-
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-
-
-            onClick={onClose}
-
-
-          />
-
-
-          
-
-
-          {/* Modal Content */}
-
-
-          <motion.div
-
-
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-
-
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-
-
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-
-
-            className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
-
-
-          >
-
-
-            {/* Header */}
-
-
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
-
-
-              <div className="flex items-center justify-between">
-
-
-                <div>
-
-
-                  <h2 className="text-2xl font-bold mb-2">Event Registration</h2>
-
-
-                  <p className="text-purple-100">{selectedEvent.title}</p>
-
-
-                </div>
-
-
-                <button
-
-
-                  onClick={onClose}
-
-
-                  className="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors"
-
-
-                >
-
-
-                  <XMarkIcon className="w-5 h-5" />
-
-
-                </button>
-
-
-              </div>
-
-
-            </div>
-
-
-
-
-
-            {/* Use the stable form component */}
-
-
-            <StableRegistrationForm 
-
-
-              registrationData={registrationData}
-
-
-              onChange={onRegistrationChange}
-
-
-              onSubmit={onRegistrationSubmit}
-
-
-              selectedEvent={selectedEvent}
-
-
-              onClose={onClose}
-
-
+const RegistrationFormModal = React.memo(({
+  show,
+  step,
+  selectedEvent,
+  registrationData,
+  onRegistrationChange,
+  onRegistrationSubmit,
+  onClose,
+
+  paymentProof,
+  paymentProofPreview,
+  rejectionReason,
+  abaTransactionId,
+  onProofUpload,
+  onSubmitProof,
+  onReupload,
+  onProceedToUpload,
+  onStartAbaQr,
+  onSimulateApprove,
+  onSimulateReject,
+  pendingRegistrationId
+}) => {
+  const [timeLeft, setTimeLeft] = React.useState(10 * 60)
+  const [pollCount, setPollCount] = React.useState(0)
+  const [pollStatus, setPollStatus] = React.useState('pending') // 'pending'|'checking'
+
+  // Countdown timer
+  React.useEffect(() => {
+    if (!show || step !== 'info') return
+    setTimeLeft(10 * 60)
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) { clearInterval(timer); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [show, step])
+
+  // Polling loop
+  React.useEffect(() => {
+    if (!show || step !== 'qr_scanning' || !abaTransactionId) return
+    setPollCount(0)
+    setPollStatus('pending')
+    const interval = setInterval(() => {
+      setPollStatus('checking')
+      setPollCount(prev => prev + 1)
+      setTimeout(() => setPollStatus('pending'), 600)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [show, step, abaTransactionId])
+
+  const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0')
+  const secs = String(timeLeft % 60).padStart(2, '0')
+  const isExpired = timeLeft === 0
+  const amount = selectedEvent?.price || 0
+
+  if (!show || !selectedEvent) return null
+
+  // Define steps
+  const isPaid = selectedEvent.price > 0
+  const STEPS = isPaid ? ['Event Details', 'Payment', 'Submit'] : ['Event Details', 'Submit']
+
+  const stepIndex = {
+    'form': 0,
+    'info': 1,
+    'qr_scanning': 1,
+    'upload': 1,
+    'rejected': 1,
+    'verifying': 2,
+    'approved': 2
+  }
+  const currentStepIdx = isPaid ? (stepIndex[step] ?? 0) : (step === 'approved' ? 1 : 0)
+
+  // Header styling based on step
+  let headerTitle = "Event Registration"
+  let headerDesc = selectedEvent.title
+  let headerGradient = "from-purple-600 to-indigo-600"
+
+  if (step === 'info') {
+    headerTitle = "Payment Details"
+    headerDesc = `Amount due: $${amount.toFixed(2)}`
+    headerGradient = "from-red-600 to-rose-600"
+  } else if (step === 'upload') {
+    headerTitle = "Upload Proof of Payment"
+    headerDesc = "Submit your receipt for admin review"
+    headerGradient = "from-blue-600 to-indigo-600"
+  } else if (step === 'verifying') {
+    headerTitle = "Pending Payment Confirmation"
+    headerDesc = "Your proof has been submitted — waiting for admin approval"
+    headerGradient = "from-amber-500 to-orange-500"
+  } else if (step === 'rejected') {
+    headerTitle = "Payment Rejected"
+    headerDesc = "Action required — please re-upload your proof"
+    headerGradient = "from-red-600 to-rose-600"
+  } else if (step === 'approved') {
+    headerTitle = "Registration Confirmed! 🎉"
+    headerDesc = isPaid ? "Your payment has been verified by admin" : "Your free ticket is ready"
+    headerGradient = "from-green-600 to-emerald-600"
+  }
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={onClose}
             />
 
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              {/* Stepper Header */}
+              <div className={`bg-gradient-to-r ${headerGradient} p-6 text-white transition-all duration-300`}>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-1">{headerTitle}</h2>
+                    <p className="text-purple-100 text-sm mt-0.5 truncate max-w-lg">{headerDesc}</p>
+                  </div>
+                  <button onClick={onClose} className="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors">
+                    <XMarkIcon className="w-5 h-5" />
+                  </button>
+                </div>
 
-          </motion.div>
+                {/* Countdown Timer */}
 
 
+                {/* Stepper Progress Bar */}
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/10">
+                  {STEPS.map((label, i) => {
+                    const isCompleted = i < currentStepIdx
+                    const isActive = i === currentStepIdx
+                    const isFailed = step === 'rejected' && i === 1
+
+                    let circleBg = 'bg-white/20 text-white/60'
+                    if (isCompleted) {
+                      circleBg = 'bg-green-400 text-white'
+                    } else if (isActive) {
+                      circleBg = isFailed ? 'bg-red-500 text-white' : 'bg-white text-purple-700'
+                    }
+
+                    return (
+                      <React.Fragment key={label}>
+                        <div className="flex flex-col items-center flex-1">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${circleBg}`}>
+                            {isCompleted ? '✓' : i + 1}
+                          </div>
+                          <span className={`text-[11px] mt-1 text-center font-medium truncate w-full ${isActive ? 'text-white font-semibold' : 'text-white/60'}`}>
+                            {label}
+                          </span>
+                        </div>
+                        {i < STEPS.length - 1 && (
+                          <div className={`flex-1 h-0.5 -mt-4 ${i < currentStepIdx ? 'bg-green-400' : 'bg-white/20'}`} />
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Scrollable Body */}
+              <div className="overflow-y-auto flex-1 max-h-[calc(90vh-180px)]">
+                {step === 'form' && (
+                  <StableRegistrationForm
+                    registrationData={registrationData}
+                    onChange={onRegistrationChange}
+                    onSubmit={onRegistrationSubmit}
+                    selectedEvent={selectedEvent}
+                    onClose={onClose}
+                  />
+                )}
+                
+                {/* STEP: info — show QR code + amount + upload proof button */}
+                {step === 'info' && (
+                  <div className="p-6 space-y-5">
+                    <div className="bg-gradient-to-r from-red-50 to-rose-50 rounded-2xl p-5 flex items-center justify-between border border-red-100">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Total Amount Due</p>
+                        <p className="text-4xl font-extrabold text-red-700">${amount.toFixed(2)}</p>
+                        <p className="text-xs text-gray-400 mt-1">{selectedEvent.title}</p>
+                      </div>
+                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center shadow-inner">
+                        <CurrencyDollarIcon className="w-8 h-8 text-red-600" />
+                      </div>
+                    </div>
+
+                    {/* QR Code for scanning */}
+                    <div className="border-2 border-red-100 rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-gray-800 text-sm">Scan to Pay</p>
+                          <p className="text-xs text-gray-400">Use ABA Mobile or any banking app to scan</p>
+                        </div>
+                        <div className="bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg tracking-wide">PayWay</div>
+                      </div>
+
+                      <div className="flex justify-center">
+                        <div className="bg-white p-4 rounded-2xl shadow-md border-2 border-red-100">
+                          <QRCode
+                            value={`aba-payway://pay?merchant=CAMPUS_EVENTS&amount=${amount.toFixed(2)}&ref=EVT${selectedEvent?.id}`}
+                            size={160}
+                            level="H"
+                            bgColor="#ffffff"
+                            fgColor="#991b1b"
+                          />
+                        </div>
+                      </div>
+
+                      <p className="text-2xl font-bold text-center text-red-700">${amount.toFixed(2)}</p>
+                      <p className="text-xs text-center text-gray-500">Open ABA Mobile · Scan QR · Confirm Payment</p>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+                      <p className="text-sm font-semibold text-amber-800">📋 How to complete payment</p>
+                      <ol className="text-sm text-amber-700 space-y-1.5 list-decimal list-inside">
+                        <li>Scan the QR code above or transfer <strong>${amount.toFixed(2)}</strong> manually</li>
+                        <li>Take a screenshot of your payment confirmation</li>
+                        <li>Click the button below to upload your proof</li>
+                        <li>Admin will verify and confirm your registration</li>
+                      </ol>
+                    </div>
+
+                    <button
+                      onClick={onProceedToUpload}
+                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm"
+                    >
+                      I've Already Paid — Upload Proof
+                    </button>
+                  </div>
+                )}
+
+
+
+                {/* STEP: upload */}
+                {step === 'upload' && (
+                  <div className="p-6 space-y-5">
+                    <div className="bg-blue-50 rounded-xl p-3 flex items-center gap-3 border border-blue-100">
+                      <CurrencyDollarIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <p className="text-sm text-blue-700">Amount paid: <strong>${amount.toFixed(2)}</strong> · {selectedEvent.title}</p>
+                    </div>
+
+                    <label htmlFor="payment-proof-upload" className="block cursor-pointer">
+                      <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${paymentProof
+                        ? 'border-green-400 bg-green-50'
+                        : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50/50'
+                        }`}>
+                        {paymentProof ? (
+                          <div className="space-y-3">
+                            {paymentProofPreview && (
+                              <img src={paymentProofPreview} alt="Proof preview" className="max-h-44 mx-auto rounded-xl object-contain shadow-md" />
+                            )}
+                            <p className="text-sm font-semibold text-green-700">✓ {paymentProof.name}</p>
+                            <p className="text-xs text-gray-400">{(paymentProof.size / 1024).toFixed(1)} KB · Click to change</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 py-4">
+                            <ArrowUpTrayIcon className="w-12 h-12 text-gray-300 mx-auto" />
+                            <p className="text-sm font-semibold text-gray-600">Click or drag to upload receipt</p>
+                            <p className="text-xs text-gray-400">JPG, PNG or PDF · Max 5 MB</p>
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        id="payment-proof-upload"
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={onProofUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                      <p className="text-xs font-semibold text-amber-700 mb-2">- Finance Verification Checklist</p>
+                      <ul className="text-xs text-amber-600 space-y-1.5 list-disc list-inside">
+                        <li>Transfer amount must exactly match <strong>${amount.toFixed(2)}</strong></li>
+                        <li>Transaction date and reference number must be visible</li>
+                        <li>Image must not be cropped, edited, or blurred</li>
+                        <li>Estimated verification time: <strong>1-3 business days</strong></li>
+                      </ul>
+                    </div>
+
+                    <div className="flex gap-3 pt-1">
+                      <button onClick={onClose} className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all">
+                        Cancel
+                      </button>
+
+                      <button
+                        onClick={onSubmitProof}
+                        disabled={!paymentProof}
+                        className="flex-[2] py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold disabled:opacity-40 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm"
+                      >
+                        Finish Register
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP: verifying */}
+                {step === 'verifying' && (
+                  <div className="p-6 space-y-5">
+                    <div className="flex flex-col items-center py-4 space-y-3">
+                      <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center animate-pulse">
+                        <ClockIcon className="w-10 h-10 text-amber-600" />
+                      </div>
+                      <p className="text-lg font-bold text-gray-800">Pending Payment Confirmation</p>
+                      <p className="text-sm text-gray-500 text-center max-w-md">
+                        We've received your proof of payment. An approver will verify it shortly. You will receive a ticket once approved.
+                      </p>
+                    </div>
+
+                    <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs text-gray-500">Event</p>
+                          <p className="font-semibold text-gray-800">{selectedEvent.title}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">Amount</p>
+                          <p className="font-semibold text-gray-800">${amount.toFixed(2)}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-gray-500">Receipt</p>
+                          <p className="text-sm text-gray-800 truncate max-w-[240px]">{paymentProof?.name || 'No file uploaded'}</p>
+                        </div>
+                        <div className="text-xs text-gray-500">Status: <span className="font-semibold text-amber-600">Pending review</span></div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button onClick={onClose} className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all">
+                        Close
+                      </button>
+
+                      {/* Admin controls: show Approve/Reject if admin token present */}
+                      {(localStorage.getItem('admin_token')) && pendingRegistrationId && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                await verifyPayment(pendingRegistrationId, 'approve', 'Approved via UI')
+                                // Simulate approval locally
+                                onSimulateApprove && onSimulateApprove()
+                                toast.success('Payment approved')
+                              } catch (err) {
+                                console.error(err)
+                                toast.error('Failed to approve payment')
+                              }
+                            }}
+                            className="py-3 px-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-all"
+                          >
+                            Approve
+                          </button>
+
+                          <button
+                            onClick={async () => {
+                              const reason = prompt('Reason for rejection (optional)') || ''
+                              try {
+                                await verifyPayment(pendingRegistrationId, 'reject', reason)
+                                onSimulateReject && onSimulateReject()
+                                toast.success('Payment rejected')
+                              } catch (err) {
+                                console.error(err)
+                                toast.error('Failed to reject payment')
+                              }
+                            }}
+                            className="py-3 px-4 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-all"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Non-admin users: close only */}
+                      {!(user?.is_staff || localStorage.getItem('admin_token')) && (
+                        <button onClick={onClose} className="flex-[2] py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all text-sm">
+                          Close & Check Back Later
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP: rejected */}
+                {step === 'rejected' && (
+                  <div className="p-6 space-y-5">
+                    <div className="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <ExclamationTriangleIcon className="w-5 h-5 text-red-600 flex-shrink-0" />
+                        <p className="font-bold text-red-700">Rejection Reason</p>
+                      </div>
+                      <p className="text-sm text-red-600 leading-relaxed">
+                        {rejectionReason || 'Payment verification failed. Please upload a valid proof of payment.'}
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
+                      <p className="text-sm font-semibold text-gray-700">Required Actions:</p>
+                      <ul className="text-sm text-gray-600 space-y-1.5 list-disc list-inside">
+                        <li>Ensure the exact amount of <strong>${amount.toFixed(2)}</strong> was transferred</li>
+                        <li>Upload a clear, unedited screenshot or bank receipt</li>
+                        <li>Include visible transaction date and reference number</li>
+                        <li>Do not crop or edit the image in any way</li>
+                      </ul>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button onClick={onClose} className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all">
+                        Cancel
+                      </button>
+
+                      <button
+                        onClick={onReupload}
+                        className="flex-[2] py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-rose-700 transition-all shadow-sm"
+                      >
+                        Re-upload Proof
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP: approved */}
+                {step === 'approved' && (
+                  <div className="p-6 space-y-5">
+                    <div className="flex flex-col items-center py-6 space-y-4">
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                        className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center shadow-inner"
+                      >
+                        <CheckCircleIcon className="w-14 h-14 text-green-600" />
+                      </motion.div>
+                      <p className="text-xl font-bold text-gray-800">Registration Confirmed!</p>
+                      <p className="text-sm text-gray-500 text-center max-w-xs">
+                        {isPaid
+                          ? 'Your payment has been verified. Your ticket is now ready!'
+                          : 'Your registration has been confirmed. Your ticket is ready!'}
+                      </p>
+                    </div>
+
+                    <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-2">
+                      {[
+                        isPaid ? 'Payment Record Verified & Confirmed' : 'Free Registration Confirmed',
+                        'QR Code Ticket Generated',
+                        'Email Confirmation Sent',
+                        'Event Reminder Scheduled (1 day before)',
+                      ].map(item => (
+                        <div key={item} className="flex items-center gap-2 text-sm text-green-700">
+                          <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button onClick={onClose} className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-sm">
+                      View My Ticket →
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
         </div>
+      )}
+    </AnimatePresence>
+  )
+})
 
 
-      </div>
-
-
-    )}
-
-
-  </AnimatePresence>
-
-
-))
 
 
 
@@ -2704,8 +1336,8 @@ const Events = () => {
     description: '',
 
 
-    organizer: user?.first_name && user?.last_name 
-      ? `${user.first_name} ${user.last_name}` 
+    organizer: user?.first_name && user?.last_name
+      ? `${user.first_name} ${user.last_name}`
       : user?.name || 'Event Organizer',
 
 
@@ -2850,7 +1482,7 @@ const Events = () => {
       }
 
 
-      
+
 
 
       // Check file size (max 10MB)
@@ -2949,7 +1581,7 @@ const Events = () => {
     const { closeModalOnSuccess = true, showSuccessToast = true } = options
 
 
-    
+
 
 
     // Validation
@@ -3132,7 +1764,7 @@ const Events = () => {
       }
 
 
-      
+
 
 
       return true
@@ -3212,16 +1844,16 @@ const Events = () => {
         const defaultImage = 'https://images.unsplash.com/photo-1549924231-f129b911e442?w=800'
 
 
-        const isValidImageUrl = e.poster_image_url && 
+        const isValidImageUrl = e.poster_image_url &&
 
 
-                                typeof e.poster_image_url === 'string' && 
+          typeof e.poster_image_url === 'string' &&
 
 
-                                !e.poster_image_url.startsWith('file://') &&
+          !e.poster_image_url.startsWith('file://') &&
 
 
-                                (e.poster_image_url.startsWith('http://') || e.poster_image_url.startsWith('https://') || e.poster_image_url.startsWith('/'))
+          (e.poster_image_url.startsWith('http://') || e.poster_image_url.startsWith('https://') || e.poster_image_url.startsWith('/'))
 
 
         return {
@@ -3439,7 +2071,7 @@ const Events = () => {
     }
 
 
-    
+
 
 
     console.log('Event status:', selectedEvent.status)
@@ -3448,7 +2080,7 @@ const Events = () => {
     console.log('Event data:', selectedEvent)
 
 
-    
+
 
 
     // Check if event allows registration (more flexible status check)
@@ -3466,7 +2098,7 @@ const Events = () => {
     }
 
 
-    
+
 
 
     if (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees) {
@@ -3481,12 +2113,11 @@ const Events = () => {
     }
 
 
-    
+
 
 
     // Show registration form
-
-
+    setPaymentStep('form')
     setShowRegisterForm(true)
 
 
@@ -3524,266 +2155,86 @@ const Events = () => {
 
 
   const handleRegistrationSubmit = useCallback(async (e) => {
-
-
     e.preventDefault()
 
-
-
-
-
     // Basic validation
-
-
     if (!registrationData.name.trim()) {
-
-
       toast.error('Name is required')
-
-
       return
-
-
     }
-
-
     if (!registrationData.email.trim()) {
-
-
       toast.error('Email is required')
-
-
       return
-
-
     }
-
-
     if (!/\S+@\S+\.\S+/.test(registrationData.email)) {
-
-
       toast.error('Please enter a valid email')
-
-
       return
-
-
     }
 
+    if (selectedEvent.price > 0) {
+      // ──── PAID EVENT: do NOT call backend yet ────
+      // Just transition to payment step; registration will be created at "Finish Register"
+      setPaymentStep('info')
+      setPaymentMethod('card')
+      setPaymentProof(null)
+      setPaymentProofPreview(null)
+      setRejectionReason('')
+      return
+    }
 
-
-
-
+    // ──── FREE EVENT: register immediately ────
     try {
-
-
-      // POST registration to backend
-
-
       const res = await apiClient.post('/api/events/registrations/', {
-
-
         event: selectedEvent.id,
-
-
         notes: registrationData.notes || ''
-
-
       })
-
-
       const registrationId = res.data.id
 
-
-
-
-
-      // Build local ticket enrichment
-
-
       const ticket = {
-
-
         id: registrationId,
-
-
         eventId: selectedEvent.id,
-
-
         eventName: selectedEvent.title,
-
-
         eventDate: selectedEvent.date,
-
-
         eventTime: selectedEvent.time,
-
-
         eventLocation: selectedEvent.location,
-
-
         userName: registrationData.name,
-
-
         userEmail: registrationData.email,
-
-
         userPhone: registrationData.phone,
-
-
         userStudentId: registrationData.studentId,
-
-
         registrationDate: new Date().toISOString(),
-
-
         price: selectedEvent.price,
-
-
         qrCodeData: JSON.stringify({
-
-
           ticketId: registrationId,
-
-
           eventId: selectedEvent.id,
-
-
           userEmail: registrationData.email,
-
-
           userName: registrationData.name,
-
-
           eventDate: selectedEvent.date,
-
-
           eventTime: selectedEvent.time
-
-
         })
-
-
       }
-
-
-
-
 
       setRegistrationData({ name: '', email: '', phone: '', studentId: '', notes: '' })
-
-
-      setShowRegisterForm(false)
-
-
-
-
-
-      if (selectedEvent.price > 0) {
-
-
-        // Paid event → open payment modal; ticket activates only after approval
-
-
-        setPendingRegistrationId(registrationId)
-
-
-        setPendingTicketData(ticket)
-
-
-        setPaymentStep('info')
-
-
-        setPaymentMethod('card')
-
-
-        setPaymentProof(null)
-
-
-        setPaymentProofPreview(null)
-
-
-        setRejectionReason('')
-
-
-        setShowPaymentModal(true)
-
-
-      } else {
-
-
-        // Free event → confirmed in DB, show QR ticket
-
-
-        setIsRegistered(true)
-
-
-        selectedEvent.currentAttendees = (selectedEvent.currentAttendees || 0) + 1
-
-
-        toast.success('Successfully registered for the event!')
-
-
-        setTicketData(ticket)
-
-
-        setShowTicketModal(true)
-
-
-      }
-
-
+      setIsRegistered(true)
+      selectedEvent.currentAttendees = (selectedEvent.currentAttendees || 0) + 1
+      toast.success('Successfully registered for the event!')
+      setTicketData(ticket)
+      setPaymentStep('approved')
     } catch (err) {
-
-
       const msg =
-
-
         err.response?.data?.event?.[0] ||
-
-
         err.response?.data?.non_field_errors?.[0] ||
-
-
         err.response?.data?.detail ||
-
-
         'Registration failed. Please try again.'
-
-
       toast.error(msg)
-
-
     }
-
-
-  }, [registrationData, selectedEvent, setPendingRegistrationId, setPendingTicketData,
-
-
-      setPaymentStep, setPaymentMethod, setPaymentProof, setPaymentProofPreview,
-
-
-      setRejectionReason, setIsRegistered, setTicketData, setShowTicketModal,
-
-
-      setShowRegisterForm, setShowPaymentModal])
-
-
-
+  }, [registrationData, selectedEvent, setPaymentStep, setPaymentMethod, setPaymentProof, setPaymentProofPreview,
+    setRejectionReason, setIsRegistered, setTicketData])
 
 
   const handleLike = () => {
-
-
     setIsLiked(!isLiked)
-
-
     toast.success(isLiked ? 'Removed from favorites' : 'Added to favorites')
-
-
   }
-
-
 
 
 
@@ -3911,60 +2362,54 @@ const Events = () => {
 
 
   const handleSubmitProof = useCallback(async () => {
-
-
     if (!paymentProof) {
-
-
       toast.error('Please upload your proof of payment first')
-
-
       return
-
-
     }
-
 
     try {
+      // Create the registration NOW with proof attached (paid event)
+      const formData = new FormData()
+      formData.append('event', selectedEvent.id)
+      formData.append('notes', registrationData.notes || '')
+      formData.append('payment_receipt', paymentProof)
 
+      const res = await apiClient.post('/api/events/registrations/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
 
-      if (pendingRegistrationId) {
+      const registrationId = res.data.id
+      setPendingRegistrationId(registrationId)
 
-
-        const formData = new FormData()
-
-
-        formData.append('payment_receipt', paymentProof)
-
-
-        await apiClient.patch(`/api/events/registrations/${pendingRegistrationId}/`, formData, {
-
-
-          headers: { 'Content-Type': 'multipart/form-data' }
-
-
-        })
-
-
+      // Build local ticket data for later (after admin approves)
+      const ticket = {
+        id: registrationId,
+        eventId: selectedEvent.id,
+        eventName: selectedEvent.title,
+        eventDate: selectedEvent.date,
+        eventTime: selectedEvent.time,
+        eventLocation: selectedEvent.location,
+        userName: registrationData.name,
+        userEmail: registrationData.email,
+        userPhone: registrationData.phone,
+        userStudentId: registrationData.studentId,
+        registrationDate: new Date().toISOString(),
+        price: selectedEvent.price,
       }
-
+      setPendingTicketData(ticket)
+      setRegistrationData({ name: '', email: '', phone: '', studentId: '', notes: '' })
 
       setPaymentStep('verifying')
-
-
-      toast.success('Proof submitted! Awaiting finance verification (1–3 days).')
-
-
+      toast.success('Registration submitted! Awaiting payment confirmation (1–3 days).')
     } catch (err) {
-
-
-      toast.error('Failed to upload proof. Please try again.')
-
-
+      const msg =
+        err.response?.data?.event?.[0] ||
+        err.response?.data?.non_field_errors?.[0] ||
+        err.response?.data?.detail ||
+        'Registration failed. Please try again.'
+      toast.error(msg)
     }
-
-
-  }, [paymentProof, pendingRegistrationId])
+  }, [paymentProof, selectedEvent, registrationData])
 
 
 
@@ -3994,7 +2439,7 @@ const Events = () => {
       setTimeout(() => {
 
 
-        setShowPaymentModal(false)
+        setShowRegisterForm(false)
 
 
         setPendingTicketData(null)
@@ -4043,24 +2488,14 @@ const Events = () => {
 
 
   const handlePaymentClose = useCallback(() => {
-
-
-    setShowPaymentModal(false)
-
-
+    setShowRegisterForm(false)
     setPaymentProof(null)
-
-
     setPaymentProofPreview(null)
-
-
     setAbaTransactionId(null)
-
-
-    // Keep pendingTicketData + step so user can reopen via their account notifications
-
-
-  }, [])
+    if (paymentStep === 'approved') {
+      setShowTicketModal(true)
+    }
+  }, [paymentStep])
 
 
 
@@ -4255,7 +2690,7 @@ const Events = () => {
     if (!ticketData) return
 
 
-    
+
 
 
     // Create a canvas element to draw the ticket
@@ -4267,7 +2702,7 @@ const Events = () => {
     const ctx = canvas.getContext('2d')
 
 
-    
+
 
 
     // Set canvas size
@@ -4279,7 +2714,7 @@ const Events = () => {
     canvas.height = 600
 
 
-    
+
 
 
     // Draw ticket background
@@ -4291,7 +2726,7 @@ const Events = () => {
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
 
-    
+
 
 
     // Draw border
@@ -4306,7 +2741,7 @@ const Events = () => {
     ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20)
 
 
-    
+
 
 
     // Draw header
@@ -4318,7 +2753,7 @@ const Events = () => {
     ctx.fillRect(10, 10, canvas.width - 20, 80)
 
 
-    
+
 
 
     // Draw title
@@ -4333,7 +2768,7 @@ const Events = () => {
     ctx.fillText('EVENT TICKET', 20, 45)
 
 
-    
+
 
 
     // Draw event name
@@ -4345,7 +2780,7 @@ const Events = () => {
     ctx.fillText(ticketData.eventName, 20, 70)
 
 
-    
+
 
 
     // Draw ticket ID
@@ -4360,7 +2795,7 @@ const Events = () => {
     ctx.fillText(`Ticket ID: ${ticketData.id}`, 20, 90)
 
 
-    
+
 
 
     // Draw event details
@@ -4375,7 +2810,7 @@ const Events = () => {
     ctx.fillText('Event Details:', 20, 120)
 
 
-    
+
 
 
     ctx.font = '12px Arial'
@@ -4396,7 +2831,7 @@ const Events = () => {
     ctx.fillText(`Price: ${ticketData.price > 0 ? '$' + ticketData.price : 'Free'}`, 20, 205)
 
 
-    
+
 
 
     // Draw attendee details
@@ -4411,7 +2846,7 @@ const Events = () => {
     ctx.fillText('Attendee:', 220, 120)
 
 
-    
+
 
 
     ctx.font = '12px Arial'
@@ -4444,7 +2879,7 @@ const Events = () => {
     }
 
 
-    
+
 
 
     // Draw QR code placeholder (in a real app, you'd generate the QR code here)
@@ -4465,7 +2900,7 @@ const Events = () => {
     ctx.fillText('QR Code', 65, 295)
 
 
-    
+
 
 
     // Draw registration date
@@ -4480,7 +2915,7 @@ const Events = () => {
     ctx.fillText(`Registered: ${new Date(ticketData.registrationDate).toLocaleDateString()}`, 20, 380)
 
 
-    
+
 
 
     // Draw footer
@@ -4501,7 +2936,7 @@ const Events = () => {
     ctx.fillText('Scan QR code at event entrance', 20, canvas.height - 20)
 
 
-    
+
 
 
     // Download the ticket
@@ -4519,7 +2954,7 @@ const Events = () => {
     link.click()
 
 
-    
+
 
 
     toast.success('Ticket downloaded successfully!')
@@ -4570,7 +3005,7 @@ const Events = () => {
             />
 
 
-            
+
 
 
             {/* Modal Content */}
@@ -4978,16 +3413,13 @@ const Events = () => {
                     disabled={isRegistered || (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees)}
 
 
-                    className={`px-8 py-3 rounded-lg font-medium transition-all duration-300 ${
+                    className={`px-8 py-3 rounded-lg font-medium transition-all duration-300 ${isRegistered
 
 
-                      isRegistered
+                      ? 'bg-green-100 text-green-700 border border-green-200'
 
 
-                        ? 'bg-green-100 text-green-700 border border-green-200'
-
-
-                        : (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees)
+                      : (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees)
 
 
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -4996,7 +3428,7 @@ const Events = () => {
                         : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
 
 
-                    }`}
+                      }`}
 
 
                   >
@@ -5101,7 +3533,7 @@ const Events = () => {
             />
 
 
-            
+
 
 
             {/* Modal Content */}
@@ -5500,7 +3932,7 @@ const Events = () => {
             />
 
 
-            
+
 
 
             {/* Modal Content */}
@@ -5765,8 +4197,8 @@ const Events = () => {
 
 
                       <span className="font-medium text-gray-900">
-                        {user?.first_name && user?.last_name 
-                          ? `${user.first_name} ${user.last_name}` 
+                        {user?.first_name && user?.last_name
+                          ? `${user.first_name} ${user.last_name}`
                           : user?.name || 'N/A'}
                       </span>
 
@@ -5924,7 +4356,7 @@ const Events = () => {
             />
 
 
-            
+
 
 
             {/* Modal Content */}
@@ -6369,7 +4801,7 @@ const Events = () => {
           </div>
 
 
-          <button 
+          <button
 
 
             onClick={(e) => {
@@ -6534,7 +4966,7 @@ const Events = () => {
       {/* Hero Section */}
 
 
-      <div 
+      <div
 
 
         style={{
@@ -6576,7 +5008,7 @@ const Events = () => {
         {/* Curved bottom shape */}
 
 
-        <div 
+        <div
 
 
           style={{
@@ -6609,7 +5041,7 @@ const Events = () => {
         />
 
 
-        
+
 
 
         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -6771,7 +5203,7 @@ const Events = () => {
               </div>
 
 
-              
+
 
 
               {/* Filters */}
@@ -6810,7 +5242,7 @@ const Events = () => {
               </select>
 
 
-              
+
 
 
               <select
@@ -6924,95 +5356,31 @@ const Events = () => {
       <EventModal />
 
 
-      
 
 
-      {/* Registration Form Modal */}
 
-
+      {/* Registration Form Modal (Unified Stepper) */}
       <RegistrationFormModal
-
-
         show={showRegisterForm}
-
-
-        selectedEvent={selectedEvent}
-
-
-        registrationData={registrationData}
-
-
-        onRegistrationChange={handleRegistrationChange}
-
-
-        onRegistrationSubmit={handleRegistrationSubmit}
-
-
-        onClose={() => setShowRegisterForm(false)}
-
-
-      />
-
-
-      
-
-
-      {/* Payment Modal ” Section 6: Student Payment & Event Attendance */}
-
-
-      <PaymentModal
-
-
-        show={showPaymentModal}
-
-
         step={paymentStep}
-
-
         selectedEvent={selectedEvent}
-
-
-        paymentProof={paymentProof}
-
-
-        paymentProofPreview={paymentProofPreview}
-
-
-        rejectionReason={rejectionReason}
-
-
-        abaTransactionId={abaTransactionId}
-
-
-        onProofUpload={handlePaymentProofUpload}
-
-
-        onSubmitProof={handleSubmitProof}
-
-
-        onReupload={() => setPaymentStep('upload')}
-
-
+        registrationData={registrationData}
+        onRegistrationChange={handleRegistrationChange}
+        onRegistrationSubmit={handleRegistrationSubmit}
         onClose={handlePaymentClose}
-
-
+        paymentProof={paymentProof}
+        paymentProofPreview={paymentProofPreview}
+        rejectionReason={rejectionReason}
+        abaTransactionId={abaTransactionId}
+        onProofUpload={handlePaymentProofUpload}
+        onSubmitProof={handleSubmitProof}
+        onReupload={() => setPaymentStep('upload')}
         onProceedToUpload={() => setPaymentStep('upload')}
-
-
         onStartAbaQr={handleStartAbaQr}
-
-
         onSimulateApprove={handleSimulateApprove}
-
-
         onSimulateReject={handleSimulateReject}
-
-
+        pendingRegistrationId={pendingRegistrationId}
       />
-
-
-
-
 
       {/* Ticket Modal */}
 
@@ -7020,7 +5388,7 @@ const Events = () => {
       <TicketModal />
 
 
-      
+
 
 
       {/* Organizer Registration Modal */}
@@ -7164,8 +5532,8 @@ const CreateEventModal = React.memo(({ eventForm, handleFormChange, handlePdfUpl
       description: '',
 
 
-      organizer: user?.first_name && user?.last_name 
-        ? `${user.first_name} ${user.last_name}` 
+      organizer: user?.first_name && user?.last_name
+        ? `${user.first_name} ${user.last_name}`
         : user?.name || 'Event Organizer',
 
 
@@ -7277,19 +5645,19 @@ const CreateEventModal = React.memo(({ eventForm, handleFormChange, handlePdfUpl
     // Submit event without closing modal or showing toast (we show our own success screen)
 
 
-    const success = await handleCreateEventSubmit({ 
+    const success = await handleCreateEventSubmit({
 
 
-      closeModalOnSuccess: false, 
+      closeModalOnSuccess: false,
 
 
-      showSuccessToast: false 
+      showSuccessToast: false
 
 
     })
 
 
-    
+
 
 
     // Only advance to submitted step if creation succeeded
@@ -7970,7 +6338,7 @@ const CreateEventModal = React.memo(({ eventForm, handleFormChange, handlePdfUpl
                     <p className="text-sm text-gray-600 mb-4">Please upload a screenshot or receipt of your payment to proceed:</p>
 
 
-                    
+
 
 
                     {!ticketPaymentProof ? (
@@ -8060,7 +6428,7 @@ const CreateEventModal = React.memo(({ eventForm, handleFormChange, handlePdfUpl
                 <div className="p-6 border-t border-gray-200 flex items-center justify-between mt-6">
 
 
-                  <button onClick={() => setStep('form')} className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium hover:bg-gray-100 rounded-lg transition-all">← Back</button>
+                  <button onClick={() => setStep('form')} className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium hover:bg-gray-100 rounded-lg transition-all"> Back</button>
 
 
                   <button
@@ -8105,7 +6473,7 @@ const CreateEventModal = React.memo(({ eventForm, handleFormChange, handlePdfUpl
                   >
 
 
-                    Verify Payment →
+                    Verify Payment
 
 
                   </button>
@@ -8189,7 +6557,7 @@ const CreateEventModal = React.memo(({ eventForm, handleFormChange, handlePdfUpl
                   >
 
 
-                    Continue to AI Evaluation →
+                    Continue to AI Evaluation
 
 
                   </button>
@@ -8480,7 +6848,7 @@ const CreateEventModal = React.memo(({ eventForm, handleFormChange, handlePdfUpl
                 <div className="bg-white rounded-xl border border-gray-200 p-4 text-left space-y-3 mb-6">
 
 
-                  {['Checking payment amount','Validating transfer code','Duplicate payment scan','Image authenticity check'].map((item, i) => (
+                  {['Checking payment amount', 'Validating transfer code', 'Duplicate payment scan', 'Image authenticity check'].map((item, i) => (
 
 
                     <div key={i} className="flex items-center gap-3 text-sm">

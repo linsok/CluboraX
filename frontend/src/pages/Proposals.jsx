@@ -91,6 +91,8 @@ const Proposals = () => {
       case 'rejected': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
       case 'returned': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+      case 'pending_review': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+      case 'pending_payment': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
     }
   }
@@ -101,6 +103,8 @@ const Proposals = () => {
       case 'rejected': return <XCircleIcon className="w-5 h-5" />
       case 'returned': return <ArrowPathIcon className="w-5 h-5" />
       case 'pending': return <ClockIcon className="w-5 h-5" />
+      case 'pending_review': return <ClockIcon className="w-5 h-5" />
+      case 'pending_payment': return <ClockIcon className="w-5 h-5" />
       default: return <ClockIcon className="w-5 h-5" />
     }
   }
@@ -434,6 +438,7 @@ const EventProposalModal = ({ onClose }) => {
     payment_method: ''
   })
   const [scheduleFile, setScheduleFile] = useState(null)
+  const [paymentProof, setPaymentProof] = useState(null)
   const [showPayment, setShowPayment] = useState(false)
   const [paymentMessage, setPaymentMessage] = useState('')
   const queryClient = useQueryClient()
@@ -532,6 +537,10 @@ const EventProposalModal = ({ onClose }) => {
         proposed_date: durationDays === 1 ? formData.eventDate : formData.startDate,
         payment_method: formData.payment_method || null,
         budget_items: [],
+        // Add payment related fields
+        platform_fee_receipt: paymentProof,
+        payment_status: showPayment ? 'pending' : 'not_required',
+        status: showPayment ? 'pending_payment' : 'pending_review'
       }
       await createEventProposal(payload)
       toast.success('Event proposal submitted successfully!')
@@ -700,6 +709,17 @@ const EventProposalModal = ({ onClose }) => {
                     <option value="bank_transfer">Bank Transfer</option>
                     <option value="mobile_payment">Mobile Payment (Wing, Pi Pay, etc.)</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Upload Payment Proof (Receipt) *</label>
+                  <input
+                    type="file"
+                    onChange={(e) => setPaymentProof(e.target.files[0])}
+                    required={showPayment}
+                    accept="image/*"
+                    className="w-full px-4 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                  <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-300 italic">Please upload a screenshot or photo of your transaction receipt.</p>
                 </div>
               </div>
             </div>
@@ -1006,6 +1026,7 @@ const EventRevisionModal = ({ proposal, onClose, queryClient }) => {
     revision_notes: '',
   })
   const [attachmentFiles, setAttachmentFiles] = useState([])
+  const [paymentProof, setPaymentProof] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [paymentMessage, setPaymentMessage] = useState('')
@@ -1135,6 +1156,10 @@ const EventRevisionModal = ({ proposal, onClose, queryClient }) => {
       payment_method: formData.payment_method || null,
       revision_notes: formData.revision_notes,
       budget_items: [],
+      // Add payment related fields
+      platform_fee_receipt: paymentProof,
+      payment_status: showPayment ? 'pending' : 'not_required',
+      status: showPayment ? 'pending_payment' : 'pending_review'
     }
     revisionMutation.mutate({ id: proposal.id, data: updateData, files: attachmentFiles })
   }
@@ -1308,6 +1333,17 @@ const EventRevisionModal = ({ proposal, onClose, queryClient }) => {
                     <option value="mobile_payment">Mobile Payment (Wing, Pi Pay, etc.)</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Upload Payment Proof (Receipt) *</label>
+                  <input
+                    type="file"
+                    onChange={(e) => setPaymentProof(e.target.files[0])}
+                    required={showPayment}
+                    accept="image/*"
+                    className="w-full px-4 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                  <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-300 italic">Please upload a screenshot or photo of your transaction receipt.</p>
+                </div>
               </div>
             </div>
           )}
@@ -1378,7 +1414,7 @@ const EventRevisionModal = ({ proposal, onClose, queryClient }) => {
 // Club Revision Modal – pre-filled with existing proposal data
 // ─────────────────────────────────────────────────────────────────
 const ClubRevisionModal = ({ proposal, onClose, queryClient }) => {
-  // Reverse-map stored club_type → select option value
+  // Reverse-map stored club_type  select option value
   const clubTypeToMission = {
     sports: 'Sports',
     academic: 'Academic',
@@ -1682,7 +1718,7 @@ const ClubRevisionModal = ({ proposal, onClose, queryClient }) => {
             </div>
             {members.length < 5 && (
               <p className="mt-2 text-sm text-orange-600 dark:text-orange-400 font-medium">
-                ⚠ Need at least {5 - members.length} more member(s) to reach the minimum of 5.
+                 Need at least {5 - members.length} more member(s) to reach the minimum of 5.
               </p>
             )}
           </div>

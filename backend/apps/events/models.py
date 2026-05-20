@@ -182,6 +182,11 @@ class EventRegistration(TimeStampedModel):
         ('rejected', 'Rejected'),
     ]
     
+    APPROVED_BY_CHOICES = [
+        ('organizer', 'Organizer'),
+        ('admin', 'Admin'),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(
         Event, 
@@ -211,6 +216,28 @@ class EventRegistration(TimeStampedModel):
         upload_to='payment_receipts/', 
         null=True, 
         blank=True
+    )
+    # User-provided transaction info (bank reference, amount, date, etc.)
+    transaction_info = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Transaction details provided by user (bank ref, amount, date, etc.)'
+    )
+    # Who reviewed the payment
+    approved_by_role = models.CharField(
+        max_length=20,
+        choices=APPROVED_BY_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Whether payment was approved/rejected by organizer or admin'
+    )
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_registrations',
+        help_text='The specific user (organizer/admin) who approved or rejected the payment'
     )
     checked_in = models.BooleanField(default=False)
     checked_in_at = models.DateTimeField(null=True, blank=True)

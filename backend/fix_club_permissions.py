@@ -38,7 +38,7 @@ try:
         print(f"✅ Created leader membership for {student.email}")
     
     # Show all memberships
-    print("\n📋 Current memberships:")
+    print("\n- Current memberships:")
     for m in ClubMembership.objects.filter(club=club):
         print(f"  - {m.user.email}: {m.role} ({m.status})")
         

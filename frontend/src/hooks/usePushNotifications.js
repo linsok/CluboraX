@@ -34,19 +34,19 @@ export const usePushNotifications = (enabled = true) => {
                 return {
                   background: '#fee2e2',
                   border: '1px solid #fecaca',
-                  icon: '🔴'
+                  icon: ''
                 }
               } else if (notif.priority === 'medium') {
                 return {
                   background: '#fef3c7',
                   border: '1px solid #fcd34d',
-                  icon: '🟡'
+                  icon: ''
                 }
               } else {
                 return {
                   background: '#f0fdf4',
                   border: '1px solid #bbf7d0',
-                  icon: '🟢'
+                  icon: ''
                 }
               }
             }
@@ -77,7 +77,7 @@ export const usePushNotifications = (enabled = true) => {
                               rel="noopener noreferrer"
                               className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block"
                             >
-                              View Details →
+                              View Details 
                             </a>
                           )}
                         </div>
@@ -88,7 +88,7 @@ export const usePushNotifications = (enabled = true) => {
                       className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-lg leading-none"
                       aria-label="Close notification"
                     >
-                      ✕
+                      
                     </button>
                   </div>
                 </div>

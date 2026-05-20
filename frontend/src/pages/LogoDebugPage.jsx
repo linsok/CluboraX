@@ -18,7 +18,7 @@ export default function LogoDebugPage() {
 
   return (
     <div className="p-8 bg-gray-900 text-white min-h-screen font-mono text-sm">
-      <h1 className="text-2xl mb-6">🔍 Logo Debug Page</h1>
+      <h1 className="text-2xl mb-6"> Logo Debug Page</h1>
       
       {clubs.slice(0, 5).map(club => (
         <div key={club.id} className="mb-6 p-4 border border-gray-700 rounded bg-gray-800">
@@ -40,7 +40,7 @@ export default function LogoDebugPage() {
                 className="h-24 w-24 object-cover rounded"
                 onError={(e) => {
                   e.target.className = 'h-24 w-24 object-cover rounded border-2 border-red-500'
-                  e.target.alt = '❌ Failed to load'
+                  e.target.alt = ' Failed to load'
                 }}
               />
             </div>

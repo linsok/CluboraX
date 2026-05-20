@@ -70,7 +70,7 @@ class NotificationTester:
     def test(self, name, func):
         """Execute a test and log result"""
         try:
-            print(f"\n📋 Testing: {name}...")
+            print(f"\n- Testing: {name}...")
             func()
             self.test_results.append({'name': name, 'status': '✅ PASS', 'error': None})
             print(f"✅ {name} - PASSED")

@@ -282,6 +282,8 @@ def proposals_list(request):
         
         if status_filter:
             event_proposals = event_proposals.filter(status=status_filter)
+        else:
+            event_proposals = event_proposals.exclude(status='pending_payment')
         
         if priority_filter:
             event_proposals = event_proposals.filter(priority=priority_filter)

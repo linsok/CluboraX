@@ -1,8 +1,11 @@
 from rest_framework import serializers
 from .models import EventProposal, ClubProposal
 from django.contrib.auth import get_user_model
+from apps.notifications.telegram_utils import send_telegram_photo
+import logging
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -65,7 +68,38 @@ class EventProposalSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         validated_data['submitted_by'] = self.context['request'].user
-        return super().create(validated_data)
+        instance = super().create(validated_data)
+        
+        # Check if there is a platform fee receipt to notify admins
+        if instance.platform_fee_receipt:
+            try:
+                # Find all admins with a telegram chat ID
+                admins = User.objects.filter(role='admin').exclude(telegram_chat_id__isnull=True).exclude(telegram_chat_id='')
+                
+                if admins.exists():
+                    caption = (
+                        f"🚨 <b>New Event Proposal Paid</b> 🚨\n\n"
+                        f"<b>Event:</b> {instance.title or instance.eventTitle}\n"
+                        f"<b>Organizer:</b> {instance.submitted_by.first_name} {instance.submitted_by.last_name}\n\n"
+                        f"A platform fee receipt has been uploaded and requires verification."
+                    )
+                    
+                    # Create inline buttons for admin dashboard navigation
+                    from django.conf import settings
+                    reply_markup = {
+                        "inline_keyboard": [[
+                            {"text": "View in Dashboard", "url": f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:5175')}/admin"}
+                        ]]
+                    }
+                    
+                    for admin in admins:
+                        # Open the file again since Django might have closed it after saving
+                        with instance.platform_fee_receipt.open('rb') as photo_file:
+                            send_telegram_photo(admin.telegram_chat_id, photo_file, caption, reply_markup)
+            except Exception as e:
+                logger.error(f"Failed to send Telegram notification for platform fee receipt: {e}")
+                
+        return instance
 
 
 class ClubProposalSerializer(serializers.ModelSerializer):

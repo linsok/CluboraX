@@ -1,4 +1,4 @@
-﻿from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -147,6 +147,7 @@ class EventProposalViewSet(viewsets.ModelViewSet):
             'ticketPrice', 'catering', 'sponsor',
             'total_budget', 'budget', 'budget_items',
             'payment_method', 'requirements',
+            'platform_fee_receipt', 'payment_status',
         ]
         for field in updatable_fields:
             if field in request.data:
@@ -167,8 +168,21 @@ class EventProposalViewSet(viewsets.ModelViewSet):
         if 'revision_notes' in request.data:
             proposal.revision_notes = request.data['revision_notes']
 
-        # Set status to 'returned_for_revision' so admin can review the revised proposal
-        proposal.status = 'returned_for_revision'
+        # Explicitly handle platform fee receipt if uploaded
+        if 'platform_fee_receipt' in request.FILES:
+            proposal.platform_fee_receipt = request.FILES['platform_fee_receipt']
+
+        # Determine status based on payment requirement
+        is_paid_event = bool(proposal.ticketPrice and proposal.ticketPrice > 0)
+        if is_paid_event and proposal.payment_status != 'verified':
+            proposal.status = 'pending_payment'
+            # If a new receipt is uploaded or they are resubmitting a previously rejected payment, reset payment_status to pending
+            proposal.payment_status = 'pending'
+        else:
+            proposal.status = 'returned_for_revision'
+            if not is_paid_event:
+                proposal.payment_status = 'not_required'
+
         proposal.reviewed_by = None
         proposal.reviewed_date = None
         proposal.review_comments = None

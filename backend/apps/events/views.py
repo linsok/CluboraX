@@ -224,6 +224,48 @@ class EventRegistrationDetailView(generics.RetrieveUpdateDestroyAPIView):
         else:
             return EventRegistration.objects.all()
 
+    def perform_update(self, serializer):
+        """
+        Update registration. If the user re-uploads a payment receipt after
+        a rejection, reset payment_status to pending and re-notify organizer + admins.
+        """
+        old = self.get_object()
+        was_rejected = old.payment_status == 'rejected'
+        new_receipt_uploaded = 'payment_receipt' in self.request.data
+
+        instance = serializer.save()
+
+        # Re-upload after rejection: reset status and re-notify via Telegram
+        if was_rejected and new_receipt_uploaded and instance.payment_receipt:
+            instance.payment_status = 'pending'
+            instance.status = 'pending_payment'
+            # Clear previous approval tracking
+            instance.approved_by = None
+            instance.approved_by_role = None
+            instance.save(update_fields=['payment_status', 'status', 'approved_by', 'approved_by_role'])
+
+            # Re-send Telegram notifications via the same helper
+            from .serializers import EventRegistrationCreateSerializer
+            serializer_instance = EventRegistrationCreateSerializer()
+            serializer_instance._send_payment_telegram_notifications(
+                registration=instance,
+                event=instance.event,
+                user=instance.user
+            )
+
+            logger.info(
+                f"Payment re-upload by {instance.user.email} for event "
+                f"{instance.event.title} — organizer re-notified via Telegram."
+            )
+
+        log_user_action(
+            self.request,
+            'update',
+            'EventRegistration',
+            instance.id,
+            new_values=serializer.data
+        )
+
 
 class EventCheckInView(APIView):
     """

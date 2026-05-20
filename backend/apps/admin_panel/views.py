@@ -275,9 +275,11 @@ class AdminRequestListView(APIView):
             elif type_filter == 'club_proposal':
                 event_proposals = event_proposals.none()  # Skip event proposals if filtering for club
             
-            # Apply status filter
+            # Apply status filter (exclude pending_payment if status_filter is not explicitly provided)
             if status_filter:
                 event_proposals = event_proposals.filter(status=status_filter)
+            else:
+                event_proposals = event_proposals.exclude(status='pending_payment')
             
             for proposal in event_proposals:
                 # Apply search filter
@@ -322,7 +324,9 @@ class AdminRequestListView(APIView):
                         'organizerPhone': proposal.organizerPhone,
                         'ticketPrice': str(proposal.ticketPrice) if proposal.ticketPrice else '0',
                         'catering': proposal.catering,
-                        'sponsor': proposal.sponsor
+                        'sponsor': proposal.sponsor,
+                        'platform_fee_receipt': proposal.platform_fee_receipt.url if proposal.platform_fee_receipt else None,
+                        'payment_status': proposal.payment_status,
                     }
                 })
             
@@ -693,6 +697,84 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
             return Response({
                 'error': True,
                 'message': f'Failed to update request: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminVerifyPaymentView(APIView):
+    """
+    View for admin to verify platform fee payments for event proposals.
+    """
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk):
+        try:
+            from apps.proposals.models import EventProposal
+            proposal = EventProposal.objects.get(id=pk)
+
+            action = request.data.get('action') # 'approve' or 'reject'
+            comments = request.data.get('comments', '')
+
+            if action == 'approve':
+                proposal.payment_status = 'verified'
+                # Only move to pending_review if it was pending_payment
+                if proposal.status == 'pending_payment' or proposal.status == 'pending_review':
+                    proposal.status = 'pending_review'
+
+                if comments:
+                    proposal.review_comments = comments
+
+                proposal.save()
+
+                # Log action
+                log_user_action(
+                    request,
+                    'verify_payment',
+                    'EventProposal',
+                    proposal.id,
+                    new_values={'payment_status': 'verified', 'status': proposal.status}
+                )
+
+                return Response({
+                    'success': True,
+                    'message': 'Payment proof verified. Proposal is now pending review.'
+                })
+
+            elif action == 'reject':
+                proposal.payment_status = 'rejected'
+                if comments:
+                    proposal.review_comments = comments
+
+                proposal.save()
+
+                # Log action
+                log_user_action(
+                    request,
+                    'reject_payment',
+                    'EventProposal',
+                    proposal.id,
+                    new_values={'payment_status': 'rejected'}
+                )
+
+                return Response({
+                    'success': True,
+                    'message': 'Payment proof rejected.'
+                })
+            else:
+                return Response({
+                    'error': True,
+                    'message': 'Invalid action. Use "approve" or "reject".'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except EventProposal.DoesNotExist:
+            return Response({
+                'error': True,
+                'message': 'Proposal not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Verify payment error: {e}")
+            return Response({
+                'error': True,
+                'message': f'Failed to verify payment: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
