@@ -24,8 +24,17 @@ RUN apt-get update \
 
 # Install Python dependencies
 COPY requirements.txt /app/
+RUN python - <<'PY'
+from pathlib import Path
+
+requirements = Path('/app/requirements.txt').read_text().splitlines()
+filtered = [line for line in requirements if line.strip() != 'torch>=2.0.0']
+Path('/tmp/requirements-docker.txt').write_text('\n'.join(filtered) + '\n')
+PY
+
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir --retries 5 --timeout 120 torch --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir --retries 5 --timeout 120 -r /tmp/requirements-docker.txt
 
 # Copy project
 COPY . /app/

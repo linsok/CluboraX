@@ -9,12 +9,18 @@ import { apiClient } from './client'
 export const sendChatMessage = async (message, context = {}) => {
   try {
     const { mode = 'general', session_id = '', ...rest } = context
-    const response = await apiClient.post('/api/ai-advisor/chat/', {
-      message,
-      mode,
-      session_id,
-      context: rest,
-    })
+    const response = await apiClient.post(
+      '/api/ai-advisor/chat/',
+      {
+        message,
+        mode,
+        session_id,
+        context: rest,
+      },
+      {
+        timeout: 60000,
+      }
+    )
     return response.data
   } catch (error) {
     console.error('Send chat message error:', error)
@@ -82,10 +88,10 @@ export const getContentSuggestions = async (content, contentType = 'general') =>
 // Check policy compliance
 export const checkPolicyCompliance = async (title, description, type = 'event') => {
   try {
+    const content = [title, description].filter(Boolean).join('\n\n')
     const response = await apiClient.post('/api/ai-advisor/check-compliance/', {
-      title,
-      description,
-      type
+      content,
+      content_type: type,
     })
     return response.data
   } catch (error) {

@@ -1,0 +1,130 @@
+Campus Event and Club Management System 
+Club-related - Questions and Answers
+
+Q1: How many clubs are available on campus?
+A: You can view all available clubs by browsing the clubs section in the system. The system maintains a directory of all approved and active clubs on campus. Students can browse available clubs to see the complete list of clubs they can join.
+
+Q2: How do I join a club?
+A: To join a club, follow these steps:
+1. Browse available clubs in the system
+2. Select the club you want to join
+3. View the club requirements
+4. Apply for membership
+5. The club organizer will review your application
+6. The organizer will approve or deny your application
+7. You will be notified of the decision
+8. If approved, you become a member with ACTIVE membership status
+
+Q3: Can first-year students join clubs?
+A: Yes, first-year students can join clubs. By default, all new users are assigned a "Student" role which gives them permission to join clubs. However, individual clubs may have specific requirements that you need to meet, which are visible when you view the club details.
+
+Q4: Can I join more than one club?
+A: Yes, you can join multiple clubs. As a student, your permissions include the ability to join clubs, and there is no specified limit on the number of clubs you can be a member of. You can browse available clubs and apply for membership to any clubs that interest you.
+
+Q5: Is there a membership fee for clubs?
+A: Some clubs may have membership fees. The system supports payment processing for club memberships through bank-to-bank transfer. When you apply for membership, if there is a fee, you will be directed to initiate payment, upload your transaction receipt, and complete the payment process before your membership is confirmed.
+
+
+Q6: How do I leave a club?
+A: The system manages club membership status and allows approved clubs to manage member applications. While the specific process for leaving a club isn't detailed in the core workflows, club organizers have the ability to manage membership status, which would include processing membership terminations or withdrawals.
+
+Q7: Who is the president of the [Club Name]?
+A: When you view club details, you can see comprehensive club information including advisor information and club leadership.
+
+Q8: What does the [Club Name] do?
+A: Each club has detailed information available when you browse clubs. Club information includes:
+- Club name and description
+- Mission statement
+- Category and tags
+- Activities and focus areas
+You can view these details by selecting the club from the available clubs list.
+
+Q9: How can I contact the [Club Name]?
+A: Club contact information is included in the club details. When creating club proposals, organizers provide social links and contact information. 
+
+Q10: Are clubs active during holidays?
+A: Club activity schedules vary by club. When you view club information, you can see the meeting schedule that was specified during club creation. Clubs can create and manage activities throughout the year based on their own schedules and the availability of their members.
+
+Q11: How often do clubs meet?
+A: Meeting frequency is specified in each club's information. When organizers create club proposals, they include meeting schedule details. You can view this information by browsing the club details to see how often the club meets and when.
+
+Q12: Can I create a new club?
+A: Yes, if you have the Organizer role, you can create a new club by submitting a club proposal. The process involves:
+1. Initiating a club proposal
+2. Filling comprehensive club information (name, description, mission statement, category, tags)
+3. Providing advisor information and meeting schedules
+4. Including requirements, social links, and budget/funding details
+5. Attaching supporting documents
+6. Submitting the proposal (Status: PENDING)
+7. Waiting for approver review and decision
+8. If approved, the club becomes ACTIVE and members can join
+
+Q13: What are the requirements to start a club?
+A: To start a club, you need to submit a club proposal with the following information:
+- Club name and description
+- Mission statement
+- Category and tags
+- Advisor information
+- Meeting schedule
+- Membership requirements
+- Social links
+- Budget and funding details
+- Supporting documents
+The proposal must then go through the approval process where approvers review the details before the club can become active.
+
+Q14: Are there interviews for joining clubs?
+A: Individual clubs may have their own membership requirements. When you apply for club membership, the club organizer reviews your application and can approve or deny it based on the club's specific criteria. Some clubs may require interviews as part of their membership requirements.
+
+Q15: What benefits do I get from joining a club?
+A: As a club member with ACTIVE membership status, you receive:
+- Access to club activities and events
+- Notifications about club activities and announcements
+- Ability to register for club-specific activities
+- Participation in club social media and community
+- Networking opportunities with other members
+
+Q16: Can international students join clubs?
+A: The system assigns all new users a default "Student" role which includes permissions to join clubs. As long as you meet the specific requirements set by individual clubs, international students can apply for and join clubs through the same membership application process.
+
+Q17: Do clubs provide certificates?
+A: Certificate provision would depend on individual club policies. Club organizers can track member participation and issue certificates based on their club's specific programs and policies.
+
+Q18: How do clubs communicate with members?
+A: Clubs communicate with members through multiple channels:
+- In-app notifications for club activities and announcements
+- Email notifications for important updates
+- Club member directory and communication tools
+- Social media integration supported by the system
+Members receive notifications when club activities are published and can manage their notification preferences.
+
+Q19: Can I attend a club meeting before joining?
+A: Club requirements and policies vary by club. When you browse available clubs and view club requirements, you can see what is expected before joining. Some clubs may allow visitors, while others may require membership first. Check with the specific club organizer for their policy.
+
+Q20: Is there a club fair event?
+A: Club fairs and recruitment events can be organized through the event management system. Organizers can create events for club recruitment, which would go through the event approval process and be published to the event calendar for students to attend and learn about different clubs.
+
+Q21: Where can I see the list of all clubs?
+A: You can see the list of all available clubs by browsing the clubs section in the system, where you can view all approved and active clubs on campus with their descriptions and details.
+
+Q22: Can I switch clubs after joining?
+A: Yes, you can join multiple clubs, and you can also leave clubs. The system manages membership status, and club organizers have the ability to manage member applications and memberships. You can apply for membership to new clubs at any time as long as you meet their requirements.
+
+Q23: Are clubs supervised by faculty?
+A: Yes, each club have their own advisor. This information is included in the club details.
+
+Q24: How do clubs get funding?
+A: Clubs can request funding as part of their operations. When creating club proposals, organizers include budget and funding details.
+
+Q25: Can clubs collaborate with other clubs?
+A: Yes, clubs can collaborate. Organizers can create activities and events that involve multiple clubs.
+
+Q26: How do I know about upcoming club activities?
+A: You are notified about upcoming club activities through multiple channels:
+- Club members are notified when activities are published
+- The notification system sends updates about club activities
+- You can view club activities in the system
+- Automated reminders are sent for upcoming activities
+- In-app, email keep you informed
+
+Q27: Can I rejoin a club after leaving?
+A: Yes, if you previously left a club, you can apply for membership again. The membership application process is the same: browse available clubs, select the club, view requirements, apply for membership, and wait for the club organizer to review and approve your application. Your new membership will be processed through the standard approval workflow.

@@ -1,5 +1,6 @@
 import re
 import logging
+from typing import Any, Dict, Optional
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.views import APIView
@@ -13,51 +14,10 @@ from .serializers import (
     FeedbackSerializer,
 )
 from .services import AIAdvisorService
+from .rag_service import RAGChatService
 from apps.core.views import StandardResultsSetPagination
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Simple rule-based chat — used when no LLM backend is configured
-# ---------------------------------------------------------------------------
-
-CHAT_RESPONSES = {
-    'event': [
-        "For successful events, ensure you have a clear objective, sufficient budget, and proper venue arrangements.",
-        "Consider your target audience when planning event activities and scheduling.",
-        "Make sure to promote your event at least 2 weeks in advance through multiple channels.",
-        "Document all event requirements including equipment, volunteers, and logistics.",
-        "Always have a contingency plan for unexpected situations during the event.",
-    ],
-    'club': [
-        "A strong club needs clear goals, active membership, and regular activities.",
-        "Define your club's mission statement and values to attract like-minded members.",
-        "Plan at least one major event per semester to maintain member engagement.",
-        "Create a structured leadership hierarchy with clear roles and responsibilities.",
-        "Budget planning is critical — track all income and expenditure carefully.",
-    ],
-    'budget': [
-        "Start with a detailed budget breakdown to avoid overspending.",
-        "Always include a contingency buffer of 10-15% for unexpected costs.",
-        "Look for sponsorship opportunities to supplement your budget.",
-        "Track all expenses in real-time and compare against your budget monthly.",
-        "Prioritize essential expenses before allocating funds to optional items.",
-    ],
-    'policy': [
-        "Review campus policies regularly to ensure your activities remain compliant.",
-        "All club activities must be approved by the student affairs office.",
-        "Ensure all events comply with venue capacity and safety regulations.",
-        "Financial transactions must follow university procurement guidelines.",
-        "Maintain accurate records of all club activities for audit purposes.",
-    ],
-    'general': [
-        "I'm here to help with event planning, club management, budget advice, and policy guidance.",
-        "You can ask me about best practices for organizing events or managing clubs.",
-        "Need help with a specific aspect of your club or event? I can provide targeted advice.",
-        "I can analyze proposals and suggest improvements to help ensure success.",
-        "Feel free to ask about policies, budgets, member recruitment, or event logistics.",
-    ],
-}
 
 MODE_ADVICE_TYPE_MAP = {
     'event': 'event_proposal',
@@ -65,27 +25,8 @@ MODE_ADVICE_TYPE_MAP = {
     'budget': 'budget_optimization',
     'policy': 'policy_compliance',
     'general': 'content_improvement',
+    'content': 'content_improvement',
 }
-
-
-def _rule_based_response(message: str, mode: str) -> str:
-    """Return a simple rule-based response for a chat message."""
-    message_lower = message.lower()
-    if any(w in message_lower for w in ['event', 'organize', 'schedule', 'venue', 'activity']):
-        bucket = 'event'
-    elif any(w in message_lower for w in ['club', 'member', 'recruitment', 'leader']):
-        bucket = 'club'
-    elif any(w in message_lower for w in ['budget', 'cost', 'fund', 'spend', 'expense', 'money']):
-        bucket = 'budget'
-    elif any(w in message_lower for w in ['policy', 'rule', 'regulation', 'compliance', 'guideline']):
-        bucket = 'policy'
-    else:
-        bucket = mode if mode in CHAT_RESPONSES else 'general'
-
-    responses = CHAT_RESPONSES[bucket]
-    # Rotate through responses based on message length to add variety
-    index = len(message) % len(responses)
-    return responses[index]
 
 
 # ---------------------------------------------------------------------------
@@ -106,57 +47,57 @@ class ChatView(APIView):
         message = serializer.validated_data['message']
         mode = serializer.validated_data.get('mode', 'general')
         session_id = serializer.validated_data.get('session_id', '')
+        extra_context = serializer.validated_data.get('context') or {}
 
-        # Try the full AI service first; fall back to rule-based
-        ai_service = AIAdvisorService()
         advice_type = MODE_ADVICE_TYPE_MAP.get(mode, 'content_improvement')
-        ai_response = None
+        ai_response: Optional[str] = None
+        rag_meta: Dict[str, Any] = {}
 
-        try:
-            advice = ai_service.improve_content(
-                user=request.user,
-                content=message,
-                content_type=mode,
-                context={'session_id': session_id, 'mode': mode},
+        # 1) Prefer RAG chatbot (Chroma + embeddings + optional Ollama)
+        rag = RAGChatService()
+        if rag.available:
+            rag_result = rag.answer(message)
+            ai_response = rag_result.answer
+            rag_meta = {
+                'rag_kind': rag_result.kind,
+                'rag_distance': rag_result.distance,
+            }
+        else:
+            # Match the original terminal chatbot behavior: no rule-based answers.
+            # If the RAG engine is warming up (model download/load), tell the user.
+            initializing = bool(getattr(RAGChatService, '_initializing', False))
+            rag_meta = {'rag_kind': 'warming_up' if initializing else 'unavailable'}
+            ai_response = (
+                'AI chatbot is warming up. Please try again in a moment.'
+                if initializing
+                else 'AI chatbot is not available on this server.'
             )
-            # Build response text from suggestions
-            if advice.suggestions:
-                if isinstance(advice.suggestions, list):
-                    parts = []
-                    for s in advice.suggestions:
-                        if isinstance(s, dict):
-                            text = s.get('suggestion') or s.get('message') or str(s)
-                        else:
-                            text = str(s)
-                        parts.append(text)
-                    ai_response = '\n\n'.join(parts) if parts else None
-                elif isinstance(advice.suggestions, str):
-                    ai_response = advice.suggestions
-        except Exception as e:
-            logger.warning(f"AI service unavailable, using rule-based response: {e}")
 
-        # Fall back to rule-based if service returned nothing
-        if not ai_response:
-            ai_response = _rule_based_response(message, mode)
-            # Store a lightweight record anyway
-            try:
-                AIAdvice.objects.create(
-                    user=request.user,
-                    advice_type=advice_type,
-                    title=f"Chat: {message[:100]}",
-                    content=message,
-                    context={'session_id': session_id, 'mode': mode},
-                    suggestions=[{'suggestion': ai_response}],
-                    status='completed',
-                    confidence_score=0.7,
-                )
-            except Exception:
-                pass  # Non-critical — logging only
+        # 3) Persist chat record
+        try:
+            AIAdvice.objects.create(
+                user=request.user,
+                advice_type=advice_type,
+                title=f"Chat: {message[:100]}",
+                content=message,
+                context={
+                    'session_id': session_id,
+                    'mode': mode,
+                    **(extra_context if isinstance(extra_context, dict) else {}),
+                    **rag_meta,
+                },
+                suggestions=[{'suggestion': ai_response}],
+                status='completed',
+                confidence_score=0.85 if rag_meta.get('rag_kind') in ('retrieved', 'generated') else 0.0,
+            )
+        except Exception as e:
+            logger.debug(f"Failed to persist chat record: {e}")
 
         return Response({
             'message': ai_response,
             'mode': mode,
             'session_id': session_id,
+            'meta': rag_meta,
         })
 
 
@@ -317,9 +258,20 @@ class ComplianceCheckView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        # Accept both the new payload shape (content/content_type)
+        # and an older/incorrect frontend payload (title/description/type).
         content = request.data.get('content', '')
-        content_type = request.data.get('content_type', 'event')
+        content_type = request.data.get('content_type', '')
         context = request.data.get('context', {})
+
+        if not content:
+            title = request.data.get('title', '')
+            description = request.data.get('description', '')
+            if title or description:
+                content = f"{title}\n\n{description}".strip()
+
+        if not content_type:
+            content_type = request.data.get('type', 'event')
 
         if not content:
             return Response(
@@ -343,6 +295,26 @@ class ComplianceCheckView(APIView):
                 {'detail': 'Compliance check failed. Please try again later.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class AIAdvisorStatsView(APIView):
+    """GET /api/ai-advisor/stats/ — simple per-user stats for the AI Advisor UI."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Keep it intentionally small + fast.
+        user_advices = AIAdvice.objects.filter(user=request.user)
+        last_50 = user_advices.order_by('-created_at')[:50]
+
+        by_type: Dict[str, int] = {}
+        for a in last_50:
+            by_type[a.advice_type] = by_type.get(a.advice_type, 0) + 1
+
+        return Response({
+            'total_advices': user_advices.count(),
+            'recent_advices_by_type': by_type,
+        })
 
 
 class AIAdviceListView(generics.ListAPIView):
