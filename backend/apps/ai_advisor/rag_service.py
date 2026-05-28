@@ -129,7 +129,11 @@ class RAGChatService:
                 from transformers import AutoModel, AutoTokenizer  # type: ignore
 
                 self.__class__._torch = torch
-                self.__class__._device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                device_setting = self._get_setting('AI_CHAT_EMBED_DEVICE', 'cpu')
+                if device_setting == 'cuda' and torch.cuda.is_available():
+                    self.__class__._device = 'cuda'
+                else:
+                    self.__class__._device = 'cpu'
                 tokenizer = AutoTokenizer.from_pretrained(embedding_model_name)
                 model = AutoModel.from_pretrained(embedding_model_name)
                 model.eval()
@@ -174,7 +178,7 @@ class RAGChatService:
         return embeddings[0].detach().cpu().numpy().tolist()
 
     @classmethod
-    def _ollama_generate(cls, query: str, context_docs: List[str]) -> str:
+    def _ollama_generate(cls, query: str, context_docs: List[str], history: List[Dict[str, str]] = None) -> str:
         ollama = cls._ollama
         if ollama is None:
             raise RuntimeError('Ollama not available')
@@ -204,26 +208,30 @@ class RAGChatService:
             "Answer:"
         )
 
+        messages = [
+            {
+                'role': 'system',
+                'content': (
+                    'You are an AI advisor for CluboraX, a university club and event management system.\n\n'
+                    'Answer ONLY using the provided context. Follow these rules strictly:\n'
+                    '- Do NOT use outside knowledge or make assumptions.\n'
+                    '- Do NOT guess or infer missing information.\n'
+                    '- Keep answers concise and direct.\n'
+                    '- If the context does not contain the answer, reply with exactly:\n'
+                    '  "I don\'t have information about that. Please try rephrasing your question."\n'
+                    '- If the question is completely unrelated to university events, clubs,\n'
+                    '  registration, proposals, or campus activities, reply with exactly:\n'
+                    '  "I can only answer questions about CluboraX — events, clubs, and campus management."'
+                ),
+            }
+        ]
+        if history:
+            messages.extend(history)
+        messages.append({'role': 'user', 'content': prompt})
+
         resp = client.chat(
             model=model_name,
-            messages=[
-                {
-                    'role': 'system',
-                    'content': (
-                        'You are an AI advisor for CluboraX, a university club and event management system.\n\n'
-                        'Answer ONLY using the provided context. Follow these rules strictly:\n'
-                        '- Do NOT use outside knowledge or make assumptions.\n'
-                        '- Do NOT guess or infer missing information.\n'
-                        '- Keep answers concise and direct.\n'
-                        '- If the context does not contain the answer, reply with exactly:\n'
-                        '  "I don\'t have information about that. Please try rephrasing your question."\n'
-                        '- If the question is completely unrelated to university events, clubs,\n'
-                        '  registration, proposals, or campus activities, reply with exactly:\n'
-                        '  "I can only answer questions about CluboraX — events, clubs, and campus management."'
-                    ),
-                },
-                {'role': 'user', 'content': prompt},
-            ],
+            messages=messages,
             options={
                 'temperature': temperature,
                 'top_p': 0.9,
@@ -233,30 +241,152 @@ class RAGChatService:
 
         return (resp.get('message') or {}).get('content', '').strip()
 
-    def answer(self, query: str) -> RAGResult:
+    @classmethod
+    def _is_greeting(cls, query: str) -> bool:
+        cleaned = re.sub(r'[^\w\s]', '', query.strip().lower())
+        # Common greetings as exact matches
+        greetings = {
+            'hi', 'hello', 'hey', 'hola', 'yo', 'greetings', 'good morning', 
+            'good afternoon', 'good evening', 'howdy', 'sup', 'whats up', 'hi there', 'hello there'
+        }
+        if cleaned in greetings:
+            return True
+        # Common greeting phrases as substring matches
+        greeting_phrases = [
+            'how are you', 'how is it going', 'hows it going', 'how are you doing'
+        ]
+        for phrase in greeting_phrases:
+            if phrase in cleaned:
+                return True
+        return False
+
+    @classmethod
+    def _ollama_generate_general(cls, query: str, history: List[Dict[str, str]] = None, system_context: str = "") -> str:
+        ollama = cls._ollama
+        if ollama is None:
+            raise RuntimeError('Ollama not available')
+
+        ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        client = ollama.Client(host=ollama_host)
+
+        model_name = getattr(settings, 'AI_CHAT_OLLAMA_MODEL', os.environ.get('AI_CHAT_OLLAMA_MODEL', 'gemma3:1b'))
+        temperature = float(getattr(settings, 'AI_CHAT_TEMPERATURE', os.environ.get('AI_CHAT_TEMPERATURE', 0.5)))
+
+        system_content = (
+            'You are an AI advisor for CluboraX, a university club and event management system.\n'
+            'The user is asking a general question or chit-chat that might not be directly related to the knowledge base.\n'
+            'Answer the user\'s question politely, helpfully, and accurately. Maintain your persona as the CluboraX AI Advisor.'
+        )
+        if system_context:
+            system_content += f"\n\nUse this live database information if relevant to the query:\n{system_context}"
+
+        messages = [
+            {
+                'role': 'system',
+                'content': system_content,
+            }
+        ]
+        if history:
+            messages.extend(history)
+        messages.append({'role': 'user', 'content': f"Question: {query}"})
+
+        resp = client.chat(
+            model=model_name,
+            messages=messages,
+            options={
+                'temperature': temperature,
+                'top_p': 0.9,
+                'num_predict': 250,
+            },
+        )
+
+        return (resp.get('message') or {}).get('content', '').strip()
+
+    def answer(self, query: str, history: List[Dict[str, str]] = None) -> RAGResult:
         """Return an answer for the given query using hybrid RAG."""
+        use_ollama = bool(self._get_setting('AI_CHAT_USE_OLLAMA', True))
+
+        # Build live database context (public clubs and events counts/lists)
+        live_db_context = ""
+        try:
+            from apps.clubs.models import Club
+            from apps.events.models import Event
+            active_clubs = list(Club.objects.filter(status__in=['active', 'approved', 'published']).values_list('name', flat=True))
+            active_events = list(Event.objects.filter(status__in=['approved', 'published']).values_list('title', flat=True))
+            
+            live_db_context = (
+                "Current Live Database Status:\n"
+                f"- Registered/Active Clubs count: {len(active_clubs)}\n"
+                f"- Registered/Active Clubs list: {', '.join(active_clubs) if active_clubs else 'None'}\n"
+                f"- Scheduled/Active Events count: {len(active_events)}\n"
+                f"- Scheduled/Active Events list: {', '.join(active_events) if active_events else 'None'}\n"
+            )
+        except Exception as db_err:
+            logger.debug(f"Could not build live database context for chatbot: {db_err}")
+
         if not self.available:
+            if use_ollama and self.__class__._ollama is not None:
+                try:
+                    generated = self._ollama_generate_general(query, history=history, system_context=live_db_context)
+                    if generated:
+                        return RAGResult(
+                            answer=generated,
+                            kind='generated',
+                        )
+                except Exception as ollama_err:
+                    logger.warning(f"Ollama generation failed in RAG fallback: {ollama_err}")
             return RAGResult(
                 answer='RAG engine is not available on this server.',
                 kind='error',
             )
 
+        if self._is_greeting(query):
+            return RAGResult(
+                answer="Hello! I'm your CluboraX AI Advisor. How can I assist you today with events, clubs, policies, or other activities?",
+                kind='generated',
+            )
+
         threshold_high = float(self._get_setting('AI_CHAT_DISTANCE_HIGH_CONF', 0.5))
         threshold_medium = float(self._get_setting('AI_CHAT_DISTANCE_MED_CONF', 0.75))
         off_topic_threshold = float(self._get_setting('AI_CHAT_OFF_TOPIC_THRESHOLD', 1.2))
-        use_ollama = bool(self._get_setting('AI_CHAT_USE_OLLAMA', True))
+
 
         try:
             query_emb = self._embed_query(query)
-            results = self.__class__._collection.query(
-                query_embeddings=[query_emb],
-                n_results=3,
-                include=['documents', 'distances'],
-            )
+            try:
+                results = self.__class__._collection.query(
+                    query_embeddings=[query_emb],
+                    n_results=3,
+                    include=['documents', 'distances'],
+                )
+            except Exception as query_err:
+                logger.warning(f"ChromaDB query failed, attempting to refresh collection reference: {query_err}")
+                chroma_path = self._get_setting('AI_CHAT_CHROMA_PATH', str(getattr(settings, 'BASE_DIR', '')))
+                collection_name = self._get_setting('AI_CHAT_COLLECTION', 'event_qa')
+                try:
+                    import chromadb
+                    client = chromadb.PersistentClient(path=chroma_path)
+                    self.__class__._collection = client.get_or_create_collection(collection_name)
+                    results = self.__class__._collection.query(
+                        query_embeddings=[query_emb],
+                        n_results=3,
+                        include=['documents', 'distances'],
+                    )
+                except Exception as retry_err:
+                    logger.error(f"ChromaDB refresh and retry query failed: {retry_err}")
+                    raise retry_err
+
             docs: List[str] = (results.get('documents') or [[]])[0] or []
             dists: List[float] = (results.get('distances') or [[]])[0] or []
 
             if not docs or not dists:
+                if use_ollama and self.__class__._ollama is not None:
+                    try:
+                        generated = self._ollama_generate_general(query, history=history, system_context=live_db_context)
+                        if generated:
+                            return RAGResult(answer=generated, kind='generated')
+                    except Exception as ollama_err:
+                        logger.warning(f"Ollama general generation failed: {ollama_err}")
                 return RAGResult(
                     answer="Sorry, I don't have enough information to answer that.",
                     kind='refused',
@@ -265,8 +395,15 @@ class RAGChatService:
             distance = float(dists[0])
             top_doc = docs[0]
 
-            # Off-topic guard: if the best match is still very far away, refuse immediately.
+            # Off-topic guard: if the best match is still very far away, try general LLM fallback before refusing.
             if distance > off_topic_threshold:
+                if use_ollama and self.__class__._ollama is not None:
+                    try:
+                        generated = self._ollama_generate_general(query, history=history, system_context=live_db_context)
+                        if generated:
+                            return RAGResult(answer=generated, kind='generated', distance=distance, contexts=docs)
+                    except Exception as ollama_err:
+                        logger.warning(f"Ollama general generation failed: {ollama_err}")
                 return RAGResult(
                     answer='I can only answer questions about CluboraX — events, clubs, and campus management.',
                     kind='refused',
@@ -281,12 +418,25 @@ class RAGChatService:
 
             # Tier 2: LLM fallback with contexts
             if distance < threshold_medium and use_ollama and self.__class__._ollama is not None:
-                generated = self._ollama_generate(query, docs[:3])
-                if generated:
-                    generated = self.__class__._clean_answer_text(generated)
-                    return RAGResult(answer=generated, kind='generated', distance=distance, contexts=docs)
+                try:
+                    # Inject live database context as the top document context
+                    context_docs = [live_db_context] + docs[:2] if live_db_context else docs[:3]
+                    generated = self._ollama_generate(query, context_docs, history=history)
+                    if generated:
+                        generated = self.__class__._clean_answer_text(generated)
+                        return RAGResult(answer=generated, kind='generated', distance=distance, contexts=docs)
+                except Exception as ollama_err:
+                    logger.warning(f"Ollama generation failed, falling back: {ollama_err}")
 
-            # Tier 3: refuse if low confidence
+            # Tier 3: general LLM or refuse if low confidence
+            if use_ollama and self.__class__._ollama is not None:
+                try:
+                    generated = self._ollama_generate_general(query, history=history, system_context=live_db_context)
+                    if generated:
+                        return RAGResult(answer=generated, kind='generated', distance=distance, contexts=docs)
+                except Exception as ollama_err:
+                    logger.warning(f"Ollama general generation failed: {ollama_err}")
+
             return RAGResult(
                 answer="I don't have information about that. Please try rephrasing your question.",
                 kind='refused',
@@ -300,3 +450,4 @@ class RAGChatService:
                 answer='Chat service failed. Please try again later.',
                 kind='error',
             )
+

@@ -33,6 +33,10 @@ class Club(TimeStampedModel):
     advisor_name = models.CharField(max_length=100, blank=True, null=True)
     advisor_email = models.EmailField(blank=True, null=True)
     meeting_schedule = models.CharField(max_length=200, blank=True, null=True)
+    president_name = models.CharField(max_length=255, blank=True, null=True)
+    president_email = models.EmailField(blank=True, null=True)
+    president_phone = models.CharField(max_length=20, blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
     created_by = models.ForeignKey(
         User, 
         on_delete=models.CASCADE, 

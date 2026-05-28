@@ -2,12 +2,14 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { SparklesIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { warmupChatbot } from '../api/aiAdvisor'
 
 const FloatingChatbot = () => {
   const [showTooltip, setShowTooltip] = useState(false)
   const navigate = useNavigate()
 
   const handleClick = () => {
+    warmupChatbot()
     navigate('/ai-advisor')
   }
 
@@ -48,7 +50,10 @@ const FloatingChatbot = () => {
 
       <motion.button
         onClick={handleClick}
-        onMouseEnter={() => setShowTooltip(true)}
+        onMouseEnter={() => {
+          setShowTooltip(true)
+          warmupChatbot()
+        }}
         onMouseLeave={() => setShowTooltip(false)}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}

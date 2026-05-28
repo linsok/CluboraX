@@ -87,9 +87,12 @@ class EventProposalSerializer(serializers.ModelSerializer):
                     # Create inline buttons for admin dashboard navigation
                     from django.conf import settings
                     reply_markup = {
-                        "inline_keyboard": [[
-                            {"text": "View in Dashboard", "url": f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:5175')}/admin"}
-                        ]]
+                        "inline_keyboard": [
+                            [
+                                {"text": "✅ Approve Payment", "callback_data": f"propapprove_{instance.id}"},
+                                {"text": "❌ Reject Payment", "callback_data": f"propreject_{instance.id}"}
+                            ]
+                        ]
                     }
                     
                     for admin in admins:

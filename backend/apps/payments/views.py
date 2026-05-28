@@ -326,6 +326,8 @@ class FeeSubmissionDetailView(APIView):
 
                 elif action == 'reject':
                     proposal.payment_status = 'rejected'
+                    if proposal.status in ['pending_payment', 'pending_review']:
+                        proposal.status = 'returned_for_revision'
                     if note:
                         proposal.review_comments = note
                     proposal.save()

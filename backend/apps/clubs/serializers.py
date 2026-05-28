@@ -29,8 +29,9 @@ class ClubSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'description', 'category', 'mission_statement',
             'logo', 'logo_url', 'status', 'founded_date', 'advisor_name',
-            'advisor_email', 'meeting_schedule', 'created_by', 'tags',
-            'social_links', 'requirements', 'member_count',
+            'advisor_email', 'meeting_schedule', 'president_name',
+            'president_email', 'president_phone', 'location', 'created_by',
+            'tags', 'social_links', 'requirements', 'member_count',
             'pending_memberships', 'leader_count', 'is_active', 'can_join',
             'created_at', 'updated_at'
         ]
@@ -399,7 +400,9 @@ class ClubListSerializer(serializers.ModelSerializer):
         model = Club
         fields = [
             'id', 'name', 'category', 'description', 'logo', 'logo_url',
-            'status', 'created_by_name', 'member_count', 'is_active', 'can_join'
+            'status', 'created_by_name', 'member_count', 'is_active', 'can_join',
+            'president_name', 'president_email', 'president_phone', 'location',
+            'meeting_schedule', 'requirements', 'social_links'
         ]
     
     def get_logo_url(self, obj):

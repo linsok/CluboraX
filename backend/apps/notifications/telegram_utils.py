@@ -35,6 +35,8 @@ def send_telegram_message(chat_id, text, reply_markup=None):
         return True
     except Exception as e:
         logger.error(f"Failed to send Telegram message: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"Telegram API response: {e.response.text}")
         return False
 
 def send_telegram_photo(chat_id, photo_file, caption=None, reply_markup=None):
@@ -96,6 +98,34 @@ def edit_telegram_message_text(chat_id, message_id, text, reply_markup=None):
         logger.error(f"Failed to edit Telegram message: {e}")
         return False
 
+def edit_telegram_message_caption(chat_id, message_id, caption, reply_markup=None):
+    """
+    Edit a previously sent message's caption (for media messages).
+    """
+    url = get_telegram_api_url("editMessageCaption")
+    if not url:
+        return False
+        
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "caption": caption,
+        "parse_mode": "HTML"
+    }
+    
+    if reply_markup is not None:
+        payload["reply_markup"] = reply_markup
+        
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        response.raise_for_status()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to edit Telegram message caption: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"Telegram API response: {e.response.text}")
+        return False
+
 def answer_callback_query(callback_query_id, text=None, show_alert=False):
     """
     Answer a callback query (when user clicks an inline button)
@@ -118,6 +148,8 @@ def answer_callback_query(callback_query_id, text=None, show_alert=False):
         return True
     except Exception as e:
         logger.error(f"Failed to answer Telegram callback query: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"Telegram API response: {e.response.text}")
         return False
 
 def set_webhook(webhook_url):

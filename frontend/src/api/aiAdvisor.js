@@ -101,9 +101,11 @@ export const checkPolicyCompliance = async (title, description, type = 'event') 
 }
 
 // Clear chat history
-export const clearChatHistory = async () => {
+export const clearChatHistory = async (sessionId = '') => {
   try {
-    const response = await apiClient.delete('/api/ai-advisor/history/')
+    const response = await apiClient.delete('/api/ai-advisor/history/', {
+      params: sessionId ? { session_id: sessionId } : {}
+    })
     return response.data
   } catch (error) {
     console.error('Clear chat history error:', error)
@@ -122,6 +124,16 @@ export const getAIAdvisorStats = async () => {
   }
 }
 
+// Warmup chatbot embedding models
+export const warmupChatbot = async () => {
+  try {
+    const response = await apiClient.post('/api/ai-advisor/warmup/')
+    return response.data
+  } catch (error) {
+    console.error('Warmup chatbot error:', error)
+  }
+}
+
 export default {
   sendChatMessage,
   getChatHistory,
@@ -130,5 +142,6 @@ export default {
   getContentSuggestions,
   checkPolicyCompliance,
   clearChatHistory,
-  getAIAdvisorStats
+  getAIAdvisorStats,
+  warmupChatbot
 }

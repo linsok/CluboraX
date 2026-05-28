@@ -1,0 +1,103 @@
+import React from 'react'
+import { motion } from 'framer-motion'
+import { MapPinIcon, TicketIcon, ClockIcon, EyeIcon, PhotoIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+
+const OrganizerEventCard = ({ event, setSelectedEvent, setShowEventDetailModal, openImageUploadModal, viewEventPayments }) => {
+  const formatEventDateTime = (dateStr) => {
+    if (!dateStr) return 'TBA'
+    try {
+      const d = new Date(dateStr)
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    } catch {
+      return dateStr
+    }
+  }
+
+  const getStatusBadgeClass = (status) => {
+    const s = (status || '').toLowerCase()
+    if (s === 'published' || s === 'active' || s === 'approved') {
+      return 'bg-green-50 text-green-700 border border-green-200/60'
+    }
+    if (s === 'pending') {
+      return 'bg-yellow-50 text-yellow-700 border border-yellow-200/60'
+    }
+    return 'bg-gray-50 text-gray-700 border border-gray-200/60'
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.2 }}
+      className="bg-white rounded-2xl border border-gray-200/60 p-6 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.06)] transition-all duration-200 flex flex-col justify-between"
+    >
+      <div>
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1 pr-4">
+            <h4 className="text-lg font-bold text-gray-900 leading-snug mb-1">{event.title}</h4>
+            <p className="text-xs text-gray-500 font-medium">
+              {formatEventDateTime(event.eventDate)}
+            </p>
+          </div>
+          <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 capitalize ${getStatusBadgeClass(event.status)}`}>
+            {event.status || 'Published'}
+          </span>
+        </div>
+
+        <div className="space-y-3 my-5">
+          <div className="flex items-center text-sm text-gray-600">
+            <MapPinIcon className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
+            <span className="truncate">{event.location || 'TBA'}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-600">
+            <TicketIcon className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
+            <span>Ticket Price: {event.price > 0 ? `$${event.price}` : 'Free'}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-600">
+            <ClockIcon className="w-4 h-4 text-gray-400 mr-2.5 flex-shrink-0" />
+            <span>Type: {event.duration || 'Event'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="pt-2 pb-4">
+          <span className="text-xl font-bold text-gray-900">
+            {event.price > 0 ? `$${event.price}` : 'Free'}
+          </span>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100">
+          <button
+            onClick={() => {
+              setSelectedEvent(event)
+              setShowEventDetailModal(true)
+            }}
+            className="flex items-center justify-center gap-1 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition-all font-semibold text-xs"
+          >
+            <EyeIcon className="w-3.5 h-3.5" />
+            View
+          </button>
+          <button
+            onClick={(e) => openImageUploadModal(event, e)}
+            className="flex items-center justify-center gap-1 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-xl transition-all font-semibold text-xs"
+          >
+            <PhotoIcon className="w-3.5 h-3.5" />
+            Image
+          </button>
+          <button
+            onClick={() => viewEventPayments(event)}
+            className="flex items-center justify-center gap-1 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl transition-all font-semibold text-xs"
+          >
+            <DocumentTextIcon className="w-3.5 h-3.5" />
+            Payments
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+export default OrganizerEventCard

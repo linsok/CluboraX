@@ -243,6 +243,10 @@ class EventRegistration(TimeStampedModel):
     checked_in_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, null=True)
     
+    # Reminder tracking
+    reminder_2day_sent = models.BooleanField(default=False)
+    reminder_1day_sent = models.BooleanField(default=False)
+    
     class Meta:
         db_table = 'event_registrations'
         verbose_name = 'Event Registration'

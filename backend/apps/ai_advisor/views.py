@@ -33,6 +33,18 @@ MODE_ADVICE_TYPE_MAP = {
 # Views
 # ---------------------------------------------------------------------------
 
+class ChatWarmupView(APIView):
+    """
+    POST /api/ai-advisor/warmup/
+    Start loading embedding weights and initialization in the background.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        RAGChatService()
+        return Response({'status': 'initializing'})
+
+
 class ChatView(APIView):
     """
     POST /api/ai-advisor/chat/
@@ -56,7 +68,28 @@ class ChatView(APIView):
         # 1) Prefer RAG chatbot (Chroma + embeddings + optional Ollama)
         rag = RAGChatService()
         if rag.available:
-            rag_result = rag.answer(message)
+            history = []
+            if session_id:
+                try:
+                    recent_advices = AIAdvice.objects.filter(
+                        user=request.user,
+                        context__session_id=session_id
+                    ).order_by('-created_at')[:5]
+                    for adv in reversed(recent_advices):
+                        ai_ans = ''
+                        if isinstance(adv.suggestions, list) and adv.suggestions:
+                            first = adv.suggestions[0]
+                            ai_ans = first.get('suggestion', '') if isinstance(first, dict) else str(first)
+                        else:
+                            ai_ans = str(adv.suggestions) if adv.suggestions else ''
+                        
+                        if adv.content and ai_ans:
+                            history.append({'role': 'user', 'content': adv.content})
+                            history.append({'role': 'assistant', 'content': ai_ans})
+                except Exception as history_err:
+                    logger.warning(f"Failed to load chat history for memory: {history_err}")
+
+            rag_result = rag.answer(message, history=history)
             ai_response = rag_result.answer
             rag_meta = {
                 'rag_kind': rag_result.kind,
@@ -131,6 +164,7 @@ class ChatHistoryView(APIView):
                 'user_message': a.content,
                 'ai_response': response_text,
                 'mode': a.context.get('mode', 'general') if isinstance(a.context, dict) else 'general',
+                'session_id': a.context.get('session_id', '') if isinstance(a.context, dict) else '',
                 'created_at': a.created_at,
             })
 

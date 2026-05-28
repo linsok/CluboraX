@@ -12,34 +12,91 @@ logger = logging.getLogger(__name__)
 @shared_task
 def send_event_reminders():
     """
-    Send reminders for upcoming events (24 hours before).
+    Send reminders for upcoming events (2 days and 1 day before).
     """
     try:
         now = timezone.now()
-        reminder_time = now + timezone.timedelta(hours=24)
+        limit_1day = now + timezone.timedelta(hours=24)
+        limit_2day = now + timezone.timedelta(hours=48)
         
-        # Get events starting in 24 hours
-        upcoming_events = Event.objects.filter(
-            start_datetime__gte=now,
-            start_datetime__lte=reminder_time,
-            status='approved'
-        )
+        from apps.notifications.telegram_utils import send_telegram_message
         
         reminders_sent = 0
         
-        for event in upcoming_events:
-            # Get registered users
-            registrations = event.registrations.filter(status='confirmed')
-            
-            for registration in registrations:
-                send_notification(
-                    registration.user,
-                    'Event Reminder',
-                    f'Reminder: "{event.title}" starts tomorrow at {event.start_datetime.strftime("%I:%M %p")} at {event.venue}',
-                    'reminder'
-                )
-                reminders_sent += 1
+        # 1. 2-Day Reminders (Starts between 24 and 48 hours from now)
+        registrations_2day = EventRegistration.objects.filter(
+            status='confirmed',
+            reminder_2day_sent=False,
+            event__start_datetime__gt=limit_1day,
+            event__start_datetime__lte=limit_2day,
+            event__status__in=['approved', 'published']
+        ).select_related('event', 'user')
         
+        for reg in registrations_2day:
+            event = reg.event
+            user = reg.user
+            event_date_str = event.start_datetime.strftime('%Y-%m-%d %H:%M') if event.start_datetime else 'N/A'
+            msg_title = "⏳ Event Reminder: 2 Days to Go!"
+            msg_body = f'Reminder: "{event.title}" starts in 2 days at {event_date_str} at {event.venue}'
+            
+            # Send in-app notification
+            send_notification(user, msg_title, msg_body, 'reminder')
+            
+            # Send Telegram if linked
+            if getattr(user, 'telegram_chat_id', None):
+                telegram_text = (
+                    f"⏳ <b>Event Reminder: 2 Days to Go!</b>\n\n"
+                    f"Get ready for <b>{event.title}</b>!\n"
+                    f"📅 <b>Date:</b> {event_date_str}\n"
+                    f"📍 <b>Venue:</b> {event.venue or 'N/A'}\n\n"
+                    f"We look forward to seeing you there!"
+                )
+                try:
+                    send_telegram_message(chat_id=user.telegram_chat_id, text=telegram_text)
+                except Exception as te:
+                    logger.error(f"Failed to send 2-day telegram reminder to {user.email}: {te}")
+            
+            reg.reminder_2day_sent = True
+            reg.save(update_fields=['reminder_2day_sent'])
+            reminders_sent += 1
+            
+        # 2. 1-Day Reminders (Starts within 24 hours from now)
+        registrations_1day = EventRegistration.objects.filter(
+            status='confirmed',
+            reminder_1day_sent=False,
+            event__start_datetime__gt=now,
+            event__start_datetime__lte=limit_1day,
+            event__status__in=['approved', 'published']
+        ).select_related('event', 'user')
+        
+        for reg in registrations_1day:
+            event = reg.event
+            user = reg.user
+            event_date_str = event.start_datetime.strftime('%Y-%m-%d %H:%M') if event.start_datetime else 'N/A'
+            msg_title = "⏰ Event Reminder: Tomorrow!"
+            msg_body = f'Reminder: "{event.title}" starts tomorrow at {event_date_str} at {event.venue}'
+            
+            # Send in-app notification
+            send_notification(user, msg_title, msg_body, 'reminder')
+            
+            # Send Telegram if linked
+            if getattr(user, 'telegram_chat_id', None):
+                telegram_text = (
+                    f"⏰ <b>Event Reminder: Tomorrow!</b>\n\n"
+                    f"Tomorrow is the day for <b>{event.title}</b>!\n"
+                    f"📅 <b>Date:</b> {event_date_str}\n"
+                    f"📍 <b>Venue:</b> {event.venue or 'N/A'}\n\n"
+                    f"Please remember to bring your QR code ticket for check-in at the entrance."
+                )
+                try:
+                    send_telegram_message(chat_id=user.telegram_chat_id, text=telegram_text)
+                except Exception as te:
+                    logger.error(f"Failed to send 1-day telegram reminder to {user.email}: {te}")
+            
+            reg.reminder_1day_sent = True
+            reg.save(update_fields=['reminder_1day_sent'])
+            reminders_sent += 1
+            
         logger.info(f"Sent {reminders_sent} event reminders")
         return f"Sent {reminders_sent} reminders"
         

@@ -88,7 +88,7 @@ const PaymentsSection = ({ feeSubmissions = [], feeLoading, confirmFeePayment, r
                 <div className="flex items-start justify-between gap-6 flex-wrap">
                   {/* Left: event + fee info */}
                   <div className="flex items-start gap-4 flex-1 min-w-0">
-                    <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-gray-600 rounded-xl flex items-center justify-center flex-shrink-0">
                       <CalendarIcon className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">

@@ -164,28 +164,48 @@ const EnhancedClubDetailsModal = ({ show, clubId, onClose, onJoinClub }) => {
                     </div>
 
                     {/* Info Card 2 */}
-                    {(clubData.advisor_name || clubData.meeting_schedule) && (
+                    {(clubData.president_name || clubData.advisor_name || clubData.meeting_schedule || clubData.location) && (
                       <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
                         <h4 className="font-bold text-amber-900 mb-4 flex items-center text-sm">
                           <AcademicCapIcon className="w-5 h-5 mr-2" />
                           Leadership & Schedule
                         </h4>
-                        <div className="space-y-3 text-sm">
-                          {clubData.advisor_name && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                          {(clubData.president_name || clubData.president_email || clubData.president_phone) && (
+                            <div>
+                              <p className="text-gray-600 font-medium">Club Leader</p>
+                              <p className="text-gray-900 font-semibold">{clubData.president_name || 'N/A'}</p>
+                              {clubData.president_email && (
+                                <a href={`mailto:${clubData.president_email}`} className="text-blue-600 hover:underline text-xs mt-1 block break-all">
+                                  {clubData.president_email}
+                                </a>
+                              )}
+                              {clubData.president_phone && (
+                                <p className="text-gray-600 text-xs mt-0.5">{clubData.president_phone}</p>
+                              )}
+                            </div>
+                          )}
+                          {(clubData.advisor_name || clubData.advisor_email) && (
                             <div>
                               <p className="text-gray-600 font-medium">Faculty Advisor</p>
-                              <p className="text-gray-900 font-semibold">{clubData.advisor_name}</p>
+                              <p className="text-gray-900 font-semibold">{clubData.advisor_name || 'N/A'}</p>
                               {clubData.advisor_email && (
-                                <a href={`mailto:${clubData.advisor_email}`} className="text-blue-600 hover:underline text-xs mt-1 break-all">
+                                <a href={`mailto:${clubData.advisor_email}`} className="text-blue-600 hover:underline text-xs mt-1 block break-all">
                                   {clubData.advisor_email}
                                 </a>
                               )}
                             </div>
                           )}
                           {clubData.meeting_schedule && (
-                            <div>
-                              <p className="text-gray-600 font-medium">Meeting Schedule</p>
+                            <div className="sm:col-span-2">
+                              <p className="text-gray-600 font-medium">Meeting Time</p>
                               <p className="text-gray-900 font-semibold">{clubData.meeting_schedule}</p>
+                            </div>
+                          )}
+                          {clubData.location && (
+                            <div className="sm:col-span-2">
+                              <p className="text-gray-600 font-medium">Meeting Location</p>
+                              <p className="text-gray-900 font-semibold">{clubData.location}</p>
                             </div>
                           )}
                         </div>

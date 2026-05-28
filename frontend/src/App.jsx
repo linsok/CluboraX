@@ -39,6 +39,7 @@ import Landing from './pages/Landing'
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import ForgotPassword from './pages/Auth/ForgotPassword'
+import ResetPassword from './pages/Auth/ResetPassword'
 import GoogleCallback from './pages/Auth/GoogleCallback'
 import GoogleAccountSelection from './pages/Auth/GoogleAccountSelection'
 import RoleSelection from './pages/Auth/RoleSelection'
@@ -66,7 +67,7 @@ function AppContent() {
   usePushNotifications(pushNotificationsEnabled)
 
   // Check if current page is an auth page or landing page
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password' || location.pathname === '/auth/google/callback' || location.pathname === '/auth/google/select-account' || location.pathname === '/auth/role-selection'
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password' || location.pathname.startsWith('/reset-password') || location.pathname === '/auth/google/callback' || location.pathname === '/auth/google/select-account' || location.pathname === '/auth/role-selection'
   const isLandingPage = location.pathname === '/'
   const isAdminPage = location.pathname.startsWith('/admin')
   const isSupportPage = ['/help-center', '/contact', '/privacy', '/terms'].includes(location.pathname)
@@ -277,6 +278,7 @@ function AppContent() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/auth/google/callback" element={<GoogleCallback />} />
               <Route path="/auth/google/select-account" element={<GoogleAccountSelection />} />
               <Route path="/auth/role-selection" element={<RoleSelection />} />

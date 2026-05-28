@@ -263,7 +263,7 @@ const PrivacyPolicy = () => {
           className="mt-12 max-w-4xl mx-auto bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-8 text-center text-white"
         >
           <h2 className="text-2xl font-bold mb-4">Questions About Privacy?</h2>
-          <p className="text-purple-100 mb-6">Contact us at privacy@campushub.edu</p>
+          <p className="text-purple-100 mb-6">Contact us at privacy@cluborax.edu</p>
         </motion.div>
       </div>
     </div>

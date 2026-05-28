@@ -789,7 +789,7 @@ const AdminDashboard = () => {
                   // EVENT PROPOSAL
                   <div className="space-y-4">
                     <div className="flex items-start space-x-4">
-                      <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                      <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-gray-600 rounded-lg flex items-center justify-center">
                         <CalendarIcon className="w-8 h-8 text-white" />
                       </div>
                       <div className="flex-1">
@@ -945,7 +945,7 @@ const AdminDashboard = () => {
             {detailType === 'club' && (
               <div className="space-y-4">
                 <div className="flex items-start space-x-4">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-gray-600 rounded-lg flex items-center justify-center">
                     <CalendarIcon className="w-8 h-8 text-white" />
                   </div>
                   <div className="flex-1">
@@ -1072,7 +1072,7 @@ const AdminDashboard = () => {
             {detailType === 'event' && (
               <div className="space-y-4">
                 <div className="flex items-start space-x-4">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-gray-600 rounded-lg flex items-center justify-center">
                     <CalendarIcon className="w-8 h-8 text-white" />
                   </div>
                   <div className="flex-1">

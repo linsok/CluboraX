@@ -262,7 +262,7 @@ AI_MODEL_PATH = config('AI_MODEL_PATH', default='models/')
 
 # AI Chatbot (Hybrid RAG) Settings
 # These are used by apps.ai_advisor.rag_service.RAGChatService.
-AI_CHAT_CHROMA_PATH = config('AI_CHAT_CHROMA_PATH', default=str((BASE_DIR.parent / 'aichatbot' / 'chroma_db')))
+AI_CHAT_CHROMA_PATH = config('AI_CHAT_CHROMA_PATH', default=str((BASE_DIR.parent / 'aichatbot' / 'database' / 'chroma_db')))
 AI_CHAT_COLLECTION = config('AI_CHAT_COLLECTION', default='event_qa')
 AI_CHAT_EMBED_MODEL = config('AI_CHAT_EMBED_MODEL', default='BAAI/bge-base-en-v1.5')
 AI_CHAT_DISTANCE_HIGH_CONF = config('AI_CHAT_DISTANCE_HIGH_CONF', default=0.45, cast=float)
@@ -335,3 +335,4 @@ import os
 log_dir = BASE_DIR / 'logs'
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
+

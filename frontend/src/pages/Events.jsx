@@ -564,6 +564,448 @@ const StableRegistrationForm = React.memo(({ registrationData, onChange, onSubmi
 
 
 
+const EventCard = React.memo(({ event, index, onEventClick, getStatusColor }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 50 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5, delay: index * 0.1 }}
+    onClick={() => onEventClick(event)}
+    className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group cursor-pointer flex flex-col h-full"
+  >
+    {/* Event Image */}
+    <div className="relative h-48 overflow-hidden flex-shrink-0">
+      <img
+        src={event.image || event.poster_image_url || event.event_poster || 'https://via.placeholder.com/400x300?text=Event+Image'}
+        alt={event.title}
+        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+        onError={(e) => {
+          e.target.src = 'https://via.placeholder.com/400x300?text=Event+Image'
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      </div>
+      <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(event.status)}`}>
+        {event.status ? event.status.replace('_', ' ').toUpperCase() : 'AVAILABLE'}
+      </div>
+    </div>
+
+    {/* Event Details */}
+    <div className="p-6 flex flex-col flex-1">
+      <div className="mb-4">
+        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+          {event.title}
+        </h3>
+        <p className="text-gray-600 text-sm line-clamp-3">
+          {event.description}
+        </p>
+      </div>
+
+      {/* Event Info */}
+      <div className="space-y-3 mb-4">
+        <div className="flex items-center text-gray-600">
+          <CalendarIcon className="w-5 h-5 mr-2 text-purple-600" />
+          <span className="text-sm">{event.date} at {event.time}</span>
+        </div>
+        <div className="flex items-center text-gray-600">
+          <MapPinIcon className="w-5 h-5 mr-2 text-purple-600" />
+          <span className="text-sm">{event.location}</span>
+        </div>
+        <div className="flex items-center text-gray-600">
+          <UserGroupIcon className="w-5 h-5 mr-2 text-purple-600" />
+          <span className="text-sm">
+            {event.currentAttendees}{event.maxAttendees !== null ? `/${event.maxAttendees}` : ''} attending
+          </span>
+        </div>
+        {event.price > 0 && (
+          <div className="flex items-center text-gray-600">
+            <CurrencyDollarIcon className="w-5 h-5 mr-2 text-purple-600" />
+            <span className="text-sm font-semibold">${event.price}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {event.tags.map((tag, tagIndex) => (
+          <span
+            key={tagIndex}
+            className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full"
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      {/* Organizer */}
+      <div className="flex items-center justify-between mt-auto">
+        <div className="flex items-center space-x-3">
+          <img
+            src={event.organizer.avatar}
+            alt={event.organizer.name}
+            className="w-8 h-8 rounded-full"
+          />
+          <div>
+            <p className="text-sm font-medium text-gray-900">{event.organizer.name}</p>
+            <p className="text-xs text-gray-500">Organizer</p>
+          </div>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onEventClick(event)
+          }}
+          className="btn-primary"
+        >
+          View Details
+        </button>
+      </div>
+    </div>
+  </motion.div>
+))
+
+const EventModal = React.memo(({
+  selectedEvent,
+  closeModal,
+  getTypeIcon,
+  getStatusColor,
+  handleRegister,
+  isRegistered
+}) => {
+  if (!selectedEvent) return null;
+  return (
+    <AnimatePresence>
+      {selectedEvent && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={closeModal}
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              {/* Close Button */}
+              <button
+                onClick={closeModal}
+                className="absolute top-4 right-4 z-10 p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+
+              {/* Event Image */}
+              <div className="relative h-64 md:h-80">
+                <img
+                  src={selectedEvent.image || selectedEvent.poster_image_url || selectedEvent.event_poster || 'https://via.placeholder.com/800x600?text=Event+Image'}
+                  alt={selectedEvent.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6 right-6">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <span className="text-4xl">{getTypeIcon(selectedEvent.type)}</span>
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedEvent.status)}`}>
+                      {selectedEvent.status ? selectedEvent.status.replace('_', ' ').toUpperCase() : 'AVAILABLE'}
+                    </div>
+                  </div>
+                  <h2 className="text-3xl font-bold text-white mb-2">{selectedEvent.title}</h2>
+                  <p className="text-white/90 text-lg">{selectedEvent.description}</p>
+                </div>
+              </div>
+
+              {/* Event Details */}
+              <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                {/* Quick Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
+                    <CalendarIcon className="w-6 h-6 text-purple-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Date & Time</p>
+                      <p className="text-sm text-gray-600">{selectedEvent.date} at {selectedEvent.time}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
+                    <MapPinIcon className="w-6 h-6 text-purple-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Location</p>
+                      <p className="text-sm text-gray-600">{selectedEvent.location}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
+                    <UserGroupIcon className="w-6 h-6 text-purple-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Attendance</p>
+                      <p className="text-sm text-gray-600">{selectedEvent.currentAttendees}/{selectedEvent.maxAttendees}</p>
+                    </div>
+                  </div>
+                  {selectedEvent.price > 0 && (
+                    <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
+                      <CurrencyDollarIcon className="w-6 h-6 text-purple-600" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Price</p>
+                        <p className="text-sm text-gray-600 font-semibold">${selectedEvent.price}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedEvent.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Organizer */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Organizer</h3>
+                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                    <img
+                      src={selectedEvent.organizer.avatar}
+                      alt={selectedEvent.organizer.name}
+                      className="w-12 h-12 rounded-full"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{selectedEvent.organizer.name}</p>
+                      <p className="text-sm text-gray-600">Event Organizer</p>
+                      {selectedEvent.organizerEmail && (
+                        <a href={`mailto:${selectedEvent.organizerEmail}`} className="text-sm text-purple-600 hover:underline">
+                          {selectedEvent.organizerEmail}
+                        </a>
+                      )}
+                    </div>
+                    {selectedEvent.organizerPhone && (
+                      <a href={`tel:${selectedEvent.organizerPhone}`} className="px-4 py-2 text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors">
+                        Call
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Additional Information */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Event Details</h3>
+                  <div className="prose prose-purple max-w-none">
+                    <p className="text-gray-600 leading-relaxed">
+                      {selectedEvent.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Requirements */}
+                {selectedEvent.requirements && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <InformationCircleIcon className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">Requirements</p>
+                        <p className="text-sm text-blue-700 mt-1">
+                          {selectedEvent.requirements}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Agenda */}
+                {selectedEvent.agenda && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Agenda</h3>
+                    <p className="text-gray-600 leading-relaxed whitespace-pre-wrap text-sm">{selectedEvent.agenda}</p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end pt-6 border-t border-gray-200">
+                  <button
+                    onClick={handleRegister}
+                    disabled={isRegistered || (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees)}
+                    className={`px-8 py-3 rounded-lg font-medium transition-all duration-300 ${isRegistered
+                      ? 'bg-green-100 text-green-700 border border-green-200'
+                      : (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees)
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
+                      }`}
+                  >
+                    {isRegistered ? (
+                      <span className="flex items-center space-x-2">
+                        <CheckCircleIcon className="w-5 h-5" />
+                        <span>Registered</span>
+                      </span>
+                    ) : (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees) ? (
+                      'Event Full'
+                    ) : (
+                      'Register'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+})
+
+const TicketModal = React.memo(({
+  showTicketModal,
+  ticketData,
+  setShowTicketModal,
+  downloadTicket
+}) => {
+  if (!showTicketModal || !ticketData) return null;
+  return (
+    <AnimatePresence>
+      {showTicketModal && ticketData && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowTicketModal(false)}
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white text-center">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold mb-1">Registration Successful!</h2>
+                    <p className="text-green-100">Your event ticket has been generated</p>
+                  </div>
+                  <button
+                    onClick={() => setShowTicketModal(false)}
+                    className="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors"
+                  >
+                    <XMarkIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Ticket Content */}
+              <div className="p-6 space-y-6">
+                {/* Success Icon */}
+                <div className="flex justify-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircleIcon className="w-8 h-8 text-green-600" />
+                  </div>
+                </div>
+
+                {/* QR Code */}
+                <div className="flex justify-center">
+                  <div className="bg-white p-4 rounded-lg shadow-lg">
+                    {QRCode ? (
+                      <QRCode
+                        value={ticketData.qrCodeData}
+                        size={200}
+                        level="H"
+                        includeMargin={true}
+                        bgColor="#ffffff"
+                        fgColor="#000000"
+                      />
+                    ) : (
+                      <FallbackQRCode value={ticketData.qrCodeData} size={200} />
+                    )}
+                  </div>
+                </div>
+
+                {/* Ticket Info */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 text-center">Ticket Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Ticket ID:</span>
+                      <span className="text-gray-900">{ticketData.id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Event:</span>
+                      <span className="text-gray-900">{ticketData.eventName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Date:</span>
+                      <span className="text-gray-900">{ticketData.eventDate}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Time:</span>
+                      <span className="text-gray-900">{ticketData.eventTime}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Location:</span>
+                      <span className="text-gray-900">{ticketData.eventLocation}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Attendee:</span>
+                      <span className="text-gray-900">{ticketData.userName}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <InformationCircleIcon className="w-5 h-5 text-blue-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">Important Information</p>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Please save this ticket or take a screenshot. You will need to present this QR code at the event entrance for verification.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-center space-x-4">
+                  <button
+                    onClick={downloadTicket}
+                    className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-medium"
+                  >
+                    <ArrowDownTrayIcon className="w-5 h-5" />
+                    <span>Download Ticket</span>
+                  </button>
+                  <button
+                    onClick={() => setShowTicketModal(false)}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+})
+
+
+
 
 
 // =============================================================================
@@ -756,6 +1198,22 @@ const RegistrationFormModal = React.memo(({
   const [pollCount, setPollCount] = React.useState(0)
   const [pollStatus, setPollStatus] = React.useState('pending') // 'pending'|'checking'
 
+  // Fetch Telegram Connect Link for students
+  const { data: telegramLinkData } = useQuery({
+    queryKey: ['telegram-connect-link'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/api/notifications/telegram/connect-link/')
+        return res.data
+      } catch (err) {
+        console.error('Failed to get Telegram link', err)
+        return null
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: show
+  })
+
   // Countdown timer
   React.useEffect(() => {
     if (!show || step !== 'info') return
@@ -910,7 +1368,7 @@ const RegistrationFormModal = React.memo(({
                     onClose={onClose}
                   />
                 )}
-                
+
                 {/* STEP: info — show QR code + amount + upload proof button */}
                 {step === 'info' && (
                   <div className="p-6 space-y-5">
@@ -1020,6 +1478,54 @@ const RegistrationFormModal = React.memo(({
                       </ul>
                     </div>
 
+                    {/* Telegram Connect Link */}
+                    {telegramLinkData && (
+                      telegramLinkData.is_linked ? (
+                        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex flex-col gap-2 text-left w-full">
+                          <div className="flex items-center gap-2">
+                            <CheckCircleIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
+                            <p className="text-xs text-green-800 font-medium">You are connected to our Telegram bot. We will send your ticket there once verified!</p>
+                          </div>
+                          <a 
+                            href={telegramLinkData.connect_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0088cc] text-white text-xs font-bold rounded-lg hover:bg-[#0077b3] transition-colors shadow-sm self-start"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+                            </svg>
+                            Open Telegram Bot
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
+                          <div className="bg-blue-100 p-2 rounded-full shrink-0">
+                            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 text-left">
+                            <h5 className="font-bold text-blue-900 text-sm mb-1">Get Approval Notifications Instantly</h5>
+                            <p className="text-xs text-blue-800 mb-2">
+                              Connect to our Telegram bot to receive an immediate notification when your payment is approved and your ticket is ready.
+                            </p>
+                            <a 
+                              href={telegramLinkData.connect_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0088cc] text-white text-xs font-bold rounded-lg hover:bg-[#0077b3] transition-colors shadow-sm"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+                              </svg>
+                              Connect Telegram Bot
+                            </a>
+                          </div>
+                        </div>
+                      )
+                    )}
+
                     <div className="flex gap-3 pt-1">
                       <button onClick={onClose} className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all">
                         Cancel
@@ -1069,6 +1575,54 @@ const RegistrationFormModal = React.memo(({
                         <div className="text-xs text-gray-500">Status: <span className="font-semibold text-amber-600">Pending review</span></div>
                       </div>
                     </div>
+
+                    {/* Telegram Connect Link */}
+                    {telegramLinkData && (
+                      telegramLinkData.is_linked ? (
+                        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex flex-col gap-2 text-left w-full">
+                          <div className="flex items-center gap-2">
+                            <CheckCircleIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
+                            <p className="text-xs text-green-800 font-medium">You are connected to our Telegram bot. We will send your ticket there once verified!</p>
+                          </div>
+                          <a 
+                            href={telegramLinkData.connect_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0088cc] text-white text-xs font-bold rounded-lg hover:bg-[#0077b3] transition-colors shadow-sm self-start"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+                            </svg>
+                            Open Telegram Bot
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
+                          <div className="bg-blue-100 p-2 rounded-full shrink-0">
+                            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 text-left">
+                            <h5 className="font-bold text-blue-900 text-sm mb-1">Get Approval Notifications Instantly</h5>
+                            <p className="text-xs text-blue-800 mb-2">
+                              Connect to our Telegram bot to receive an immediate notification when your payment is approved and your ticket is ready.
+                            </p>
+                            <a 
+                              href={telegramLinkData.connect_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0088cc] text-white text-xs font-bold rounded-lg hover:bg-[#0077b3] transition-colors shadow-sm"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+                              </svg>
+                              Connect Telegram Bot
+                            </a>
+                          </div>
+                        </div>
+                      )
+                    )}
 
                     <div className="flex gap-3">
                       <button onClick={onClose} className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-all">
@@ -1993,37 +2547,37 @@ const Events = () => {
       case 'conference':
 
 
-        return 'ðŸŽ¤'
+        return '🎤'
 
 
       case 'workshop':
 
 
-        return 'ðŸ› ï¸'
+        return '🛠️'
 
 
       case 'entertainment':
 
 
-        return 'ðŸŽ­'
+        return '🎭'
 
 
       case 'academic':
 
 
-        return 'ðŸ“š'
+        return '📚'
 
 
       case 'sports':
 
 
-        return 'š½'
+        return ' '
 
 
       default:
 
 
-        return 'ðŸ“…'
+        return '  '
 
 
     }
@@ -2035,18 +2589,49 @@ const Events = () => {
 
 
 
-  const handleEventClick = (event) => {
-
-
+  const handleEventClick = async (event) => {
     setSelectedEvent(event)
-
-
     setIsRegistered(false)
-
-
     setIsLiked(false)
+    try {
+      const res = await apiClient.get(`/api/events/${event.id}/`)
+      const e = res.data
+      const startDt = e.start_datetime ? new Date(e.start_datetime) : null
+      const endDt = e.end_datetime ? new Date(e.end_datetime) : null
+      const defaultImage = 'https://images.unsplash.com/photo-1549924231-f129b911e442?w=800'
+      const isValidImageUrl = e.poster_image_url &&
+        typeof e.poster_image_url === 'string' &&
+        !e.poster_image_url.startsWith('file://') &&
+        (e.poster_image_url.startsWith('http://') || e.poster_image_url.startsWith('https://') || e.poster_image_url.startsWith('/'))
 
-
+      setSelectedEvent({
+        ...e,
+        date: startDt ? startDt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '',
+        time: startDt ? startDt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
+        location: e.venue || '',
+        type: e.event_type || 'general',
+        image: isValidImageUrl ? e.poster_image_url : defaultImage,
+        currentAttendees: e.current_participants || 0,
+        maxAttendees: e.max_participants ?? null,
+        price: e.is_paid ? (parseFloat(e.price) || 0) : 0,
+        organizer: {
+          name: e.created_by?.full_name || e.club_name || 'Campus Events',
+          avatar: e.created_by?.profile_picture_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(e.created_by?.full_name || 'Event')}&background=7c3aed&color=fff`
+        },
+        tags: Array.isArray(e.tags) ? e.tags : [],
+        endDt,
+      })
+    } catch (err) {
+      console.error('Failed to fetch event detail:', err)
+    }
+    try {
+      const regRes = await apiClient.get('/api/events/registrations/')
+      const userRegs = Array.isArray(regRes.data) ? regRes.data : []
+      const isUserRegistered = userRegs.some(r => r.event === event.id || r.event?.id === event.id)
+      setIsRegistered(isUserRegistered)
+    } catch (err) {
+      console.error('Failed to fetch registrations:', err)
+    }
   }
 
 
@@ -2433,7 +3018,7 @@ const Events = () => {
       setTicketData(pendingTicketData)
 
 
-      toast.success('ðŸŸ© Payment approved! Your ticket is ready.')
+      toast.success('✅ Payment approved! Your ticket is ready.')
 
 
       setTimeout(() => {
@@ -2478,7 +3063,7 @@ const Events = () => {
     setPaymentStep('rejected')
 
 
-    toast.error('ðŸŸ¥ Payment verification failed.')
+    toast.error('❌ Payment verification failed.')
 
 
   }, [selectedEvent])
@@ -2507,7 +3092,7 @@ const Events = () => {
   const handleStartAbaQr = useCallback(() => {
 
 
-    // ”””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””
+    // ””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””””” 
 
 
     // ”‚  ABA PAYWAY INTEGRATION ” replace this block with real API call     ”‚
@@ -2672,7 +3257,7 @@ const Events = () => {
     setPaymentStep('qr_scanning')
 
 
-    toast.success('QR ready ” scan with ABA Mobile to pay')
+    toast.success('QR ready » scan with ABA Mobile to pay')
 
 
   }, [selectedEvent])
@@ -2961,930 +3546,6 @@ const Events = () => {
 
 
   }
-
-
-
-
-
-  const EventModal = () => (
-
-
-    <AnimatePresence>
-
-
-      {selectedEvent && (
-
-
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-
-
-          <div className="flex min-h-full items-center justify-center p-4">
-
-
-            {/* Backdrop */}
-
-
-            <motion.div
-
-
-              initial={{ opacity: 0 }}
-
-
-              animate={{ opacity: 1 }}
-
-
-              exit={{ opacity: 0 }}
-
-
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-
-
-              onClick={closeModal}
-
-
-            />
-
-
-
-
-
-            {/* Modal Content */}
-
-
-            <motion.div
-
-
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-
-
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-
-
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-
-
-              className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-
-
-            >
-
-
-              {/* Close Button */}
-
-
-              <button
-
-
-                onClick={closeModal}
-
-
-                className="absolute top-4 right-4 z-10 p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-600 hover:text-gray-900 transition-colors"
-
-
-              >
-
-
-                <XMarkIcon className="w-6 h-6" />
-
-
-              </button>
-
-
-
-
-
-              {/* Event Image */}
-
-
-              <div className="relative h-64 md:h-80">
-
-
-                <img
-
-
-                  src={selectedEvent.image || selectedEvent.poster_image_url || selectedEvent.event_poster || 'https://via.placeholder.com/800x600?text=Event+Image'}
-
-
-                  alt={selectedEvent.title}
-
-
-                  className="w-full h-full object-cover"
-
-
-                />
-
-
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-
-                <div className="absolute bottom-6 left-6 right-6">
-
-
-                  <div className="flex items-center space-x-3 mb-3">
-
-
-                    <span className="text-4xl">{getTypeIcon(selectedEvent.type)}</span>
-
-
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedEvent.status)}`}>
-
-
-                      {selectedEvent.status ? selectedEvent.status.replace('_', ' ').toUpperCase() : 'AVAILABLE'}
-
-
-                    </div>
-
-
-                  </div>
-
-
-                  <h2 className="text-3xl font-bold text-white mb-2">{selectedEvent.title}</h2>
-
-
-                  <p className="text-white/90 text-lg">{selectedEvent.description}</p>
-
-
-                </div>
-
-
-              </div>
-
-
-
-
-
-              {/* Event Details */}
-
-
-              <div className="p-6 space-y-6 overflow-y-auto flex-1">
-
-
-                {/* Quick Info */}
-
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-
-                  <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
-
-
-                    <CalendarIcon className="w-6 h-6 text-purple-600" />
-
-
-                    <div>
-
-
-                      <p className="text-sm font-medium text-gray-900">Date & Time</p>
-
-
-                      <p className="text-sm text-gray-600">{selectedEvent.date} at {selectedEvent.time}</p>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                  <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
-
-
-                    <MapPinIcon className="w-6 h-6 text-purple-600" />
-
-
-                    <div>
-
-
-                      <p className="text-sm font-medium text-gray-900">Location</p>
-
-
-                      <p className="text-sm text-gray-600">{selectedEvent.location}</p>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                  <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
-
-
-                    <UserGroupIcon className="w-6 h-6 text-purple-600" />
-
-
-                    <div>
-
-
-                      <p className="text-sm font-medium text-gray-900">Attendance</p>
-
-
-                      <p className="text-sm text-gray-600">{selectedEvent.currentAttendees}/{selectedEvent.maxAttendees}</p>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                  {selectedEvent.price > 0 && (
-
-
-                    <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
-
-
-                      <CurrencyDollarIcon className="w-6 h-6 text-purple-600" />
-
-
-                      <div>
-
-
-                        <p className="text-sm font-medium text-gray-900">Price</p>
-
-
-                        <p className="text-sm text-gray-600 font-semibold">${selectedEvent.price}</p>
-
-
-                      </div>
-
-
-                    </div>
-
-
-                  )}
-
-
-                </div>
-
-
-
-
-
-                {/* Tags */}
-
-
-                <div>
-
-
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Tags</h3>
-
-
-                  <div className="flex flex-wrap gap-2">
-
-
-                    {selectedEvent.tags.map((tag, index) => (
-
-
-                      <span
-
-
-                        key={index}
-
-
-                        className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full"
-
-
-                      >
-
-
-                        #{tag}
-
-
-                      </span>
-
-
-                    ))}
-
-
-                  </div>
-
-
-                </div>
-
-
-
-
-
-                {/* Organizer */}
-
-
-                <div>
-
-
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Organizer</h3>
-
-
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-
-
-                    <img
-
-
-                      src={selectedEvent.organizer.avatar}
-
-
-                      alt={selectedEvent.organizer.name}
-
-
-                      className="w-12 h-12 rounded-full"
-
-
-                    />
-
-
-                    <div className="flex-1">
-
-
-                      <p className="font-medium text-gray-900">{selectedEvent.organizer.name}</p>
-
-
-                      <p className="text-sm text-gray-600">Event Organizer</p>
-                      {selectedEvent.organizerEmail && (
-                        <a href={`mailto:${selectedEvent.organizerEmail}`} className="text-sm text-purple-600 hover:underline">
-                          {selectedEvent.organizerEmail}
-                        </a>
-                      )}
-
-
-                    </div>
-
-
-                    {selectedEvent.organizerPhone && (
-                      <a href={`tel:${selectedEvent.organizerPhone}`} className="px-4 py-2 text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors">
-
-
-                        Call
-
-
-                      </a>
-                    )}
-
-                  </div>
-
-
-                </div>
-
-
-
-
-
-                {/* Additional Information */}
-
-
-                <div>
-
-
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Event Details</h3>
-
-
-                  <div className="prose prose-purple max-w-none">
-
-
-                    <p className="text-gray-600 leading-relaxed">
-
-
-                      {selectedEvent.description}
-
-
-                    </p>
-
-
-                  </div>
-
-
-                </div>
-
-
-                {/* Requirements */}
-
-                {selectedEvent.requirements && (
-
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-
-                    <div className="flex items-start space-x-3">
-
-                      <InformationCircleIcon className="w-5 h-5 text-blue-600 mt-0.5" />
-
-                      <div>
-
-                        <p className="text-sm font-medium text-blue-900">Requirements</p>
-
-                        <p className="text-sm text-blue-700 mt-1">
-
-                          {selectedEvent.requirements}
-
-                        </p>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                )}
-
-                {/* Agenda */}
-
-                {selectedEvent.agenda && (
-
-                  <div>
-
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Agenda</h3>
-
-                    <p className="text-gray-600 leading-relaxed whitespace-pre-wrap text-sm">{selectedEvent.agenda}</p>
-
-                  </div>
-
-                )}
-
-                {/* Action Buttons */}
-
-
-                <div className="flex items-center justify-end pt-6 border-t border-gray-200">
-
-
-                  <button
-
-
-                    onClick={handleRegister}
-
-
-                    disabled={isRegistered || (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees)}
-
-
-                    className={`px-8 py-3 rounded-lg font-medium transition-all duration-300 ${isRegistered
-
-
-                      ? 'bg-green-100 text-green-700 border border-green-200'
-
-
-                      : (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees)
-
-
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-
-
-                        : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
-
-
-                      }`}
-
-
-                  >
-
-
-                    {isRegistered ? (
-
-
-                      <span className="flex items-center space-x-2">
-
-
-                        <CheckCircleIcon className="w-5 h-5" />
-
-
-                        <span>Registered</span>
-
-
-                      </span>
-
-
-                    ) : (selectedEvent.maxAttendees !== null && selectedEvent.currentAttendees >= selectedEvent.maxAttendees) ? (
-
-
-                      'Event Full'
-
-
-                    ) : (
-
-
-                      'Register'
-
-
-                    )}
-
-
-                  </button>
-
-
-                </div>
-
-
-              </div>
-
-
-            </motion.div>
-
-
-          </div>
-
-
-        </div>
-
-
-      )}
-
-
-    </AnimatePresence>
-
-
-  )
-
-
-
-
-
-  const TicketModal = () => (
-
-
-    <AnimatePresence>
-
-
-      {showTicketModal && ticketData && (
-
-
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-
-
-          <div className="flex min-h-full items-center justify-center p-4">
-
-
-            {/* Backdrop */}
-
-
-            <motion.div
-
-
-              initial={{ opacity: 0 }}
-
-
-              animate={{ opacity: 1 }}
-
-
-              exit={{ opacity: 0 }}
-
-
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-
-
-              onClick={() => setShowTicketModal(false)}
-
-
-            />
-
-
-
-
-
-            {/* Modal Content */}
-
-
-            <motion.div
-
-
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-
-
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-
-
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-
-
-              className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full"
-
-
-            >
-
-
-              {/* Header */}
-
-
-              <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white text-center">
-
-
-                <div className="flex items-center justify-between">
-
-
-                  <div className="flex-1">
-
-
-                    <h2 className="text-2xl font-bold mb-1">Registration Successful!</h2>
-
-
-                    <p className="text-green-100">Your event ticket has been generated</p>
-
-
-                  </div>
-
-
-                  <button
-
-
-                    onClick={() => setShowTicketModal(false)}
-
-
-                    className="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors"
-
-
-                  >
-
-
-                    <XMarkIcon className="w-5 h-5" />
-
-
-                  </button>
-
-
-                </div>
-
-
-              </div>
-
-
-
-
-
-              {/* Ticket Content */}
-
-
-              <div className="p-6 space-y-6">
-
-
-                {/* Success Icon */}
-
-
-                <div className="flex justify-center">
-
-
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-
-
-                    <CheckCircleIcon className="w-8 h-8 text-green-600" />
-
-
-                  </div>
-
-
-                </div>
-
-
-
-
-
-                {/* QR Code */}
-
-
-                <div className="flex justify-center">
-
-
-                  <div className="bg-white p-4 rounded-lg shadow-lg">
-
-
-                    {QRCode ? (
-
-
-                      <QRCode
-
-
-                        value={ticketData.qrCodeData}
-
-
-                        size={200}
-
-
-                        level="H"
-
-
-                        includeMargin={true}
-
-
-                        bgColor="#ffffff"
-
-
-                        fgColor="#000000"
-
-
-                      />
-
-
-                    ) : (
-
-
-                      <FallbackQRCode value={ticketData.qrCodeData} size={200} />
-
-
-                    )}
-
-
-                  </div>
-
-
-                </div>
-
-
-
-
-
-                {/* Ticket Info */}
-
-
-                <div className="bg-gray-50 rounded-lg p-4">
-
-
-                  <h3 className="font-semibold text-gray-900 mb-3 text-center">Ticket Information</h3>
-
-
-                  <div className="space-y-2 text-sm">
-
-
-                    <div className="flex justify-between">
-
-
-                      <span className="font-medium text-gray-600">Ticket ID:</span>
-
-
-                      <span className="text-gray-900">{ticketData.id}</span>
-
-
-                    </div>
-
-
-                    <div className="flex justify-between">
-
-
-                      <span className="font-medium text-gray-600">Event:</span>
-
-
-                      <span className="text-gray-900">{ticketData.eventName}</span>
-
-
-                    </div>
-
-
-                    <div className="flex justify-between">
-
-
-                      <span className="font-medium text-gray-600">Date:</span>
-
-
-                      <span className="text-gray-900">{ticketData.eventDate}</span>
-
-
-                    </div>
-
-
-                    <div className="flex justify-between">
-
-
-                      <span className="font-medium text-gray-600">Time:</span>
-
-
-                      <span className="text-gray-900">{ticketData.eventTime}</span>
-
-
-                    </div>
-
-
-                    <div className="flex justify-between">
-
-
-                      <span className="font-medium text-gray-600">Location:</span>
-
-
-                      <span className="text-gray-900">{ticketData.eventLocation}</span>
-
-
-                    </div>
-
-
-                    <div className="flex justify-between">
-
-
-                      <span className="font-medium text-gray-600">Attendee:</span>
-
-
-                      <span className="text-gray-900">{ticketData.userName}</span>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                </div>
-
-
-
-
-
-                {/* Instructions */}
-
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-
-
-                  <div className="flex items-start space-x-3">
-
-
-                    <InformationCircleIcon className="w-5 h-5 text-blue-500 mt-0.5" />
-
-
-                    <div>
-
-
-                      <p className="text-sm font-medium text-blue-900">Important Information</p>
-
-
-                      <p className="text-sm text-blue-700 mt-1">
-
-
-                        Please save this ticket or take a screenshot. You will need to present this QR code at the event entrance for verification.
-
-
-                      </p>
-
-
-                    </div>
-
-
-                  </div>
-
-
-                </div>
-
-
-
-
-
-                {/* Action Buttons */}
-
-
-                <div className="flex items-center justify-center space-x-4">
-
-
-                  <button
-
-
-                    onClick={downloadTicket}
-
-
-                    className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-medium"
-
-
-                  >
-
-
-                    <ArrowDownTrayIcon className="w-5 h-5" />
-
-
-                    Download Ticket
-
-
-                  </button>
-
-
-                  <button
-
-
-                    onClick={() => setShowTicketModal(false)}
-
-
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-
-
-                  >
-
-
-                    Close
-
-
-                  </button>
-
-
-                </div>
-
-
-              </div>
-
-
-            </motion.div>
-
-
-          </div>
-
-
-        </div>
-
-
-      )}
-
-
-    </AnimatePresence>
-
-
-  )
 
 
 
@@ -4551,293 +4212,7 @@ const Events = () => {
 
 
 
-  const EventCard = ({ event, index }) => (
 
-
-    <motion.div
-
-
-      initial={{ opacity: 0, y: 50 }}
-
-
-      animate={{ opacity: 1, y: 0 }}
-
-
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-
-
-      onClick={() => handleEventClick(event)}
-
-
-      className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group cursor-pointer flex flex-col h-full"
-
-
-    >
-
-
-      {/* Event Image */}
-
-
-      <div className="relative h-48 overflow-hidden flex-shrink-0">
-
-
-        <img
-
-
-          src={event.image || event.poster_image_url || event.event_poster || 'https://via.placeholder.com/400x300?text=Event+Image'}
-
-
-          alt={event.title}
-
-
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-
-          onError={(e) => {
-            e.target.src = 'https://via.placeholder.com/400x300?text=Event+Image'
-          }}
-
-
-        />
-
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-
-
-        </div>
-
-
-        <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(event.status)}`}>
-
-
-          {event.status ? event.status.replace('_', ' ').toUpperCase() : 'AVAILABLE'}
-
-
-        </div>
-
-
-      </div>
-
-
-
-
-
-      {/* Event Details */}
-
-
-      <div className="p-6 flex flex-col flex-1">
-
-
-        <div className="mb-4">
-
-
-          <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
-
-
-            {event.title}
-
-
-          </h3>
-
-
-          <p className="text-gray-600 text-sm line-clamp-3">
-
-
-            {event.description}
-
-
-          </p>
-
-
-        </div>
-
-
-
-
-
-        {/* Event Info */}
-
-
-        <div className="space-y-3 mb-4">
-
-
-          <div className="flex items-center text-gray-600">
-
-
-            <CalendarIcon className="w-5 h-5 mr-2 text-purple-600" />
-
-
-            <span className="text-sm">{event.date} at {event.time}</span>
-
-
-          </div>
-
-
-          <div className="flex items-center text-gray-600">
-
-
-            <MapPinIcon className="w-5 h-5 mr-2 text-purple-600" />
-
-
-            <span className="text-sm">{event.location}</span>
-
-
-          </div>
-
-
-          <div className="flex items-center text-gray-600">
-
-
-            <UserGroupIcon className="w-5 h-5 mr-2 text-purple-600" />
-
-
-            <span className="text-sm">
-
-
-              {event.currentAttendees}{event.maxAttendees !== null ? `/${event.maxAttendees}` : ''} attending
-
-
-            </span>
-
-
-          </div>
-
-
-          {event.price > 0 && (
-
-
-            <div className="flex items-center text-gray-600">
-
-
-              <CurrencyDollarIcon className="w-5 h-5 mr-2 text-purple-600" />
-
-
-              <span className="text-sm font-semibold">${event.price}</span>
-
-
-            </div>
-
-
-          )}
-
-
-        </div>
-
-
-
-
-
-        {/* Tags */}
-
-
-        <div className="flex flex-wrap gap-2 mb-4">
-
-
-          {event.tags.map((tag, tagIndex) => (
-
-
-            <span
-
-
-              key={tagIndex}
-
-
-              className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full"
-
-
-            >
-
-
-              {tag}
-
-
-            </span>
-
-
-          ))}
-
-
-        </div>
-
-
-
-
-
-        {/* Organizer */}
-
-
-        <div className="flex items-center justify-between mt-auto">
-
-
-          <div className="flex items-center space-x-3">
-
-
-            <img
-
-
-              src={event.organizer.avatar}
-
-
-              alt={event.organizer.name}
-
-
-              className="w-8 h-8 rounded-full"
-
-
-            />
-
-
-            <div>
-
-
-              <p className="text-sm font-medium text-gray-900">{event.organizer.name}</p>
-
-
-              <p className="text-xs text-gray-500">Organizer</p>
-
-
-            </div>
-
-
-          </div>
-
-
-          <button
-
-
-            onClick={(e) => {
-
-
-              e.stopPropagation()
-
-
-              handleEventClick(event)
-
-
-            }}
-
-
-            className="btn-primary"
-
-
-          >
-
-
-            View Details
-
-
-          </button>
-
-
-        </div>
-
-
-      </div>
-
-
-    </motion.div>
-
-
-  )
 
 
 
@@ -5149,7 +4524,7 @@ const Events = () => {
       <div style={{ background: '#f9fafb' }}>
 
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -5302,7 +4677,7 @@ const Events = () => {
       {/* Events Grid */}
 
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
 
         {events.length === 0 ? (
@@ -5326,13 +4701,13 @@ const Events = () => {
         ) : (
 
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
 
 
             {events.map((event, index) => (
 
 
-              <EventCard key={event.id} event={event} index={index} />
+              <EventCard key={event.id} event={event} index={index} onEventClick={handleEventClick} getStatusColor={getStatusColor} />
 
 
             ))}
@@ -5353,7 +4728,14 @@ const Events = () => {
       {/* Event Modal */}
 
 
-      <EventModal />
+      <EventModal
+        selectedEvent={selectedEvent}
+        closeModal={closeModal}
+        getTypeIcon={getTypeIcon}
+        getStatusColor={getStatusColor}
+        handleRegister={handleRegister}
+        isRegistered={isRegistered}
+      />
 
 
 
@@ -5385,7 +4767,12 @@ const Events = () => {
       {/* Ticket Modal */}
 
 
-      <TicketModal />
+      <TicketModal
+        showTicketModal={showTicketModal}
+        ticketData={ticketData}
+        setShowTicketModal={setShowTicketModal}
+        downloadTicket={downloadTicket}
+      />
 
 
 

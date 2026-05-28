@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    ChatWarmupView,
     ChatView,
     ChatHistoryView,
     AnalyzeEventView,
@@ -13,6 +14,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path('warmup/', ChatWarmupView.as_view(), name='ai-chat-warmup'),
     path('chat/', ChatView.as_view(), name='ai-chat'),
     path('history/', ChatHistoryView.as_view(), name='ai-chat-history'),
     path('analyze-event/', AnalyzeEventView.as_view(), name='ai-analyze-event'),

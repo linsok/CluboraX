@@ -248,7 +248,7 @@ const ProposalsSection = ({
                       <div className="flex items-center space-x-3">
                         <div className={`w-12 h-12 bg-gradient-to-r ${
                           p.type === 'event_proposal' 
-                            ? 'from-purple-500 to-pink-600' 
+                            ? 'from-purple-500 to-gray-600' 
                             : 'from-yellow-500 to-orange-600'
                         } rounded-lg flex items-center justify-center`}>
                           {p.type === 'event_proposal' ? (

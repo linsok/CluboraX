@@ -357,7 +357,7 @@ class EventRegistrationCreateSerializer(serializers.ModelSerializer):
         Send Telegram payment notification to the event organizer and all admins.
         Each recipient gets Approve/Reject inline buttons.
         """
-        from apps.notifications.telegram_utils import send_telegram_message
+        from apps.notifications.telegram_utils import send_telegram_message, send_telegram_photo
         from django.contrib.auth import get_user_model
         User = get_user_model()
 
@@ -384,24 +384,29 @@ class EventRegistrationCreateSerializer(serializers.ModelSerializer):
         # Notify organizer
         org = event.created_by
         if getattr(org, 'telegram_chat_id', None):
-            send_telegram_message(
-                chat_id=org.telegram_chat_id,
-                text=message_text,
-                reply_markup=reply_markup
-            )
+            if registration.payment_receipt:
+                try:
+                    with registration.payment_receipt.open('rb') as photo_file:
+                        send_telegram_photo(
+                            chat_id=org.telegram_chat_id,
+                            photo_file=photo_file,
+                            caption=message_text,
+                            reply_markup=reply_markup
+                        )
+                except Exception as e:
+                    logger.error(f"Failed to send payment receipt photo to organizer: {e}")
+                    send_telegram_message(
+                        chat_id=org.telegram_chat_id,
+                        text=message_text,
+                        reply_markup=reply_markup
+                    )
+            else:
+                send_telegram_message(
+                    chat_id=org.telegram_chat_id,
+                    text=message_text,
+                    reply_markup=reply_markup
+                )
 
-        # Notify all admin users who have linked their Telegram
-        admins = User.objects.filter(
-            role='admin',
-            telegram_chat_id__isnull=False
-        ).exclude(telegram_chat_id='').exclude(id=org.id)
-
-        for admin in admins:
-            send_telegram_message(
-                chat_id=admin.telegram_chat_id,
-                text=message_text,
-                reply_markup=reply_markup
-            )
 
 
 class EventApprovalSerializer(serializers.ModelSerializer):
@@ -520,7 +525,7 @@ class EventListSerializer(serializers.ModelSerializer):
             'end_datetime', 'venue', 'is_paid', 'price', 'status',
             'created_by_name', 'club_name', 'poster_image_url',
             'current_participants', 'available_slots', 'is_full',
-            'registration_open'
+            'registration_open', 'description', 'requirements', 'agenda', 'tags'
         ]
     
     def get_poster_image_url(self, obj):

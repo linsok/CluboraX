@@ -35,7 +35,7 @@ export const apiRequest = async (url, options = {}) => {
 }
 
 export const getApiUrl = (endpoint) => {
-  const baseUrl = 'http://localhost:8000/api/admin/api'
+  const baseUrl = 'http://localhost:8888/api/admin/api'
   return `${baseUrl}${endpoint}`
 }
 
