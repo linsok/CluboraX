@@ -293,7 +293,7 @@ const AIAdvisor = () => {
         {
           id: 1,
           type: 'ai',
-          content: "Hello! I'm your CluboraX AI Assistant. How can I assist you today?",
+          content: "Hello! I'm your CluboraX AI Advisor. How can I assist you today?",
           timestamp: activeSession.date
         },
         ...activeSession.messages
@@ -304,7 +304,7 @@ const AIAdvisor = () => {
         {
           id: 1,
           type: 'ai',
-          content: "Hello! I'm your CluboraX AI Assistant. I can help you with:\n\n• Creating event proposals\n• Club management suggestions\n• Policy compliance checks\n• Content improvements\n• General campus-related questions\n\nHow can I assist you today?",
+          content: "Hello! I'm your CluboraX AI Advisor. I can help you with general questions about university events, clubs, campus policies, and other activities.\n\nHow can I assist you today?",
           timestamp: new Date().toISOString()
         }
       ])
@@ -319,27 +319,6 @@ const AIAdvisor = () => {
       icon: SparklesIcon,
       description: 'Ask me anything!',
       color: 'purple'
-    },
-    {
-      id: 'event',
-      name: 'Event Proposal',
-      icon: CalendarIcon,
-      description: 'Get help with event planning',
-      color: 'blue'
-    },
-    {
-      id: 'club',
-      name: 'Club Proposal',
-      icon: UserGroupIcon,
-      description: 'Club creation assistance',
-      color: 'green'
-    },
-    {
-      id: 'content',
-      name: 'Content Review',
-      icon: DocumentTextIcon,
-      description: 'Improve your content',
-      color: 'orange'
     }
   ]
 
@@ -750,59 +729,12 @@ const AIAdvisor = () => {
             
               {/* Right Section */}
               <div className="flex items-center space-x-3">
-                <div className="relative">
-                <button
-                  onClick={() => setShowModeSelector(!showModeSelector)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700"
+                <div
+                  className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg text-gray-700 select-none"
                 >
                   <currentMode.icon className="w-5 h-5 text-purple-600" />
                   <span className="hidden sm:inline">{currentMode.name}</span>
-                  <ChevronDownIcon className="w-4 h-4" />
-                </button>
-
-                {/* Mode Selector Dropdown */}
-                <AnimatePresence>
-                  {showModeSelector && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 p-2 w-72 z-30"
-                    >
-                      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 mb-2">
-                        <span className="font-semibold text-gray-700">Select Mode</span>
-                        <button
-                          onClick={() => setShowModeSelector(false)}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <XMarkIcon className="w-5 h-5" />
-                        </button>
-                      </div>
-                      {modes.map((mode) => (
-                        <button
-                          key={mode.id}
-                          onClick={() => {
-                            setSelectedMode(mode.id)
-                            setShowModeSelector(false)
-                            toast.success(`Switched to ${mode.name} mode`)
-                          }}
-                          className={`w-full flex items-start space-x-3 px-3 py-3 rounded-lg transition-colors ${
-                            selectedMode === mode.id
-                              ? 'bg-purple-50 border-2 border-purple-600'
-                              : 'hover:bg-gray-50'
-                          }`}
-                        >
-                          <mode.icon className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
-                          <div className="text-left flex-1">
-                            <div className="font-medium text-gray-900">{mode.name}</div>
-                            <div className="text-sm text-gray-500">{mode.description}</div>
-                          </div>
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                </div>
               
               <motion.button
                 whileHover={{ scale: 1.05 }}

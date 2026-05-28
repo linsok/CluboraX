@@ -10,7 +10,7 @@ import { getUnreadNotifications } from '../api/notifications'
 export const usePushNotifications = (enabled = true) => {
   const seenNotificationsRef = useRef(new Set())
   const pollingIntervalRef = useRef(null)
-  const isFirstFetchRef = useRef(true)
+  const sessionStartTimeRef = useRef(new Date())
 
   useEffect(() => {
     if (!enabled) return
@@ -29,9 +29,12 @@ export const usePushNotifications = (enabled = true) => {
           if (!seenNotificationsRef.current.has(notifId)) {
             seenNotificationsRef.current.add(notifId)
 
-            // Skip showing toasts on the very first fetch after page load/mount
-            // This prevents old unread notifications from popping up every time the user refreshes
-            if (isFirstFetchRef.current) return
+            // Only show toasts for notifications created after the user session started
+            // Adds a 5-second buffer to handle minor clock differences between server/client
+            const notifTime = new Date(notif.created_at)
+            const isNewNotification = notifTime.getTime() > (sessionStartTimeRef.current.getTime() - 5000)
+
+            if (!isNewNotification) return
 
             // Determine toast style based on priority/type
             const getToastStyle = () => {
@@ -113,10 +116,7 @@ export const usePushNotifications = (enabled = true) => {
           }
         })
 
-        // After the first successful fetch, allow subsequent ones to show toasts
-        if (isFirstFetchRef.current) {
-          isFirstFetchRef.current = false
-        }
+
       } catch (error) {
         console.error('Error polling for push notifications:', error)
       }

@@ -26,25 +26,24 @@ docker-compose up -d
 - **User Management**: Role-based access control (Students, Organizers, Approvers, Admins)
 - **Event Management**: Create, approve, register, and track attendance for events
 - **Club Management**: Club proposals, membership management, and approval workflows
-- **Notification System**: Email and in-app notifications for updates and reminders
+- **Notification System**: Email, in-app notifications, and live polling push notification toasts
 - **QR Code Ticketing**: Secure attendance tracking with unique QR codes
 - **Gallery System**: Photo and media management for events
 - **Admin Panel**: Comprehensive system oversight and control
+- **AI Advisor**: Fully integrated hybrid RAG assistant (ChromaDB + Ollama) for general campus questions, policies, and activities
 
 ### 🚧 Advanced Features (In Development)
-- **AI Advisor**: Intelligent assistance for event and club proposals *(Services implemented, API integration pending)*
-- **Payment Integration**: KHQR Bakong API for paid events *(Models created, views/serializers needed)*
-- **Push Notifications**: Firebase integration for real-time notifications *(Placeholder implementation)*
+- **Payment Integration**: KHQR Bakong API for paid events *(Models created, views/serializers in progress)*
 - **OCR System**: Document processing for event materials *(Placeholder implementation)*
 
 ## 🛠 Technology Stack
 
 ### Frontend
 - React.js 18+ with Vite
-- TypeScript
 - TailwindCSS for styling
-- Lucide React for icons
-- React Router for navigation
+- Tailwind Heroicons for iconography
+- Framer Motion for premium animations
+- React Query (TanStack Query) for robust caching & sync
 - Axios for API calls
 
 ### Backend
@@ -73,6 +72,7 @@ cluborax/
 │   │   ├── utils/          # Utility functions
 │   │   └── api/            # API service functions
 │   ├── public/             # Static assets
+│   ├── docs/               # Setup & OAuth guides
 │   ├── Dockerfile          # Production Docker image
 │   ├── nginx.conf          # Nginx configuration
 │   └── package.json
@@ -85,13 +85,21 @@ cluborax/
 │   │   ├── clubs/          # Club management system
 │   │   ├── notifications/  # Notification system
 │   │   ├── gallery/        # Media gallery system
-│   │   ├── payments/       # Payment processing (partial)
+│   │   ├── payments/       # Payment processing
 │   │   ├── admin_panel/    # Admin dashboard
-│   │   ├── campus_admin/   # Campus administration
-│   │   └── ai_advisor/     # AI assistance (partial)
+│   │   └── ai_advisor/     # AI advisor endpoints & RAG service
+│   ├── scripts/            # Django background utilities
 │   ├── Dockerfile          # Production Docker image
 │   ├── requirements.txt    # Python dependencies
 │   └── manage.py
+├── aichatbot/               # Hybrid RAG Advisor System
+│   ├── knowledge/          # Q&A txt knowledge corpora
+│   ├── database/           # Persistent ChromaDB storage
+│   ├── pipeline/           # Embedding & DB creation scripts
+│   ├── eval/               # Evaluation pipelines & reports
+│   ├── cache/              # Embedding model download caches
+│   ├── cli/                # Standalone query utilities
+│   └── docs/               # Chatbot architecture guide
 ├── database/               # Database initialization
 ├── .github/workflows/      # CI/CD pipelines
 ├── docker-compose.yml      # Development environment
@@ -215,7 +223,7 @@ python manage.py test --verbosity=2
 ### Frontend Tests
 ```bash
 cd frontend
-npm test -- --coverage --watchAll=false
+npx vitest run --coverage --passWithNoTests
 ```
 
 ### Docker Testing
