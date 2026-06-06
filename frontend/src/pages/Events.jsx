@@ -1194,6 +1194,7 @@ const RegistrationFormModal = React.memo(({
   onSimulateReject,
   pendingRegistrationId
 }) => {
+  const { user } = useAuth()
   const [timeLeft, setTimeLeft] = React.useState(10 * 60)
   const [pollCount, setPollCount] = React.useState(0)
   const [pollStatus, setPollStatus] = React.useState('pending') // 'pending'|'checking'

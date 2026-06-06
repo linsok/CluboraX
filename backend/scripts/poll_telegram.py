@@ -4,7 +4,7 @@ import json
 import time
 
 BOT_TOKEN = '8238539689:AAEhOb3jSI-dItikxeBcd5ZH9PycjXhX9EM'
-WEBHOOK_URL = 'http://localhost:8000/api/notifications/telegram/webhook/'
+WEBHOOK_URL = 'http://localhost:8888/api/notifications/telegram/webhook/'
 OFFSET = None
 
 # Delete webhook first
