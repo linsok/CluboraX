@@ -5,65 +5,72 @@ This will update all embedding files and recreate the ChromaDB database.
 import os
 import subprocess
 import sys
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).parent.resolve()
+CHAT_DIR = SCRIPT_DIR.parent
+CACHE_DIR = CHAT_DIR / "cache"
+KNOWLEDGE_DIR = CHAT_DIR / "knowledge"
+
 
 def main():
     print("=" * 60)
     print("Regenerating embeddings with BAAI/bge-base-en-v1.5")
     print("=" * 60)
-    
+
     model_name = "BAAI/bge-base-en-v1.5"
-    
-    # Define input and output files
+
     files_to_embed = [
-        ("aichatbot/Event_QA.txt", "aichatbot/Event_QA_emb.json"),
-        ("aichatbot/Club_QA.txt", "aichatbot/Club_QA_emb.json"),
-        ("aichatbot/Others_QA.txt", "aichatbot/Others_QA_emb.json"),
+        (KNOWLEDGE_DIR / "Event_QA.txt", CACHE_DIR / "Event_QA_emb.json"),
+        (KNOWLEDGE_DIR / "Club_QA.txt", CACHE_DIR / "Club_QA_emb.json"),
+        (KNOWLEDGE_DIR / "Others_QA.txt", CACHE_DIR / "Others_QA_emb.json"),
+        (KNOWLEDGE_DIR / "Rules_QA.txt", CACHE_DIR / "Rules_QA_emb.json"),
     ]
-    
-    # Generate embeddings for each file
+
     for input_file, output_file in files_to_embed:
-        print(f"\n📄 Processing: {input_file}")
+        print(f"\nProcessing: {input_file}")
         print(f"   Output: {output_file}")
-        
+
         try:
             result = subprocess.run(
-                [sys.executable, "aichatbot/embed_qa.py", input_file, output_file, model_name],
+                [sys.executable, str(SCRIPT_DIR / "embed_qa.py"),
+                 str(input_file), str(output_file), model_name],
                 check=True,
                 capture_output=True,
                 text=True
             )
             print(result.stdout)
         except subprocess.CalledProcessError as e:
-            print(f" Error processing {input_file}")
+            print(f"Error processing {input_file}")
             print(e.stderr)
             return False
-    
+
     print("\n" + "=" * 60)
-    print(" All embeddings generated successfully!")
+    print("All embeddings generated successfully!")
     print("=" * 60)
-    
-    # Recreate ChromaDB
-    print("\n Recreating ChromaDB vector database...")
+
+    print("\nRecreating ChromaDB vector database...")
     try:
         result = subprocess.run(
-            [sys.executable, "aichatbot/create_chroma_db.py"],
+            [sys.executable, str(SCRIPT_DIR / "create_chroma_db.py")],
             check=True,
             capture_output=True,
             text=True
         )
         print(result.stdout)
-        print("\n ChromaDB recreated successfully!")
+        print("\nChromaDB recreated successfully!")
     except subprocess.CalledProcessError as e:
-        print(f" Error creating ChromaDB")
+        print(f"Error creating ChromaDB")
         print(e.stderr)
         return False
-    
+
     print("\n" + "=" * 60)
-    print(" All done! You can now run the chatbot with:")
-    print("   python aichatbot/chatbot_terminal.py")
+    print("All done! You can now run the chatbot with:")
+    print("   python chatbot_terminal.py")
     print("=" * 60)
-    
+
     return True
+
 
 if __name__ == "__main__":
     success = main()

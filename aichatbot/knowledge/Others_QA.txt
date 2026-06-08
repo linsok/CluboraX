@@ -192,3 +192,20 @@ A: You can get information about campus activities through multiple channels:
 - View success metrics showing event attendance and club activity levels
 - Use search and filtering features to find activities of interest
 The system provides comprehensive information about all campus events and club activities.
+
+Q39: What membership statuses exist in the club system?
+A: The system tracks club membership status. When your application is approved, you receive ACTIVE membership status. Club organizers can manage membership status including processing terminations or withdrawals, which would change your status accordingly.
+
+Q40: How do I know what role I have in the system?
+A: You can check your current role from your account profile or dashboard. By default, new users are assigned the Student role. The system provides role-based access control, so the features visible to you reflect your assigned role. Contact an administrator if you need a role change.
+
+Q41: What happens if my payment receipt gets rejected?
+A: If your payment receipt is rejected, your registration will not be confirmed. You will need to resubmit a valid transaction receipt showing the correct payment amount. Contact the event organizer if you continue to face issues with receipt verification.
+
+Q42: How does the payment process work for paid events?
+A: For paid events: 
+1. After selecting the event, the payment amount is displayed 
+2. Complete payment via bank-to-bank transfer 
+3. Upload your transaction receipt through the system 
+4. Once the receipt is verified, your registration is confirmed 
+5. You receive your QR code and confirmation email.
