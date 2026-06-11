@@ -196,58 +196,22 @@ jobs:
         safety check || echo "Security vulnerabilities found but continuing pipeline"
 
   # Deployment (only on master/main branch)
-  # deploy:
-  #   runs-on: ubuntu-latest
-  #   needs: [backend-test, frontend-test, docker-build, security-scan]
-  #   if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && github.event_name == 'push'
-  # 
-  #   steps:
-  #   - name: Checkout code
-  #     uses: actions/checkout@v4
-  # 
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v4
-  #     with:
-  #       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #       aws-region: ${{ secrets.AWS_REGION }}
-  # 
-  #   - name: Login to Amazon ECR
-  #     id: login-ecr
-  #     uses: aws-actions/amazon-ecr-login@v2
-  # 
-  #   - name: Build and push backend image
-  #     env:
-  #       ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-  #       ECR_REPOSITORY: cluborax-backend
-  #       IMAGE_TAG: ${{ github.sha }}
-  #     run: |
-  #       # Build and push backend
-  #       docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
-  #       docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-  # 
-  #       # Tag as latest
-  #       docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-  #       docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-  # 
-  #   - name: Build and push frontend image
-  #     env:
-  #       ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-  #       ECR_REPOSITORY: cluborax-frontend
-  #       IMAGE_TAG: ${{ github.sha }}
-  #     run: |
-  #       # Build and push frontend
-  #       docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
-  #       docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-  # 
-  #       # Tag as latest
-  #       docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-  #       docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-  # 
-  #   - name: Deploy to production
-  #     run: |
-  #       # Update ECS service or trigger deployment
-  #       aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER }} --service ${{ secrets.ECS_SERVICE }} --force-new-deployment
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test, docker-build, security-scan]
+    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && github.event_name == 'push'
+
+    steps:
+    - name: Deploy to DigitalOcean Droplet via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DO_HOST }}
+        username: root
+        key: ${{ secrets.DO_SSH_KEY }}
+        script: |
+          cd /var/www/clubevent
+          git pull origin master
+          docker-compose up -d --build
 
   # Performance Testing
   performance-test:
