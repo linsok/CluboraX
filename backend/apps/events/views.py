@@ -203,6 +203,15 @@ class EventRegistrationListCreateView(generics.ListCreateAPIView):
             new_values=serializer.data
         )
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        registration = serializer.save()
+        
+        # Return fully serialized EventRegistration data instead of EventRegistrationCreateSerializer data
+        response_serializer = EventRegistrationSerializer(registration, context={'request': request})
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
 
 class EventRegistrationDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -247,19 +256,15 @@ class EventRegistrationDetailView(generics.RetrieveUpdateDestroyAPIView):
         if new_payment_status in ('verified', 'rejected') and new_payment_status != old.payment_status:
             student = instance.user
             if getattr(student, 'telegram_chat_id', None):
-                from apps.notifications.telegram_utils import send_telegram_message
-                event_date_str = instance.event.start_datetime.strftime('%Y-%m-%d %H:%M') if instance.event.start_datetime else 'N/A'
                 if new_payment_status == 'verified':
-                    text = (
-                        f"✅ <b>Payment Approved!</b>\n\n"
-                        f"Your payment has been successfully verified.\n\n"
-                        f"📋 <b>Ticket Details:</b>\n"
-                        f"• <b>Event:</b> {instance.event.title}\n"
-                        f"• <b>Date:</b> {event_date_str}\n"
-                        f"• <b>Venue:</b> {instance.event.venue or 'N/A'}\n\n"
-                        f"Your QR code ticket is now available in your dashboard. Show it at the venue for check-in!"
-                    )
+                    try:
+                        instance.send_ticket_to_telegram()
+                        logger.info(f"Student {student.email} notified via Telegram of payment status: {new_payment_status} (ticket photo sent)")
+                    except Exception as e:
+                        logger.error(f"Failed to send Telegram ticket photo: {e}")
                 else:  # rejected
+                    from apps.notifications.telegram_utils import send_telegram_message
+                    event_date_str = instance.event.start_datetime.strftime('%Y-%m-%d %H:%M') if instance.event.start_datetime else 'N/A'
                     text = (
                         f"❌ <b>Payment Rejected</b>\n\n"
                         f"Your payment proof for the following event was rejected:\n\n"
@@ -269,11 +274,11 @@ class EventRegistrationDetailView(generics.RetrieveUpdateDestroyAPIView):
                         f"• <b>Venue:</b> {instance.event.venue or 'N/A'}\n\n"
                         f"Please check your dashboard and re-upload a valid payment receipt to complete your registration."
                     )
-                try:
-                    send_telegram_message(chat_id=student.telegram_chat_id, text=text)
-                    logger.info(f"Student {student.email} notified via Telegram of payment status: {new_payment_status}")
-                except Exception as e:
-                    logger.error(f"Failed to send Telegram notification to student: {e}")
+                    try:
+                        send_telegram_message(chat_id=student.telegram_chat_id, text=text)
+                        logger.info(f"Student {student.email} notified via Telegram of payment status: {new_payment_status}")
+                    except Exception as e:
+                        logger.error(f"Failed to send Telegram notification to student: {e}")
 
         # Re-upload after rejection: reset status and re-notify via Telegram
         if was_rejected and new_receipt_uploaded and instance.payment_receipt:

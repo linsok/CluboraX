@@ -716,19 +716,10 @@ class TelegramWebhookView(APIView):
 
                                 # Notify student via Telegram if linked
                                 if registration.user.telegram_chat_id:
-                                    event_date_str = registration.event.start_datetime.strftime('%Y-%m-%d %H:%M') if registration.event.start_datetime else 'N/A'
-                                    send_telegram_message(
-                                        chat_id=registration.user.telegram_chat_id,
-                                        text=(
-                                            f"✅ <b>Payment Approved!</b>\n\n"
-                                            f"Your payment has been successfully verified.\n\n"
-                                            f"📋 <b>Ticket Details:</b>\n"
-                                            f"• <b>Event:</b> {registration.event.title}\n"
-                                            f"• <b>Date:</b> {event_date_str}\n"
-                                            f"• <b>Venue:</b> {registration.event.venue or 'N/A'}\n\n"
-                                            f"Your QR code ticket is now available in your dashboard. Show it at the venue for check-in!"
-                                        )
-                                    )
+                                    try:
+                                        registration.send_ticket_to_telegram()
+                                    except Exception as e:
+                                        logger.error(f"Failed to send Telegram ticket photo: {e}")
 
                             elif action == "reject":
                                 registration.payment_status = 'rejected'

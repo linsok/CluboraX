@@ -256,6 +256,17 @@ class EventRegistration(TimeStampedModel):
     
     def __str__(self):
         return f"{self.user.email} - {self.event.title}"
+
+    def save(self, *args, **kwargs):
+        # Auto-confirm status if payment is verified
+        if self.payment_status == 'verified' and self.status != 'confirmed':
+            self.status = 'confirmed'
+        
+        super().save(*args, **kwargs)
+        
+        # Auto-generate QR code if confirmed and not already set
+        if self.status == 'confirmed' and not self.qr_code:
+            self.generate_qr_code()
     
     def generate_qr_code(self):
         """
@@ -272,6 +283,46 @@ class EventRegistration(TimeStampedModel):
         self.save(update_fields=['qr_code', 'qr_code_image'])
         
         return self.qr_code
+
+    def send_ticket_to_telegram(self):
+        """
+        Send the generated QR code ticket to the student's Telegram if they linked their account.
+        """
+        if not self.user.telegram_chat_id or not self.qr_code_image:
+            return False
+            
+        import logging
+        from apps.notifications.telegram_utils import send_telegram_photo, send_telegram_message
+        
+        local_logger = logging.getLogger(__name__)
+        event_date_str = self.event.start_datetime.strftime('%Y-%m-%d %H:%M') if self.event.start_datetime else 'N/A'
+        
+        caption = (
+            f"🎟️ <b>Your Ticket is Ready!</b>\n\n"
+            f"Your registration for <b>{self.event.title}</b> is confirmed.\n\n"
+            f"📋 <b>Ticket Details:</b>\n"
+            f"• <b>Event:</b> {self.event.title}\n"
+            f"• <b>Date:</b> {event_date_str}\n"
+            f"• <b>Venue:</b> {self.event.venue or 'N/A'}\n"
+            f"• <b>Attendee:</b> {self.user.full_name}\n"
+            f"• <b>Ticket ID:</b> {self.id}\n\n"
+            f"Show this QR code at the venue entrance to check-in!"
+        )
+        
+        try:
+            with self.qr_code_image.open('rb') as ticket_file:
+                return send_telegram_photo(
+                    chat_id=self.user.telegram_chat_id,
+                    photo_file=ticket_file,
+                    caption=caption
+                )
+        except Exception as e:
+            local_logger.error(f"Failed to send ticket photo via Telegram: {e}")
+            # Fallback to text message
+            return send_telegram_message(
+                chat_id=self.user.telegram_chat_id,
+                text=caption
+            )
     
     @property
     def is_qr_expired(self):

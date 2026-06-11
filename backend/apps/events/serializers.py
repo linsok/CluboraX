@@ -324,11 +324,15 @@ class EventRegistrationCreateSerializer(serializers.ModelSerializer):
             registration.status = 'confirmed'
         
         registration.save()
-        
-        # Generate QR code if confirmed
+
+        # Generate QR code and send ticket to Telegram if confirmed
         if registration.status == 'confirmed':
-            registration.generate_qr_code()
-        
+            if getattr(user, 'telegram_chat_id', None):
+                try:
+                    registration.send_ticket_to_telegram()
+                except Exception as e:
+                    logger.error(f"Failed to send Telegram ticket photo: {e}")
+
         # Send in-app notification to user
         from apps.core.utils import send_notification
         if event.is_paid:

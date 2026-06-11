@@ -2,7 +2,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { CalendarIcon, TicketIcon, ClockIcon } from '@heroicons/react/24/outline'
 
-const EventRegistrationCard = ({ registration, getStatusColor, viewEvent, formatDate }) => {
+const EventRegistrationCard = ({ registration, getStatusColor, viewEvent, formatDate, viewTicket }) => {
   const getRegStatusLabel = (status) => {
     if (status === 'pending_payment') return 'Pending Payment'
     if (status === 'confirmed') return 'Confirmed'
@@ -58,6 +58,18 @@ const EventRegistrationCard = ({ registration, getStatusColor, viewEvent, format
         <span className="text-sm font-semibold text-gray-900">
           {registration.eventPrice > 0 ? `$${registration.eventPrice}` : 'Free'}
         </span>
+        {registration.status === 'confirmed' && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              viewTicket(registration)
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1.5"
+          >
+            <TicketIcon className="w-4 h-4" />
+            <span>View Ticket</span>
+          </button>
+        )}
       </div>
     </motion.div>
   )

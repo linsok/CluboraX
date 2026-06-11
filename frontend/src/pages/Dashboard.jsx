@@ -1455,7 +1455,7 @@ const Dashboard = () => {
                       myEventRegistrations
                         .filter(reg => eventRegFilter === 'all' || reg.status === eventRegFilter)
                         .map((registration) => (
-                          <EventRegistrationCard key={registration.id} registration={registration} getStatusColor={getStatusColor} viewEvent={viewEvent} formatDate={formatDate} />
+                          <EventRegistrationCard key={registration.id} registration={registration} getStatusColor={getStatusColor} viewEvent={viewEvent} formatDate={formatDate} viewTicket={viewTicket} />
                         ))
                     ) : (
                       <div className="col-span-full text-center py-12">

@@ -2789,14 +2789,7 @@ const Events = () => {
         userStudentId: registrationData.studentId,
         registrationDate: new Date().toISOString(),
         price: selectedEvent.price,
-        qrCodeData: JSON.stringify({
-          ticketId: registrationId,
-          eventId: selectedEvent.id,
-          userEmail: registrationData.email,
-          userName: registrationData.name,
-          eventDate: selectedEvent.date,
-          eventTime: selectedEvent.time
-        })
+        qrCodeData: res.data.qr_code || `event:${selectedEvent.id}:user:${user?.id}:reg:${registrationId}`
       }
 
       setRegistrationData({ name: '', email: '', phone: '', studentId: '', notes: '' })

@@ -1,6 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { XMarkIcon, QrCodeIcon, TicketIcon } from '@heroicons/react/24/outline'
+import QRCode from 'react-qr-code'
 
 const TicketModal = ({ selectedTicket, setShowTicketModal, downloadTicket }) => (
   <motion.div
@@ -38,13 +39,23 @@ const TicketModal = ({ selectedTicket, setShowTicketModal, downloadTicket }) => 
         {/* QR Code */}
         <div className="flex justify-center">
           <div className="bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200">
-            <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <QrCodeIcon className="w-16 h-16 text-gray-400 mb-2" />
-                <p className="text-xs text-gray-500">QR Code</p>
-                <p className="text-xs text-gray-400 mt-1">{selectedTicket?.ticketId?.substring(0, 8)}...</p>
+            {selectedTicket?.qrCodeData ? (
+              <QRCode
+                value={selectedTicket.qrCodeData}
+                size={180}
+                level="H"
+                bgColor="#ffffff"
+                fgColor="#000000"
+              />
+            ) : (
+              <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <QrCodeIcon className="w-16 h-16 text-gray-400 mb-2" />
+                  <p className="text-xs text-gray-500">QR Code</p>
+                  <p className="text-xs text-gray-400 mt-1">{selectedTicket?.ticketId?.substring(0, 8)}...</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
