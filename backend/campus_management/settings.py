@@ -323,6 +323,7 @@ RATELIMIT_ENABLE = True
 RATELIMIT_USE_CACHE = 'default'
 
 # Khmer ID OCR Settings
+# Khmer ID OCR Settings
 ROBOFLOW_API_KEY = config("ROBOFLOW_API_KEY", default="")
 
 ROBOFLOW_MODEL_ID = config(
@@ -350,4 +351,5 @@ import os
 log_dir = BASE_DIR / 'logs'
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
+
 
