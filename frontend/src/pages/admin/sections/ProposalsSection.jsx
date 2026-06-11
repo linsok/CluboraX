@@ -32,13 +32,13 @@ const ProposalsSection = ({
   const approveClubMutation = useMutation({
     mutationFn: ({ proposalId, comments }) => approveClubProposal(proposalId, comments),
     onSuccess: (data) => {
-      console.log('✅ Club proposal approved:', data)
+      console.log(' Club proposal approved:', data)
       // Refresh the proposals list
       queryClient.invalidateQueries({ queryKey: ['admin-requests'] })
       toast.success('Club proposal approved successfully')
     },
     onError: (error) => {
-      console.error('❌ Failed to approve club proposal:', error)
+      console.error(' Failed to approve club proposal:', error)
       toast.error('Failed to approve club proposal')
     }
   })
@@ -46,12 +46,12 @@ const ProposalsSection = ({
   const rejectClubMutation = useMutation({
     mutationFn: ({ proposalId, comments }) => rejectClubProposal(proposalId, comments),
     onSuccess: (data) => {
-      console.log('✅ Club proposal rejected:', data)
+      console.log(' Club proposal rejected:', data)
       queryClient.invalidateQueries({ queryKey: ['admin-requests'] })
       toast.success('Club proposal rejected successfully')
     },
     onError: (error) => {
-      console.error('❌ Failed to reject club proposal:', error)
+      console.error(' Failed to reject club proposal:', error)
       toast.error('Failed to reject club proposal')
     }
   })
@@ -59,12 +59,12 @@ const ProposalsSection = ({
   const returnClubMutation = useMutation({
     mutationFn: ({ proposalId, comments }) => returnClubProposalForRevision(proposalId, comments),
     onSuccess: (data) => {
-      console.log('✅ Club proposal returned for revision:', data)
+      console.log(' Club proposal returned for revision:', data)
       queryClient.invalidateQueries({ queryKey: ['admin-requests'] })
       toast.success('Club proposal returned for revision')
     },
     onError: (error) => {
-      console.error('❌ Failed to return club proposal:', error)
+      console.error(' Failed to return club proposal:', error)
       toast.error('Failed to return club proposal for revision')
     }
   })
@@ -72,12 +72,12 @@ const ProposalsSection = ({
   const publishClubMutation = useMutation({
     mutationFn: (proposalId) => publishClubProposal(proposalId),
     onSuccess: (data) => {
-      console.log('✅ Club proposal published:', data)
+      console.log(' Club proposal published:', data)
       queryClient.invalidateQueries({ queryKey: ['admin-requests'] })
       toast.success('Club proposal published successfully')
     },
     onError: (error) => {
-      console.error('❌ Failed to publish club proposal:', error)
+      console.error(' Failed to publish club proposal:', error)
       toast.error('Failed to publish club proposal')
     }
   })
@@ -94,8 +94,8 @@ const ProposalsSection = ({
       hasApproveButton: p.status === 'pending_review' || p.status === 'returned_for_revision'
     }))
     const organizerProposals = proposalsWithStatus.filter(p => p.role === 'organizer')
-    console.log('📊 ALL Proposals loaded:', proposalsWithStatus.length)
-    console.log('🔶 Organizer Proposals:', organizerProposals)
+    console.log(' ALL Proposals loaded:', proposalsWithStatus.length)
+    console.log(' Organizer Proposals:', organizerProposals)
     if (organizerProposals.length > 0) {
       organizerProposals.forEach(p => {
         console.log(`  └─ ${p.title} [${p.type}] id="${p.id}" status=${p.status} hasButtons=${p.hasApproveButton}`)
@@ -104,7 +104,7 @@ const ProposalsSection = ({
     
     // Show first request object structure for debugging
     if (requests && requests.length > 0) {
-      console.log('📋 FIRST PROPOSAL RAW OBJECT:', JSON.stringify(requests[0], null, 2))
+      console.log(' FIRST PROPOSAL RAW OBJECT:', JSON.stringify(requests[0], null, 2))
     }
   }, [requests, updateRequestMutation])
 
@@ -248,7 +248,7 @@ const ProposalsSection = ({
                       <div className="flex items-center space-x-3">
                         <div className={`w-12 h-12 bg-gradient-to-r ${
                           p.type === 'event_proposal' 
-                            ? 'from-purple-500 to-pink-600' 
+                            ? 'from-purple-500 to-gray-600' 
                             : 'from-yellow-500 to-orange-600'
                         } rounded-lg flex items-center justify-center`}>
                           {p.type === 'event_proposal' ? (
@@ -375,10 +375,10 @@ const ProposalsSection = ({
                               
                               // Use correct endpoint based on proposal type
                               if (p.type === 'club_proposal') {
-                                console.log('🔶 Using approveClubProposal for', p.id)
+                                console.log(' Using approveClubProposal for', p.id)
                                 approveClubMutation.mutate({ proposalId: p.id, comments: '' })
                               } else {
-                                console.log('🟢 Using updateRequestMutation for', p.id)
+                                console.log(' Using updateRequestMutation for', p.id)
                                 updateRequestMutation.mutate({ requestId: p.id, status: 'approved' })
                               }
                             }}
@@ -389,13 +389,13 @@ const ProposalsSection = ({
                           <button
                             onClick={() => {
                               if (p.type === 'club_proposal') {
-                                console.log('🔶 Opening reject modal for club proposal', p.id)
+                                console.log(' Opening reject modal for club proposal', p.id)
                                 setRejectItem(p)
                                 setRejectType('club_proposal')
                                 setShowRejectModal(true)
                               } else {
                                 if (!window.confirm(`Reject proposal "${p.title || p.name}"?`)) return
-                                console.log('🟢 Using updateRequestMutation for', p.id)
+                                console.log(' Using updateRequestMutation for', p.id)
                                 updateRequestMutation.mutate({ requestId: p.id, status: 'rejected' })
                               }
                             }}
@@ -412,10 +412,10 @@ const ProposalsSection = ({
                               if (!window.confirm(`Approve proposal "${p.title || p.name}"?`)) return
                               
                               if (p.type === 'club_proposal') {
-                                console.log('🔶 Using approveClubProposal for', p.id)
+                                console.log(' Using approveClubProposal for', p.id)
                                 approveClubMutation.mutate({ proposalId: p.id, comments: '' })
                               } else {
-                                console.log('🟢 Using updateRequestMutation for', p.id)
+                                console.log(' Using updateRequestMutation for', p.id)
                                 updateRequestMutation.mutate({ requestId: p.id, status: 'approved' })
                               }
                             }}
@@ -426,13 +426,13 @@ const ProposalsSection = ({
                           <button
                             onClick={() => {
                               if (p.type === 'club_proposal') {
-                                console.log('🔶 Opening reject modal for club proposal', p.id)
+                                console.log(' Opening reject modal for club proposal', p.id)
                                 setRejectItem(p)
                                 setRejectType('club_proposal')
                                 setShowRejectModal(true)
                               } else {
                                 if (!window.confirm(`Reject proposal "${p.title || p.name}"?`)) return
-                                console.log('🟢 Using updateRequestMutation for', p.id)
+                                console.log(' Using updateRequestMutation for', p.id)
                                 updateRequestMutation.mutate({ requestId: p.id, status: 'rejected' })
                               }
                             }}
@@ -449,10 +449,10 @@ const ProposalsSection = ({
                               if (!window.confirm(`Publish proposal "${p.title || p.name}"?`)) return
                               
                               if (p.type === 'club_proposal') {
-                                console.log('🔶 Using publishClubProposal for', p.id)
+                                console.log(' Using publishClubProposal for', p.id)
                                 publishClubMutation.mutate(p.id)
                               } else {
-                                console.log('🟢 Using updateRequestMutation (publish) for', p.id)
+                                console.log(' Using updateRequestMutation (publish) for', p.id)
                                 updateRequestMutation.mutate({ requestId: p.id, status: 'published' })
                               }
                             }}
@@ -463,13 +463,13 @@ const ProposalsSection = ({
                           <button
                             onClick={() => {
                               if (p.type === 'club_proposal') {
-                                console.log('🔶 Opening reject modal for club proposal', p.id)
+                                console.log(' Opening reject modal for club proposal', p.id)
                                 setRejectItem(p)
                                 setRejectType('club_proposal')
                                 setShowRejectModal(true)
                               } else {
                                 if (!window.confirm(`Reject proposal "${p.title || p.name}"?`)) return
-                                console.log('🟢 Using updateRequestMutation for', p.id)
+                                console.log(' Using updateRequestMutation for', p.id)
                                 updateRequestMutation.mutate({ requestId: p.id, status: 'rejected' })
                               }
                             }}

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { sendChatMessage, getChatHistory, clearChatHistory, analyzeEventProposal, analyzeClubProposal } from '../api/aiAdvisor'
+import { sendChatMessage, getChatHistory, clearChatHistory, analyzeEventProposal, analyzeClubProposal, warmupChatbot } from '../api/aiAdvisor'
 import { 
   PaperAirplaneIcon,
   SparklesIcon,
@@ -25,7 +25,166 @@ import {
   PencilIcon
 } from '@heroicons/react/24/outline'
 
+const generateSessionTitle = (messages) => {
+  const userMessages = messages.filter(m => m.type === 'user')
+  if (userMessages.length === 0) return 'New Chat'
+
+  const greetingRegex = /^(hi|hello|hey|yo|greetings|good morning|good afternoon|good evening|howdy|sup|whats up|hola|hi there|hello there|how are you|how are you doing|how is it going|hows it going)[.!?]*$/i
+  
+  let targetMessage = userMessages[0].content
+
+  if (greetingRegex.test(targetMessage.trim()) && userMessages.length > 1) {
+    const nonGreetingMessage = userMessages.find(m => !greetingRegex.test(m.content.trim()))
+    if (nonGreetingMessage) {
+      targetMessage = nonGreetingMessage.content
+    }
+  }
+
+  let title = targetMessage.trim()
+
+  // 1. Strip leading greetings
+  title = title.replace(/^(hi|hello|hey|yo|greetings|hola|good morning|good afternoon|good evening|howdy)\b\s*[,.-]*\s*/i, '')
+
+  // 2. Strip leading bot names
+  title = title.replace(/^(ai|chatbot|bot|advisor)\b\s*[,.-]*\s*/i, '')
+
+  // 3. Strip leading polite/asking phrases
+  title = title.replace(/^(may i know|please tell me|can you help me with|could you please tell me|how do i|how to|i want to|i need to|tell me about|info on)\b\s*/i, '')
+
+  // 4. Capitalize first letter
+  title = title.charAt(0).toUpperCase() + title.slice(1)
+
+  // 5. Strip trailing punctuation
+  title = title.replace(/[.!?]+$/, '')
+
+  // 6. Truncate
+  if (title.length > 30) {
+    title = title.substring(0, 30).trim() + '...'
+  }
+
+  if (!title || greetingRegex.test(title.trim())) {
+    return 'General Chat'
+  }
+
+  return title
+}
+
+const renderInlineStyling = (text) => {
+  if (!text) return '';
+
+  const boldParts = text.split('**');
+  return boldParts.map((part, index) => {
+    const isBold = index % 2 !== 0;
+    
+    const linkRegex = /\[([^\]]+)\](?:\(([^)]+)\))?/g;
+    const elements = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(part)) !== null) {
+      if (match.index > lastIndex) {
+        elements.push(part.substring(lastIndex, match.index));
+      }
+
+      const linkText = match[1];
+      const linkUrl = match[2] || '#';
+      elements.push(
+        <span
+          key={match.index}
+          className="text-purple-600 font-semibold hover:underline cursor-pointer"
+          onClick={() => {
+            if (linkUrl && linkUrl !== '#') {
+              window.open(linkUrl, '_blank');
+            }
+          }}
+        >
+          {linkText}
+        </span>
+      );
+      lastIndex = linkRegex.lastIndex;
+    }
+
+    if (lastIndex < part.length) {
+      elements.push(part.substring(lastIndex));
+    }
+
+    return isBold ? (
+      <strong key={index} className="font-bold text-gray-900">{elements}</strong>
+    ) : (
+      <span key={index}>{elements}</span>
+    );
+  });
+};
+
+const MarkdownRenderer = ({ content }) => {
+  if (!content) return null;
+
+  const paragraphs = content.split('\n\n');
+
+  return (
+    <div className="space-y-3 text-left leading-relaxed">
+      {paragraphs.map((para, pIdx) => {
+        const text = para.trim();
+        if (!text) return null;
+
+        const isBullet = text.startsWith('* ') || text.startsWith('- ') || text.includes('\n* ') || text.includes('\n- ');
+        const isNumbered = /^\d+\.\s+/.test(text) || text.includes('\n1. ') || /\n\d+\.\s+/.test(text);
+
+        if (isBullet) {
+          const lines = text.split('\n');
+          return (
+            <ul key={pIdx} className="list-disc pl-5 space-y-1.5 my-2">
+              {lines.map((line, lIdx) => {
+                const cleanLine = line.replace(/^[*|-]\s+/, '').trim();
+                if (!cleanLine) return null;
+                return <li key={lIdx}>{renderInlineStyling(cleanLine)}</li>;
+              })}
+            </ul>
+          );
+        }
+
+        if (isNumbered) {
+          const lines = text.split('\n');
+          return (
+            <ol key={pIdx} className="list-decimal pl-5 space-y-1.5 my-2">
+              {lines.map((line, lIdx) => {
+                const cleanLine = line.replace(/^\d+\.\s+/, '').trim();
+                if (!cleanLine) return null;
+                return <li key={lIdx}>{renderInlineStyling(cleanLine)}</li>;
+              })}
+            </ol>
+          );
+        }
+
+        const lines = text.split('\n');
+        if (lines.length > 1) {
+          return (
+            <p key={pIdx} className="space-y-1">
+              {lines.map((line, lIdx) => (
+                <span key={lIdx} className="block">{renderInlineStyling(line)}</span>
+              ))}
+            </p>
+          );
+        }
+
+        return (
+          <p key={pIdx}>
+            {renderInlineStyling(text)}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 const AIAdvisor = () => {
+  useEffect(() => {
+    warmupChatbot()
+  }, [])
+
+  const [activeSessionId, setActiveSessionId] = useState(() => {
+    return localStorage.getItem('active_session_id') || 'default'
+  })
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -42,13 +201,115 @@ const AIAdvisor = () => {
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [openChatMenu, setOpenChatMenu] = useState(null)
-  const [chatHistory, setChatHistory] = useState([
-    { id: 1, title: 'Current Chat', date: new Date().toISOString(), active: true }
-  ])
+  const [chatHistory, setChatHistory] = useState([])
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+
+  // Load chat history from backend
+  const { data: rawHistory } = useQuery({
+    queryKey: ['chatHistory'],
+    queryFn: () => getChatHistory(200),
+    refetchOnWindowFocus: false,
+  })
+
+  // Group messages into sessions
+  useEffect(() => {
+    const sessionsMap = {}
+    
+    if (rawHistory?.results) {
+      // Sort from oldest to newest to ensure proper order within each session
+      const sortedRaw = [...rawHistory.results].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+
+      sortedRaw.forEach(item => {
+        const sessId = item.session_id || 'default'
+        if (!sessionsMap[sessId]) {
+          sessionsMap[sessId] = {
+            id: sessId,
+            title: '',
+            date: item.created_at,
+            messages: []
+          }
+        }
+        sessionsMap[sessId].messages.push(
+          {
+            id: `${item.id}_user`,
+            type: 'user',
+            content: item.user_message,
+            timestamp: item.created_at,
+            mode: item.mode
+          },
+          {
+            id: `${item.id}_ai`,
+            type: 'ai',
+            content: item.ai_response,
+            timestamp: item.created_at,
+            mode: item.mode
+          }
+        )
+      })
+
+      // Generate clean/rephrased title for each session
+      Object.keys(sessionsMap).forEach(sessId => {
+        const session = sessionsMap[sessId]
+        session.title = generateSessionTitle(session.messages)
+      })
+    }
+
+    const sessionsList = Object.values(sessionsMap)
+    
+    // Sort sessions by date (newest first)
+    sessionsList.sort((a, b) => new Date(b.date) - new Date(a.date))
+
+    // Map sessions to sidebar format
+    let updatedHistory = sessionsList.map(session => ({
+      id: session.id,
+      title: session.title,
+      date: session.date,
+      active: session.id === activeSessionId
+    }))
+
+    // If active session does not exist in backend yet (it's new/empty)
+    const activeExists = sessionsList.some(s => s.id === activeSessionId)
+    if (!activeExists) {
+      updatedHistory = [
+        {
+          id: activeSessionId,
+          title: 'New Chat',
+          date: new Date().toISOString(),
+          active: true
+        },
+        ...updatedHistory
+      ]
+    }
+
+    setChatHistory(updatedHistory)
+
+    // Load active session messages
+    const activeSession = sessionsMap[activeSessionId]
+    if (activeSession) {
+      setMessages([
+        {
+          id: 1,
+          type: 'ai',
+          content: "Hello! I'm your CluboraX AI Advisor. How can I assist you today?",
+          timestamp: activeSession.date
+        },
+        ...activeSession.messages
+      ])
+    } else {
+      // For a new empty session, show the full greeting and suggestions
+      setMessages([
+        {
+          id: 1,
+          type: 'ai',
+          content: "Hello! I'm your CluboraX AI Advisor. I can help you with general questions about university events, clubs, campus policies, and other activities.\n\nHow can I assist you today?",
+          timestamp: new Date().toISOString()
+        }
+      ])
+    }
+  }, [rawHistory, activeSessionId])
 
   // Modes for different AI advisor functions
   const modes = [
@@ -58,27 +319,6 @@ const AIAdvisor = () => {
       icon: SparklesIcon,
       description: 'Ask me anything!',
       color: 'purple'
-    },
-    {
-      id: 'event',
-      name: 'Event Proposal',
-      icon: CalendarIcon,
-      description: 'Get help with event planning',
-      color: 'blue'
-    },
-    {
-      id: 'club',
-      name: 'Club Proposal',
-      icon: UserGroupIcon,
-      description: 'Club creation assistance',
-      color: 'green'
-    },
-    {
-      id: 'content',
-      name: 'Content Review',
-      icon: DocumentTextIcon,
-      description: 'Improve your content',
-      color: 'orange'
     }
   ]
 
@@ -101,18 +341,15 @@ const AIAdvisor = () => {
   const sendMessageMutation = useMutation({
     mutationFn: async (message) => {
       setIsTyping(true)
-      const response = await sendChatMessage(message, { mode: selectedMode })
+      const response = await sendChatMessage(message, { 
+        mode: selectedMode,
+        session_id: activeSessionId
+      })
       return response
     },
     onSuccess: (data) => {
-      const aiMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        content: data.message || data.response || 'I received your message. How else can I help?',
-        timestamp: new Date().toISOString(),
-        mode: selectedMode
-      }
-      setMessages(prev => [...prev, aiMessage])
+      // Invalidate query to trigger history refresh and update sidebar/messages
+      queryClient.invalidateQueries({ queryKey: ['chatHistory'] })
       setIsTyping(false)
     },
     onError: (error) => {
@@ -127,7 +364,7 @@ const AIAdvisor = () => {
     
     if (!inputMessage.trim()) return
     
-    // Add user message
+    // Add user message locally
     const userMessage = {
       id: Date.now(),
       type: 'user',
@@ -143,17 +380,29 @@ const AIAdvisor = () => {
     sendMessageMutation.mutate(inputMessage)
   }
 
-  const handleClearChat = () => {
-    if (window.confirm('Are you sure you want to clear the chat history?')) {
-      setMessages([
-        {
-          id: 1,
-          type: 'ai',
-          content: "Chat cleared! How can I help you today?",
-          timestamp: new Date().toISOString()
-        }
-      ])
-      toast.success('Chat history cleared')
+  const handleClearChat = async () => {
+    if (window.confirm('Are you sure you want to clear the entire chat history?')) {
+      try {
+        await clearChatHistory()
+        queryClient.invalidateQueries({ queryKey: ['chatHistory'] })
+        
+        // Reset local state to default
+        const defaultSessId = 'default'
+        setActiveSessionId(defaultSessId)
+        localStorage.setItem('active_session_id', defaultSessId)
+        
+        setMessages([
+          {
+            id: 1,
+            type: 'ai',
+            content: "Chat cleared! How can I help you today?",
+            timestamp: new Date().toISOString()
+          }
+        ])
+        toast.success('All chat history cleared')
+      } catch (err) {
+        toast.error('Failed to clear chat history')
+      }
     }
   }
 
@@ -165,20 +414,11 @@ const AIAdvisor = () => {
   }
 
   const handleNewChat = () => {
-    const newChat = {
-      id: Date.now(),
-      title: `Chat ${chatHistory.length + 1}`,
-      date: new Date().toISOString(),
-      active: true
-    }
+    const newChatId = String(Date.now())
+    setActiveSessionId(newChatId)
+    localStorage.setItem('active_session_id', newChatId)
     
-    // Deactivate all chats
-    setChatHistory(prev => prev.map(chat => ({ ...chat, active: false })))
-    
-    // Add new chat
-    setChatHistory(prev => [...prev, newChat])
-    
-    // Reset messages
+    // Reset messages display to welcome
     setMessages([
       {
         id: 1,
@@ -192,23 +432,27 @@ const AIAdvisor = () => {
   }
 
   const handleSelectChat = (chatId) => {
-    setChatHistory(prev => prev.map(chat => ({
-      ...chat,
-      active: chat.id === chatId
-    })))
-    
-    // In production, load messages for this chat from backend
+    const stringId = String(chatId)
+    setActiveSessionId(stringId)
+    localStorage.setItem('active_session_id', stringId)
     toast.success('Chat loaded')
   }
 
-  const handleDeleteChat = (chatId) => {
+  const handleDeleteChat = async (chatId) => {
     if (chatHistory.length === 1) {
       toast.error('Cannot delete the last chat')
       return
     }
     
-    setChatHistory(prev => prev.filter(chat => chat.id !== chatId))
-    toast.success('Chat deleted')
+    if (window.confirm('Are you sure you want to delete this chat session?')) {
+      try {
+        await clearChatHistory(String(chatId))
+        queryClient.invalidateQueries({ queryKey: ['chatHistory'] })
+        toast.success('Chat session deleted')
+      } catch (err) {
+        toast.error('Failed to delete chat session')
+      }
+    }
   }
 
   // Suggested prompts
@@ -449,10 +693,10 @@ const AIAdvisor = () => {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${showSidebar ? 'ml-80' : 'ml-0'} overflow-y-auto`}>
+      <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ${showSidebar ? 'ml-80' : 'ml-0'} overflow-hidden`}>
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
               {/* Left Section */}
               <div className="flex items-center space-x-4">
@@ -485,59 +729,12 @@ const AIAdvisor = () => {
             
               {/* Right Section */}
               <div className="flex items-center space-x-3">
-                <div className="relative">
-                <button
-                  onClick={() => setShowModeSelector(!showModeSelector)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700"
+                <div
+                  className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg text-gray-700 select-none"
                 >
                   <currentMode.icon className="w-5 h-5 text-purple-600" />
                   <span className="hidden sm:inline">{currentMode.name}</span>
-                  <ChevronDownIcon className="w-4 h-4" />
-                </button>
-
-                {/* Mode Selector Dropdown */}
-                <AnimatePresence>
-                  {showModeSelector && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 p-2 w-72 z-30"
-                    >
-                      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 mb-2">
-                        <span className="font-semibold text-gray-700">Select Mode</span>
-                        <button
-                          onClick={() => setShowModeSelector(false)}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <XMarkIcon className="w-5 h-5" />
-                        </button>
-                      </div>
-                      {modes.map((mode) => (
-                        <button
-                          key={mode.id}
-                          onClick={() => {
-                            setSelectedMode(mode.id)
-                            setShowModeSelector(false)
-                            toast.success(`Switched to ${mode.name} mode`)
-                          }}
-                          className={`w-full flex items-start space-x-3 px-3 py-3 rounded-lg transition-colors ${
-                            selectedMode === mode.id
-                              ? 'bg-purple-50 border-2 border-purple-600'
-                              : 'hover:bg-gray-50'
-                          }`}
-                        >
-                          <mode.icon className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
-                          <div className="text-left flex-1">
-                            <div className="font-medium text-gray-900">{mode.name}</div>
-                            <div className="text-sm text-gray-500">{mode.description}</div>
-                          </div>
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                </div>
               
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -554,7 +751,7 @@ const AIAdvisor = () => {
       </div>
 
       {/* Messages Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-48">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Add spacing to align with header logo */}
         <div className={`flex items-start space-x-4 ${!showSidebar ? '' : ''}`}>
           {!showSidebar && (
@@ -601,10 +798,14 @@ const AIAdvisor = () => {
                         ? 'bg-white border border-gray-200'
                         : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
                     }`}>
-                      <div className={`text-sm sm:text-base whitespace-pre-wrap ${
+                      <div className={`text-sm sm:text-base ${
                         message.type === 'ai' ? 'text-gray-800' : 'text-white'
                       }`}>
-                        {message.content}
+                        {message.type === 'ai' ? (
+                          <MarkdownRenderer content={message.content} />
+                        ) : (
+                          <span className="whitespace-pre-wrap">{message.content}</span>
+                        )}
                       </div>
                     </div>
                     <div className={`text-xs text-gray-500 mt-1 px-2 ${
@@ -686,9 +887,9 @@ const AIAdvisor = () => {
         </div>
       </div>
 
-      {/* Input Area - Fixed at bottom */}
-      <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-20 transition-all duration-300 ${showSidebar ? 'ml-80' : 'ml-0'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      {/* Input Area */}
+      <div className="bg-white border-t border-gray-200 shadow-lg flex-shrink-0 pb-6">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
           <form onSubmit={handleSendMessage} className="flex items-start space-x-3">
             <div className="flex-1 relative">
               <textarea

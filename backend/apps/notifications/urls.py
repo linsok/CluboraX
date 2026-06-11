@@ -25,4 +25,8 @@ urlpatterns = [
     
     # Delivery logs
     path('delivery-logs/', views.NotificationDeliveryLogListView.as_view(), name='delivery_log_list'),
+
+    # Telegram Bot
+    path('telegram/webhook/', views.TelegramWebhookView.as_view(), name='telegram_webhook'),
+    path('telegram/connect-link/', views.TelegramConnectLinkView.as_view(), name='telegram_connect_link'),
 ]

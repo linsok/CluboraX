@@ -47,7 +47,7 @@ const ContactUs = () => {
     {
       icon: EnvelopeIcon,
       title: 'Email',
-      content: ['contact@campushub.edu', 'support@campushub.edu']
+      content: ['contact@cluborax.edu', 'support@cluborax.edu']
     },
     {
       icon: ClockIcon,

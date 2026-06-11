@@ -216,6 +216,7 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
     qr_code_url = serializers.SerializerMethodField()
     payment_receipt_url = serializers.SerializerMethodField()
     is_qr_expired = serializers.ReadOnlyField()
+    approved_by_name = serializers.SerializerMethodField()
     
     class Meta:
         model = EventRegistration
@@ -224,11 +225,14 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
             'event_price', 'event_category', 'event_image',
             'user', 'registration_date',
             'status', 'qr_code', 'qr_code_url', 'payment_status',
-            'payment_receipt', 'payment_receipt_url', 'checked_in',
-            'checked_in_at', 'notes', 'is_qr_expired'
+            'payment_receipt', 'payment_receipt_url',
+            'transaction_info',
+            'approved_by', 'approved_by_role', 'approved_by_name',
+            'checked_in', 'checked_in_at', 'notes', 'is_qr_expired'
         ]
         read_only_fields = [
-            'id', 'user', 'registration_date', 'qr_code', 'checked_in_at'
+            'id', 'user', 'registration_date', 'qr_code', 'checked_in_at',
+            'approved_by', 'approved_by_role',
         ]
     
     def get_qr_code_url(self, obj):
@@ -252,6 +256,14 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.payment_receipt.url)
             return obj.payment_receipt.url
         return None
+
+    def get_approved_by_name(self, obj):
+        """
+        Return the full name of whoever approved/rejected the payment.
+        """
+        if obj.approved_by:
+            return obj.approved_by.full_name
+        return None
     
     def validate_payment_receipt(self, value):
         """
@@ -270,7 +282,7 @@ class EventRegistrationCreateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = EventRegistration
-        fields = ['event', 'payment_receipt', 'notes']
+        fields = ['event', 'payment_receipt', 'transaction_info', 'notes']
     
     def validate_event(self, value):
         """
@@ -293,7 +305,7 @@ class EventRegistrationCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         """
-        Create event registration.
+        Create event registration and send Telegram notifications to organizer + admins.
         """
         user = self.context['request'].user
         event = validated_data['event']
@@ -312,21 +324,93 @@ class EventRegistrationCreateSerializer(serializers.ModelSerializer):
             registration.status = 'confirmed'
         
         registration.save()
-        
-        # Generate QR code if confirmed
+
+        # Generate QR code and send ticket to Telegram if confirmed
         if registration.status == 'confirmed':
-            registration.generate_qr_code()
-        
-        # Send notification
+            if getattr(user, 'telegram_chat_id', None):
+                try:
+                    registration.send_ticket_to_telegram()
+                except Exception as e:
+                    logger.error(f"Failed to send Telegram ticket photo: {e}")
+
+        # Send in-app notification to user
         from apps.core.utils import send_notification
-        send_notification(
-            user,
-            'Event Registration',
-            f'You have successfully registered for "{event.title}"',
-            'event_update'
-        )
+        if event.is_paid:
+            send_notification(
+                user,
+                'Event Registration',
+                f'You have registered for "{event.title}". Please upload your payment proof to complete registration.',
+                'event_update'
+            )
+        else:
+            send_notification(
+                user,
+                'Event Registration',
+                f'You have successfully registered for "{event.title}"',
+                'event_update'
+            )
+        
+        # Telegram notification to Organizer and Admins for payment approval
+        if event.is_paid and registration.payment_receipt:
+            self._send_payment_telegram_notifications(registration, event, user)
         
         return registration
+
+    def _send_payment_telegram_notifications(self, registration, event, user):
+        """
+        Send Telegram payment notification to the event organizer and all admins.
+        Each recipient gets Approve/Reject inline buttons.
+        """
+        from apps.notifications.telegram_utils import send_telegram_message, send_telegram_photo
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        transaction_info = registration.transaction_info or 'No transaction info provided'
+
+        message_text = (
+            f"💰 <b>New Payment Uploaded!</b>\n\n"
+            f"<b>Event:</b> {event.title}\n"
+            f"<b>User:</b> {user.full_name} ({user.email})\n"
+            f"<b>Amount:</b> ${event.price}\n"
+            f"<b>Transaction Info:</b> {transaction_info}\n\n"
+            f"Please verify the payment receipt and click Approve or Reject below."
+        )
+
+        reply_markup = {
+            "inline_keyboard": [
+                [
+                    {"text": "✅ Approve", "callback_data": f"approve_{registration.id}"},
+                    {"text": "❌ Reject",  "callback_data": f"reject_{registration.id}"}
+                ]
+            ]
+        }
+
+        # Notify organizer
+        org = event.created_by
+        if getattr(org, 'telegram_chat_id', None):
+            if registration.payment_receipt:
+                try:
+                    with registration.payment_receipt.open('rb') as photo_file:
+                        send_telegram_photo(
+                            chat_id=org.telegram_chat_id,
+                            photo_file=photo_file,
+                            caption=message_text,
+                            reply_markup=reply_markup
+                        )
+                except Exception as e:
+                    logger.error(f"Failed to send payment receipt photo to organizer: {e}")
+                    send_telegram_message(
+                        chat_id=org.telegram_chat_id,
+                        text=message_text,
+                        reply_markup=reply_markup
+                    )
+            else:
+                send_telegram_message(
+                    chat_id=org.telegram_chat_id,
+                    text=message_text,
+                    reply_markup=reply_markup
+                )
+
 
 
 class EventApprovalSerializer(serializers.ModelSerializer):
@@ -445,7 +529,7 @@ class EventListSerializer(serializers.ModelSerializer):
             'end_datetime', 'venue', 'is_paid', 'price', 'status',
             'created_by_name', 'club_name', 'poster_image_url',
             'current_participants', 'available_slots', 'is_full',
-            'registration_open'
+            'registration_open', 'description', 'requirements', 'agenda', 'tags'
         ]
     
     def get_poster_image_url(self, obj):

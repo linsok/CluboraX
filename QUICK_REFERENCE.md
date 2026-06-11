@@ -45,7 +45,7 @@ Path: /dashboard → Events Section
 4. 📊 **Club Info** - Category, members, founded, status
 5. 👨‍🏫 **Leadership** - Advisor name & email
 6. 🔔 **Meeting Schedule** - When club meets
-7. 📋 **Requirements** - Membership requirements
+7. - **Requirements** - Membership requirements
 8. 🎯 **Interests** - Tags/skills (badges)
 9. 🔗 **Connect** - Social media links
 

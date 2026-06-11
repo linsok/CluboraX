@@ -380,7 +380,7 @@ const Settings = () => {
                           onClick={() => setShowPasswordForm(true)}
                           className="text-purple-600 hover:text-purple-700 font-medium"
                         >
-                          Update Password →
+                          Update Password 
                         </button>
                       ) : (
                         <form onSubmit={handlePasswordUpdate} className="space-y-4">
@@ -505,7 +505,7 @@ const Settings = () => {
                         <div className="space-y-3">
                           <div className="p-3 bg-red-100 border border-red-300 rounded">
                             <p className="text-sm text-red-900 font-medium">
-                              ⚠️ Are you absolutely sure? This action is permanent and cannot be undone.
+                              ️ Are you absolutely sure? This action is permanent and cannot be undone.
                             </p>
                             <p className="text-xs text-red-700 mt-2">
                               All your data will be permanently deleted, including your profile, events, clubs, and all associated information.

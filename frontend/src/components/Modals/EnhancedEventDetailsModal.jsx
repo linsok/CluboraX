@@ -20,7 +20,7 @@ import { apiClient } from '../../api/client'
  * Enhanced Event Detail Modal Component
  * Displays comprehensive event information in an organized, visually appealing layout
  */
-const EnhancedEventDetailsModal = ({ show, eventId, onClose, onRegisterEvent }) => {
+const EnhancedEventDetailsModal = ({ show, eventId, onClose, onRegisterEvent, registrationStatus, paymentStatus }) => {
   const { data: event, isLoading, error } = useQuery({
     queryKey: ['event-details', eventId],
     queryFn: () => eventId ? apiClient.get(`/api/events/${eventId}/`) : Promise.resolve({ data: {} }),
@@ -125,8 +125,40 @@ const EnhancedEventDetailsModal = ({ show, eventId, onClose, onRegisterEvent }) 
               )}
 
               {/* Content */}
-              {!isLoading && (
+               {!isLoading && (
                 <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                  {registrationStatus && (
+                    <div className={`p-4 rounded-xl border flex items-center justify-between mb-4 ${
+                      registrationStatus === 'confirmed'
+                        ? 'bg-green-50 border-green-200 text-green-800'
+                        : registrationStatus === 'pending_payment'
+                        ? 'bg-blue-50 border-blue-200 text-blue-800'
+                        : 'bg-red-50 border-red-200 text-red-800'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <CheckCircleIcon className={`w-6 h-6 ${
+                          registrationStatus === 'confirmed' ? 'text-green-600' : registrationStatus === 'pending_payment' ? 'text-blue-600' : 'text-red-600'
+                        }`} />
+                        <div>
+                          <p className="font-bold text-sm">
+                            Registration Status: {
+                              registrationStatus === 'pending_payment' ? 'Pending Payment Verification' :
+                              registrationStatus === 'confirmed' ? 'Confirmed / Active' : 'Cancelled'
+                            }
+                          </p>
+                          {paymentStatus && (
+                            <p className="text-xs mt-0.5 opacity-90">
+                              Payment Status: <span className="capitalize font-semibold">{paymentStatus}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs font-semibold px-2.5 py-1 bg-white rounded-full shadow-sm capitalize border">
+                        {registrationStatus.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Key Info Box - Quick Overview */}
                   <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-5 border border-indigo-200">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -318,7 +350,7 @@ const EnhancedEventDetailsModal = ({ show, eventId, onClose, onRegisterEvent }) 
                 >
                   Close
                 </button>
-                {isUpcoming && (
+                {isUpcoming && !registrationStatus && (
                   <button
                     onClick={() => {
                       onClose()

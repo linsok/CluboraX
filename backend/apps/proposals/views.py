@@ -1,4 +1,4 @@
-﻿from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -27,6 +27,39 @@ class EventProposalViewSet(viewsets.ModelViewSet):
         if hasattr(user, 'is_staff') and user.is_staff:
             return EventProposal.objects.all()
         return EventProposal.objects.filter(submitted_by=user)
+    
+    def _notify_admins_of_payment(self, instance):
+        from django.contrib.auth import get_user_model
+        from apps.notifications.telegram_utils import send_telegram_photo
+        User = get_user_model()
+        
+        try:
+            admins = User.objects.filter(role='admin').exclude(telegram_chat_id__isnull=True).exclude(telegram_chat_id='')
+            if admins.exists():
+                caption = (
+                    f"🚨 <b>New Event Proposal Paid</b> 🚨\n\n"
+                    f"<b>Event:</b> {instance.title or instance.eventTitle}\n"
+                    f"<b>Organizer:</b> {instance.submitted_by.first_name} {instance.submitted_by.last_name}\n\n"
+                    f"A platform fee receipt has been uploaded and requires verification."
+                )
+                reply_markup = {
+                    "inline_keyboard": [
+                        [
+                            {"text": "✅ Approve Payment", "callback_data": f"propapprove_{instance.id}"},
+                            {"text": "❌ Reject Payment", "callback_data": f"propreject_{instance.id}"}
+                        ]
+                    ]
+                }
+                for admin in admins:
+                    with instance.platform_fee_receipt.open('rb') as photo_file:
+                        send_telegram_photo(admin.telegram_chat_id, photo_file, caption, reply_markup)
+        except Exception as e:
+            logger.error(f"Failed to send Telegram notification for platform fee receipt: {e}")
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if 'platform_fee_receipt' in self.request.FILES and instance.platform_fee_receipt:
+            self._notify_admins_of_payment(instance)
     
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
@@ -147,6 +180,7 @@ class EventProposalViewSet(viewsets.ModelViewSet):
             'ticketPrice', 'catering', 'sponsor',
             'total_budget', 'budget', 'budget_items',
             'payment_method', 'requirements',
+            'platform_fee_receipt', 'payment_status',
         ]
         for field in updatable_fields:
             if field in request.data:
@@ -167,13 +201,31 @@ class EventProposalViewSet(viewsets.ModelViewSet):
         if 'revision_notes' in request.data:
             proposal.revision_notes = request.data['revision_notes']
 
-        # Set status to 'returned_for_revision' so admin can review the revised proposal
-        proposal.status = 'returned_for_revision'
+        # Explicitly handle platform fee receipt if uploaded
+        receipt_uploaded = False
+        if 'platform_fee_receipt' in request.FILES:
+            proposal.platform_fee_receipt = request.FILES['platform_fee_receipt']
+            receipt_uploaded = True
+
+        # Determine status based on payment requirement
+        is_paid_event = bool(proposal.ticketPrice and proposal.ticketPrice > 0)
+        if is_paid_event and proposal.payment_status != 'verified':
+            proposal.status = 'pending_payment'
+            # If a new receipt is uploaded or they are resubmitting a previously rejected payment, reset payment_status to pending
+            proposal.payment_status = 'pending'
+        else:
+            proposal.status = 'returned_for_revision'
+            if not is_paid_event:
+                proposal.payment_status = 'not_required'
+
         proposal.reviewed_by = None
         proposal.reviewed_date = None
         proposal.review_comments = None
         proposal.resubmission_count = (proposal.resubmission_count or 0) + 1
         proposal.save()
+
+        if receipt_uploaded and proposal.platform_fee_receipt:
+            self._notify_admins_of_payment(proposal)
 
         serializer = self.get_serializer(proposal)
         return Response({'message': 'Proposal revised and resubmitted for admin review', 'proposal': serializer.data})
@@ -385,10 +437,28 @@ class ClubProposalViewSet(viewsets.ModelViewSet):
             'advisor_name', 'advisor_email', 'advisor_phone',
             'expected_members', 'requirements',
             'start_date', 'end_date',
+            'meeting_time', 'meeting_location',
+            'instagram', 'linkedin', 'github',
         ]
         for field in updatable_fields:
             if field in request.data:
                 setattr(proposal, field, request.data[field])
+
+        # Handle member emails JSON field
+        import json
+        if 'member_emails' in request.data:
+            val = request.data['member_emails']
+            if isinstance(val, str):
+                try:
+                    proposal.member_emails = json.loads(val)
+                except Exception:
+                    proposal.member_emails = [e.strip() for e in val.split(',') if e.strip()]
+            else:
+                proposal.member_emails = val
+
+        # Handle club logo file upload
+        if 'club_logo' in request.FILES:
+            proposal.club_logo = request.FILES['club_logo']
 
         # Handle file attachments (multiple files supported)
         if 'attachments' in request.FILES:

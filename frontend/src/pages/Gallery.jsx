@@ -20,7 +20,8 @@ import {
   ArrowRightIcon,
   DocumentTextIcon,
   CameraIcon,
-  TrashIcon
+  TrashIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 
@@ -34,6 +35,52 @@ const Gallery = () => {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  // Lightbox state
+  const [lightboxImages, setLightboxImages] = useState([])
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [showLightbox, setShowLightbox] = useState(false)
+
+  const openLightbox = (images, index) => {
+    setLightboxImages(images)
+    setLightboxIndex(index)
+    setShowLightbox(true)
+  }
+
+  const closeLightbox = () => setShowLightbox(false)
+
+  const lightboxPrev = () => setLightboxIndex(i => (i > 0 ? i - 1 : lightboxImages.length - 1))
+  const lightboxNext = () => setLightboxIndex(i => (i < lightboxImages.length - 1 ? i + 1 : 0))
+
+  const handleDownload = async (url) => {
+    try {
+      const response = await fetch(url, { mode: 'cors' })
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      const ext = url.split('.').pop().split('?')[0] || 'jpg'
+      a.download = `gallery-image.${ext}`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(blobUrl)
+    } catch {
+      // Fallback: open in new tab
+      window.open(url, '_blank')
+    }
+  }
+
+  // Keyboard navigation for lightbox
+  React.useEffect(() => {
+    if (!showLightbox) return
+    const handler = (e) => {
+      if (e.key === 'ArrowRight') lightboxNext()
+      else if (e.key === 'ArrowLeft') lightboxPrev()
+      else if (e.key === 'Escape') closeLightbox()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [showLightbox, lightboxImages.length])
   
   // State for upload form
   const [uploadForm, setUploadForm] = useState({
@@ -524,58 +571,61 @@ const Gallery = () => {
                   
                   {selectedItem.albums && selectedItem.albums.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {selectedItem.albums.map(album => (
-                        <div 
-                          key={album.id}
-                          onClick={() => {
-                            setShowDetailsModal(false)
-                            setSelectedItem({
-                              ...selectedItem,
-                              currentAlbum: album,
-                              images: album.images.map(img => img.url)
-                            })
-                            setCurrentImageIndex(0)
-                            setShowAlbumModal(true)
-                          }}
-                          className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
-                        >
-                          <div className="aspect-video bg-gradient-to-r from-purple-400 to-indigo-400 relative overflow-hidden">
-                            {album.coverImage ? (
-                              <img 
-                                src={album.coverImage} 
-                                alt={album.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            ) : album.images && album.images.length > 0 ? (
-                              <img 
-                                src={album.images[0].thumbnail} 
-                                alt={album.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <PhotoIcon className="h-16 w-16 text-white" />
+                      {selectedItem.albums.map(album => {
+                          const imgs = album.images?.map(img => img.url).filter(Boolean) || []
+                          return (
+                            <div
+                              key={album.id}
+                              onClick={() => {
+                                if (imgs.length === 0) return
+                                setShowDetailsModal(false)
+                                openLightbox(imgs, 0)
+                              }}
+                              className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
+                            >
+                              <div className="aspect-video bg-gradient-to-r from-purple-400 to-indigo-400 relative overflow-hidden">
+                                {album.coverImage ? (
+                                  <img
+                                    src={album.coverImage}
+                                    alt={album.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                ) : imgs.length > 0 ? (
+                                  <img
+                                    src={imgs[0]}
+                                    alt={album.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <PhotoIcon className="h-16 w-16 text-white" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+                                  <div className="opacity-0 group-hover:opacity-100 text-white text-center">
+                                    <EyeIcon className="h-8 w-8 mx-auto mb-1" />
+                                    <p className="text-sm font-semibold">View Photos</p>
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300" />
-                          </div>
-                          <div className="p-4">
-                            <h4 className="font-semibold text-gray-900 mb-1">{album.name}</h4>
-                            {album.description && (
-                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{album.description}</p>
-                            )}
-                            <div className="flex items-center justify-between text-sm text-gray-500">
-                              <span className="flex items-center">
-                                <PhotoIcon className="h-4 w-4 mr-1" />
-                                {album.images?.length || 0} photos
-                              </span>
-                              <button className="text-purple-600 hover:text-purple-700 font-medium">
-                                View →
-                              </button>
+                              <div className="p-4">
+                                <h4 className="font-semibold text-gray-900 mb-1">{album.name}</h4>
+                                {album.description && (
+                                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">{album.description}</p>
+                                )}
+                                <div className="flex items-center justify-between text-sm text-gray-500">
+                                  <span className="flex items-center">
+                                    <PhotoIcon className="h-4 w-4 mr-1" />
+                                    {imgs.length} photos
+                                  </span>
+                                  <span className="text-purple-600 font-medium flex items-center gap-1">
+                                    <EyeIcon className="h-4 w-4" /> View
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      ))}
+                          )
+                        })}
                     </div>
                   ) : (
                     <div className="text-center py-12 text-gray-500">
@@ -647,28 +697,28 @@ const Gallery = () => {
               {/* Image Gallery */}
               <div className="flex-1 bg-gray-50 overflow-y-auto p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {selectedItem.images.map((image, index) => (
-                      <div 
-                        key={index}
-                        className="relative group cursor-pointer"
-                        onClick={() => setCurrentImageIndex(index)}
-                      >
-                        <div className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
-                          <img
-                            src={image}
-                            alt={`${selectedItem.currentAlbum?.name || selectedItem.title} - Image ${index + 1}`}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                        </div>
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center rounded-lg">
-                          <div className="opacity-0 group-hover:opacity-100 text-white text-center">
-                            <EyeIcon className="h-8 w-8 mx-auto mb-1" />
-                            <p className="text-sm font-medium">View</p>
-                          </div>
+                  {selectedItem.images.map((image, index) => (
+                    <div
+                      key={index}
+                      className="relative group cursor-pointer"
+                      onClick={() => openLightbox(selectedItem.images, index)}
+                    >
+                      <div className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                        <img
+                          src={image}
+                          alt={`${selectedItem.currentAlbum?.name || selectedItem.title} - Image ${index + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      </div>
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center rounded-lg">
+                        <div className="opacity-0 group-hover:opacity-100 text-white text-center space-y-1">
+                          <EyeIcon className="h-8 w-8 mx-auto" />
+                          <p className="text-sm font-semibold">Click to enlarge</p>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           </div>
@@ -739,7 +789,7 @@ const Gallery = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -785,14 +835,14 @@ const Gallery = () => {
         </motion.div>
 
         {/* Gallery Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {galleryLoading ? (
-            <div className="col-span-3 text-center py-16 text-gray-500">
+            <div className="col-span-full text-center py-16 text-gray-500">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mx-auto mb-4"></div>
               <p>Loading gallery...</p>
             </div>
           ) : filteredItems.length === 0 ? (
-            <div className="col-span-3 text-center py-16 text-gray-500">
+            <div className="col-span-full text-center py-16 text-gray-500">
               <PhotoIcon className="h-16 w-16 mx-auto mb-4 opacity-30" />
               <p className="text-xl font-medium">No gallery items found</p>
               <p className="text-sm mt-1">Check back after events have been photographed</p>
@@ -853,14 +903,25 @@ const Gallery = () => {
                     <p className="text-xs text-gray-500">{item.date}</p>
                   </div>
                   <div className="flex space-x-2">
-                    <button 
-                      onClick={() => handleViewAlbum(item)}
+                    <button
+                      onClick={() => {
+                        // Collect all images from all albums and open lightbox directly
+                        const allImgs = (item.albums || []).flatMap(a =>
+                          (a.images || []).map(img => img.url).filter(Boolean)
+                        )
+                        if (allImgs.length > 0) {
+                          openLightbox(allImgs, 0)
+                        } else {
+                          // Fallback: open details modal so user can see albums
+                          handleViewDetails(item)
+                        }
+                      }}
                       className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-medium text-sm"
                     >
                       <EyeIcon className="w-4 h-4" />
-                      Album
+                      View Photos
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleViewDetails(item)}
                       className="text-purple-600 hover:text-purple-700 font-medium text-sm"
                     >
@@ -891,6 +952,94 @@ const Gallery = () => {
       {/* Modals */}
       <GalleryDetailsModal />
       <AlbumModal />
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {showLightbox && lightboxImages.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col"
+            onClick={closeLightbox}
+          >
+            {/* Top bar */}
+            <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" onClick={e => e.stopPropagation()}>
+              <span className="text-white/70 text-sm font-medium">
+                {lightboxIndex + 1} / {lightboxImages.length}
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleDownload(lightboxImages[lightboxIndex])}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors text-sm font-medium"
+                >
+                  <ArrowDownTrayIcon className="w-4 h-4" />
+                  Download
+                </button>
+                <button
+                  onClick={closeLightbox}
+                  className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Main image area */}
+            <div className="flex-1 flex items-center justify-center relative px-16 pb-6" onClick={e => e.stopPropagation()}>
+              {/* Prev button */}
+              {lightboxImages.length > 1 && (
+                <button
+                  onClick={lightboxPrev}
+                  className="absolute left-4 p-3 bg-white/10 hover:bg-white/25 text-white rounded-full transition-colors z-10"
+                >
+                  <ArrowLeftIcon className="w-6 h-6" />
+                </button>
+              )}
+
+              <motion.img
+                key={lightboxIndex}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                src={lightboxImages[lightboxIndex]}
+                alt={`Image ${lightboxIndex + 1}`}
+                className="max-h-full max-w-full object-contain rounded-lg shadow-2xl select-none"
+                style={{ maxHeight: 'calc(100vh - 140px)' }}
+                draggable={false}
+              />
+
+              {/* Next button */}
+              {lightboxImages.length > 1 && (
+                <button
+                  onClick={lightboxNext}
+                  className="absolute right-4 p-3 bg-white/10 hover:bg-white/25 text-white rounded-full transition-colors z-10"
+                >
+                  <ArrowRightIcon className="w-6 h-6" />
+                </button>
+              )}
+            </div>
+
+            {/* Thumbnail strip */}
+            {lightboxImages.length > 1 && (
+              <div className="flex-shrink-0 px-6 pb-4 flex gap-2 overflow-x-auto justify-center" onClick={e => e.stopPropagation()}>
+                {lightboxImages.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setLightboxIndex(i)}
+                    className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
+                      i === lightboxIndex ? 'border-purple-400 scale-110' : 'border-transparent opacity-50 hover:opacity-80'
+                    }`}
+                  >
+                    <img src={img} alt={`thumb-${i}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Upload Modal */}
       <AnimatePresence>

@@ -194,10 +194,14 @@ export const getUserCourses = async () => {
         progress: 0,
         totalLessons: null,
         completedLessons: null,
-        thumbnail: event.image || null,
+        thumbnail: event.poster_image_url || null,
         category: event.category,
         duration: 'Event',
-        level: 'All Levels'
+        level: 'All Levels',
+        eventDate: event.start_datetime,
+        location: event.venue,
+        price: parseFloat(event.price || 0),
+        status: event.status
       }))
     }
     
@@ -263,12 +267,14 @@ export const getMyEventRegistrations = async () => {
   const registrations = res.data?.results || (Array.isArray(res.data) ? res.data : [])
   return registrations.map(reg => ({
     id: reg.id,
+    eventId: reg.event,
     eventName: reg.event_title || '',
     eventDate: reg.event_start ? new Date(reg.event_start).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
     eventTime: reg.event_start ? new Date(reg.event_start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '',
     eventLocation: reg.event_venue || '',
     eventPrice: parseFloat(reg.event_price || 0),
     status: reg.status,
+    paymentStatus: reg.payment_status || '',
     registeredAt: reg.registration_date,
     ticketId: String(reg.id).substring(0, 13).toUpperCase(),
     qrCodeData: reg.qr_code || '',

@@ -4,11 +4,19 @@ from django.conf import settings
 
 class EventProposal(models.Model):
     STATUS_CHOICES = (
+        ('pending_payment', 'Pending Payment'),
         ('pending_review', 'Pending Review'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
         ('published', 'Published'),
         ('returned_for_revision', 'Returned for Revision'),
+    )
+    
+    PAYMENT_STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+        ('not_required', 'Not Required'),
     )
     
     # Basic Info
@@ -58,6 +66,8 @@ class EventProposal(models.Model):
     budget_items = models.JSONField(default=list, blank=True)
     total_budget = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_method = models.CharField(max_length=50, blank=True, null=True)
+    platform_fee_receipt = models.ImageField(upload_to='platform_fees/', blank=True, null=True)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='not_required')
     
     # Status & Review
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending_review')

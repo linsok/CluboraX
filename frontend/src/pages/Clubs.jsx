@@ -384,7 +384,7 @@ const Clubs = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -430,14 +430,14 @@ const Clubs = () => {
         </motion.div>
 
         {/* Clubs Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {clubsLoading ? (
-            <div className="col-span-3 text-center py-16 text-gray-500">
+            <div className="col-span-full text-center py-16 text-gray-500">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mx-auto mb-4"></div>
               <p>Loading clubs...</p>
             </div>
           ) : filteredClubs.length === 0 ? (
-            <div className="col-span-3 text-center py-16 text-gray-500">
+            <div className="col-span-full text-center py-16 text-gray-500">
               <UserGroupIcon className="h-16 w-16 mx-auto mb-4 opacity-30" />
               <p className="text-xl font-medium">No clubs found</p>
               <p className="text-sm mt-1">Try a different search or category</p>

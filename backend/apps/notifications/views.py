@@ -540,3 +540,392 @@ class NotificationDeliveryLogListView(generics.ListAPIView):
             return NotificationDeliveryLog.objects.filter(
                 notification__user=user
             )
+
+class TelegramWebhookView(APIView):
+    """
+    Webhook endpoint for Telegram Bot.
+    Handles:
+      - /start org_<user_id>  → link organizer account
+      - /start                → friendly welcome
+      - approve_<reg_id>      → approve payment, notify user
+      - reject_<reg_id>       → reject payment, notify user
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        try:
+            data = request.data
+            from apps.users.models import User
+            from apps.events.models import EventRegistration
+            from apps.core.utils import send_notification
+            from .telegram_utils import send_telegram_message, answer_callback_query, edit_telegram_message_text, edit_telegram_message_caption
+            
+            # ── Handle standard text messages ──────────────────────────────────
+            if "message" in data:
+                message = data["message"]
+                chat_id = message["chat"]["id"]
+                text = message.get("text", "")
+
+                if text.startswith("/start"):
+                    parts = text.split(" ", 1)  # e.g. ["/start", "student_123"]
+                    payload = parts[1] if len(parts) > 1 else ""
+
+                    if payload:
+                        # Parse user role and user id
+                        payload_parts = payload.split("_", 1)
+                        if len(payload_parts) == 2:
+                            role_prefix, user_id = payload_parts
+                            # Map legacy prefix 'org' to 'organizer'
+                            if role_prefix == 'org':
+                                role_prefix = 'organizer'
+
+                            from django.core.exceptions import ValidationError
+                            try:
+                                user = User.objects.get(id=user_id)
+                                user.telegram_chat_id = str(chat_id)
+                                user.save(update_fields=['telegram_chat_id'])
+
+                                if role_prefix == 'student':
+                                    send_telegram_message(
+                                        chat_id=chat_id,
+                                        text=(
+                                            f"✅ <b>Account linked successfully!</b>\n\n"
+                                            f"Welcome to CluboraX, <b>{user.full_name}</b>!\n\n"
+                                            f"🔔 You will now receive instant push notifications about your event registrations, payment verification status, and tickets directly in this chat."
+                                        )
+                                    )
+                                elif role_prefix == 'organizer':
+                                    send_telegram_message(
+                                        chat_id=chat_id,
+                                        text=(
+                                            f"✅ <b>Account linked!</b>\n\n"
+                                            f"Welcome, <b>{user.full_name}</b>!\n"
+                                            f"You will now receive payment notifications for your events here.\n\n"
+                                            f"🔔 When a participant uploads a payment receipt, you will get "
+                                            f"an <b>Approve / Reject</b> button to verify it instantly."
+                                        )
+                                    )
+                                elif role_prefix == 'admin':
+                                    send_telegram_message(
+                                        chat_id=chat_id,
+                                        text=(
+                                            f"✅ <b>Admin Account linked!</b>\n\n"
+                                            f"Welcome, <b>{user.full_name}</b> (Admin)!\n"
+                                            f"You will receive administrative and fee approval alerts here."
+                                        )
+                                    )
+                                else:
+                                    send_telegram_message(
+                                        chat_id=chat_id,
+                                        text=(
+                                            f"✅ <b>Account linked!</b>\n\n"
+                                            f"Welcome, <b>{user.full_name}</b>!\n"
+                                            f"You will now receive notifications from the platform here."
+                                        )
+                                    )
+                            except (User.DoesNotExist, ValidationError, ValueError):
+                                send_telegram_message(chat_id, "❌ Error: Invalid User ID. Please use the connect link from the platform.")
+                            except Exception as e:
+                                logger.error(f"Telegram start link error: {e}")
+                                send_telegram_message(chat_id, "❌ Something went wrong. Please try the link again.")
+                        else:
+                            send_telegram_message(chat_id, "❌ Error: Invalid link format.")
+                    else:
+                        # Bare /start — friendly greeting
+                        send_telegram_message(
+                            chat_id=chat_id,
+                            text=(
+                                "\U0001f44b <b>Welcome to CluboraxBot!</b>\n\n"
+                                "This bot sends payment and event notifications to users.\n\n"
+                                "<b>To link your account:</b>\n"
+                                "1\ufe0f\u20e3 Go to the CluboraX platform\n"
+                                "2\ufe0f\u20e3 Open your profile or registration modal \u2192 <i>Connect Telegram</i>\n"
+                                "3\ufe0f\u20e3 Click the generated link and you're done! \u2705"
+                            )
+                        )
+
+            # ── Handle inline button callbacks ─────────────────────────────────
+            elif "callback_query" in data:
+                callback_query = data["callback_query"]
+                callback_id    = callback_query["id"]
+                actor_chat_id  = callback_query["message"]["chat"]["id"]
+                message_id     = callback_query["message"]["message_id"]
+                callback_data  = callback_query.get("data", "")
+
+                # Format: action_registrationid  (e.g. "approve_<uuid>")
+                parts = callback_data.split("_", 1)
+                if len(parts) == 2:
+                    action, reg_id = parts
+
+                    if action in ["approve", "reject"]:
+                        try:
+                            registration = EventRegistration.objects.select_related(
+                                'event__created_by', 'user'
+                            ).get(id=reg_id)
+
+                            org   = registration.event.created_by
+                            is_organizer_chat = str(org.telegram_chat_id) == str(actor_chat_id)
+
+                            # Also allow admin users (any admin who received the message)
+                            actor_user = User.objects.filter(
+                                telegram_chat_id=str(actor_chat_id)
+                            ).first()
+                            is_admin_chat = actor_user and actor_user.role == 'admin'
+
+                            if not (is_organizer_chat or is_admin_chat):
+                                answer_callback_query(
+                                    callback_id,
+                                    text="\u274c Unauthorized! This action is not for you.",
+                                    show_alert=True
+                                )
+                                return Response({"status": "ok"})
+
+                            # Determine who is acting
+                            actor = actor_user if actor_user else org
+                            approved_by_role = 'admin' if is_admin_chat else 'organizer'
+
+                            if action == "approve":
+                                registration.payment_status = 'verified'
+                                registration.status         = 'confirmed'
+                                registration.approved_by      = actor
+                                registration.approved_by_role = approved_by_role
+                                registration.save()
+                                registration.generate_qr_code()
+
+                                answer_callback_query(callback_id, text="✅ Payment Approved!")
+                                edit_telegram_message_caption(
+                                    chat_id=actor_chat_id,
+                                    message_id=message_id,
+                                    caption=(
+                                        f"✅ <b>Payment Approved</b>\n\n"
+                                        f"<b>Event:</b> {registration.event.title}\n"
+                                        f"<b>User:</b> {registration.user.full_name}\n"
+                                        f"<b>Approved by:</b> {actor.full_name} ({approved_by_role})"
+                                    ),
+                                    reply_markup={"inline_keyboard": []}
+                                )
+
+                                # Notify the student via in-app web notification
+                                send_notification(
+                                    registration.user,
+                                    '✅ Payment Approved',
+                                    f'Your payment for "{registration.event.title}" has been approved! '
+                                    f'Your QR code is ready. Check your registrations.',
+                                    'payment_update'
+                                )
+
+                                # Notify student via Telegram if linked
+                                if registration.user.telegram_chat_id:
+                                    try:
+                                        registration.send_ticket_to_telegram()
+                                    except Exception as e:
+                                        logger.error(f"Failed to send Telegram ticket photo: {e}")
+
+                            elif action == "reject":
+                                registration.payment_status = 'rejected'
+                                registration.status         = 'pending_payment'
+                                registration.approved_by      = actor
+                                registration.approved_by_role = approved_by_role
+                                registration.save()
+
+                                answer_callback_query(callback_id, text="❌ Payment Rejected!")
+                                edit_telegram_message_caption(
+                                    chat_id=actor_chat_id,
+                                    message_id=message_id,
+                                    caption=(
+                                        f"❌ <b>Payment Rejected</b>\n\n"
+                                        f"<b>Event:</b> {registration.event.title}\n"
+                                        f"<b>User:</b> {registration.user.full_name}\n"
+                                        f"<b>Rejected by:</b> {actor.full_name} ({approved_by_role})"
+                                    ),
+                                    reply_markup={"inline_keyboard": []}
+                                )
+
+                                # Notify the student via in-app web notification
+                                send_notification(
+                                    registration.user,
+                                    '❌ Payment Rejected',
+                                    f'Your payment for "{registration.event.title}" was rejected. '
+                                    f'Please re-upload a valid payment receipt.',
+                                    'payment_update'
+                                )
+
+                                # Notify student via Telegram if linked
+                                if registration.user.telegram_chat_id:
+                                    event_date_str = registration.event.start_datetime.strftime('%Y-%m-%d %H:%M') if registration.event.start_datetime else 'N/A'
+                                    send_telegram_message(
+                                        chat_id=registration.user.telegram_chat_id,
+                                        text=(
+                                            f"❌ <b>Payment Rejected</b>\n\n"
+                                            f"Your payment proof for the following event was rejected:\n\n"
+                                            f"📋 <b>Event Details:</b>\n"
+                                            f"• <b>Event:</b> {registration.event.title}\n"
+                                            f"• <b>Date:</b> {event_date_str}\n"
+                                            f"• <b>Venue:</b> {registration.event.venue or 'N/A'}\n\n"
+                                            f"Please check your dashboard and re-upload a valid payment receipt to complete your registration."
+                                        )
+                                    )
+
+                        except EventRegistration.DoesNotExist:
+                            answer_callback_query(callback_id, text="Registration not found!", show_alert=True)
+                            if not edit_telegram_message_caption(actor_chat_id, message_id, "❌ Registration not found or deleted.", reply_markup={"inline_keyboard": []}):
+                                edit_telegram_message_text(actor_chat_id, message_id, "❌ Registration not found or deleted.", reply_markup={"inline_keyboard": []})
+                    
+                    elif action in ["propapprove", "propreject"]:
+                        try:
+                            from apps.proposals.models import EventProposal
+                            proposal = EventProposal.objects.select_related('submitted_by').get(id=reg_id)
+                            
+                            actor_user = User.objects.filter(telegram_chat_id=str(actor_chat_id)).first()
+                            is_admin_chat = actor_user and actor_user.role == 'admin'
+
+                            if not is_admin_chat:
+                                answer_callback_query(
+                                    callback_id,
+                                    text="\u274c Unauthorized! Only admins can approve platform fees.",
+                                    show_alert=True
+                                )
+                                return Response({"status": "ok"})
+
+                            if action == "propapprove":
+                                proposal.payment_status = 'verified'
+                                if proposal.status in ['pending_payment', 'pending_review']:
+                                    proposal.status = 'pending_review'
+                                proposal.save(update_fields=['payment_status', 'status'])
+
+                                answer_callback_query(callback_id, text="✅ Platform Fee Approved!")
+                                edit_telegram_message_caption(
+                                    chat_id=actor_chat_id,
+                                    message_id=message_id,
+                                    caption=(
+                                        f"✅ <b>Platform Fee Approved</b>\n\n"
+                                        f"<b>Event:</b> {proposal.title or proposal.eventTitle}\n"
+                                        f"<b>Organizer:</b> {proposal.submitted_by.full_name}\n"
+                                        f"<b>Approved by:</b> {actor_user.full_name} (Admin)"
+                                    ),
+                                    reply_markup={"inline_keyboard": []}
+                                )
+
+                                send_notification(
+                                    proposal.submitted_by,
+                                    '✅ Platform Fee Approved',
+                                    f'The platform fee for your event proposal "{proposal.title or proposal.eventTitle}" (Date: {proposal.proposed_date or "N/A"}) has been verified! It is now in the queue for final review.',
+                                    'payment_update'
+                                )
+
+                                # Notify organizer via Telegram if linked
+                                if proposal.submitted_by.telegram_chat_id:
+                                    send_telegram_message(
+                                        chat_id=proposal.submitted_by.telegram_chat_id,
+                                        text=(
+                                            f"✅ <b>Platform Fee Approved!</b>\n\n"
+                                            f"Your platform fee payment has been verified successfully.\n\n"
+                                            f"📋 <b>Event Details:</b>\n"
+                                            f"• <b>Title:</b> {proposal.title or proposal.eventTitle}\n"
+                                            f"• <b>Proposed Date:</b> {proposal.proposed_date or 'N/A'}\n"
+                                            f"• <b>Venue:</b> {proposal.venue or 'N/A'}\n\n"
+                                            f"Your proposal is now in the queue for final review. We will notify you once it's approved or if revisions are needed."
+                                        )
+                                    )
+
+                            elif action == "propreject":
+                                proposal.payment_status = 'rejected'
+                                proposal.status = 'pending_payment'
+                                proposal.save(update_fields=['payment_status', 'status'])
+
+                                answer_callback_query(callback_id, text="❌ Platform Fee Rejected!")
+                                edit_telegram_message_caption(
+                                    chat_id=actor_chat_id,
+                                    message_id=message_id,
+                                    caption=(
+                                        f"❌ <b>Platform Fee Rejected</b>\n\n"
+                                        f"<b>Event:</b> {proposal.title or proposal.eventTitle}\n"
+                                        f"<b>Organizer:</b> {proposal.submitted_by.full_name}\n"
+                                        f"<b>Rejected by:</b> {actor_user.full_name} (Admin)"
+                                    ),
+                                    reply_markup={"inline_keyboard": []}
+                                )
+
+                                send_notification(
+                                    proposal.submitted_by,
+                                    '❌ Platform Fee Rejected',
+                                    f'The platform fee for your event proposal "{proposal.title or proposal.eventTitle}" (Date: {proposal.proposed_date or "N/A"}) was rejected. Please check your dashboard and re-upload a valid payment receipt.',
+                                    'payment_update'
+                                )
+
+                                # Notify organizer via Telegram if linked
+                                if proposal.submitted_by.telegram_chat_id:
+                                    send_telegram_message(
+                                        chat_id=proposal.submitted_by.telegram_chat_id,
+                                        text=(
+                                            f"❌ <b>Platform Fee Rejected</b>\n\n"
+                                            f"The platform fee payment for your event proposal was rejected.\n\n"
+                                            f"📋 <b>Event Details:</b>\n"
+                                            f"• <b>Title:</b> {proposal.title or proposal.eventTitle}\n"
+                                            f"• <b>Proposed Date:</b> {proposal.proposed_date or 'N/A'}\n"
+                                            f"• <b>Venue:</b> {proposal.venue or 'N/A'}\n\n"
+                                            f"Please check your dashboard and re-upload a valid payment receipt to continue the verification process."
+                                        )
+                                    )
+
+                        except EventProposal.DoesNotExist:
+                            answer_callback_query(callback_id, text="Proposal not found!", show_alert=True)
+                            if not edit_telegram_message_caption(actor_chat_id, message_id, "❌ Proposal not found or deleted.", reply_markup={"inline_keyboard": []}):
+                                edit_telegram_message_text(actor_chat_id, message_id, "❌ Proposal not found or deleted.", reply_markup={"inline_keyboard": []})
+                else:
+                    answer_callback_query(callback_id, text="Invalid action!")
+
+            return Response({"status": "ok"})
+
+        except Exception as e:
+            logger.error(f"Telegram webhook error: {e}")
+            return Response({"error": "Internal Server Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class TelegramConnectLinkView(APIView):
+    """
+    GET /api/notifications/telegram/connect-link/
+    Returns the unique Telegram bot deep-link that lets the current user
+    link their Telegram account.  Works for any role (organizer / admin).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.conf import settings
+
+        bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
+        if not bot_token:
+            return Response(
+                {'error': 'Telegram bot is not configured on this server.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
+        # Derive the bot username from the token via Telegram API
+        import requests as req
+        try:
+            me = req.get(
+                f'https://api.telegram.org/bot{bot_token}/getMe',
+                timeout=5
+            ).json()
+            bot_username = me['result']['username']
+        except Exception as e:
+            logger.error(f"Failed to fetch bot username: {e}")
+            return Response(
+                {'error': 'Could not reach Telegram to get bot info.'},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        user = request.user
+        role_prefix = user.role
+        connect_url = f"https://t.me/{bot_username}?start={role_prefix}_{user.id}"
+
+        return Response({
+            'connect_url': connect_url,
+            'bot_username': bot_username,
+            'is_linked': bool(getattr(user, 'telegram_chat_id', None)),
+            'telegram_chat_id': getattr(user, 'telegram_chat_id', None),
+            'instructions': (
+                'Click the connect_url link, then press START in Telegram. '
+                'Your account will be linked automatically.'
+            )
+        })

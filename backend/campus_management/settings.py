@@ -247,16 +247,19 @@ QR_CODE_EXPIRY_HOURS = config('QR_CODE_EXPIRY_HOURS', default=2, cast=int)
 KHQR_API_URL = config('KHQR_API_URL', default='https://api.bakong.gov.kh/v1/')
 KHQR_API_KEY = config('KHQR_API_KEY', default='')
 
+# Telegram Settings
+TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
+
 # AI Settings
 AI_MODEL_PATH = config('AI_MODEL_PATH', default='models/')
 
 # AI Chatbot (Hybrid RAG) Settings
 # These are used by apps.ai_advisor.rag_service.RAGChatService.
-AI_CHAT_CHROMA_PATH = config('AI_CHAT_CHROMA_PATH', default=str((BASE_DIR.parent / 'aichatbot' / 'chroma_db')))
+AI_CHAT_CHROMA_PATH = config('AI_CHAT_CHROMA_PATH', default=str((BASE_DIR.parent / 'aichatbot' / 'database' / 'chroma_db')))
 AI_CHAT_COLLECTION = config('AI_CHAT_COLLECTION', default='event_qa')
 AI_CHAT_EMBED_MODEL = config('AI_CHAT_EMBED_MODEL', default='BAAI/bge-base-en-v1.5')
-AI_CHAT_DISTANCE_HIGH_CONF = config('AI_CHAT_DISTANCE_HIGH_CONF', default=0.45, cast=float)
-AI_CHAT_DISTANCE_MED_CONF = config('AI_CHAT_DISTANCE_MED_CONF', default=0.50, cast=float)
+AI_CHAT_DISTANCE_HIGH_CONF = config('AI_CHAT_DISTANCE_HIGH_CONF', default=0.55, cast=float)
+AI_CHAT_DISTANCE_MED_CONF = config('AI_CHAT_DISTANCE_MED_CONF', default=0.75, cast=float)
 AI_CHAT_USE_OLLAMA = config('AI_CHAT_USE_OLLAMA', default=True, cast=bool)
 AI_CHAT_OLLAMA_MODEL = config('AI_CHAT_OLLAMA_MODEL', default='gemma3:1b')
 AI_CHAT_TEMPERATURE = config('AI_CHAT_TEMPERATURE', default=0.3, cast=float)
@@ -347,3 +350,4 @@ import os
 log_dir = BASE_DIR / 'logs'
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
+

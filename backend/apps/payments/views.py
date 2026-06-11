@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from .models import Payment, PaymentRefund, PaymentTransaction
 from .serializers import (
@@ -111,32 +112,136 @@ class PaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
 # Fee Submissions  (payments of type event_fee / club_membership)
 # ---------------------------------------------------------------------------
 
+def serialize_proposal_as_fee(proposal):
+    # Calculate fees
+    ticket_price = float(proposal.ticketPrice or 0)
+    capacity = int(proposal.capacity or proposal.expected_participants or 0)
+    expected_revenue = ticket_price * capacity
+    platform_fee = expected_revenue * 0.03
+    net_payout = expected_revenue - platform_fee
+    
+    # Map status
+    if proposal.payment_status == 'pending':
+        status_val = 'pending_confirmation'
+    elif proposal.payment_status == 'verified':
+        status_val = 'confirmed'
+    elif proposal.payment_status == 'rejected':
+        status_val = 'rejected'
+    else:
+        status_val = 'pending_confirmation'
+        
+    return {
+        'id': f"proposal_{proposal.id}",
+        'user': {
+            'id': proposal.submitted_by.id,
+            'full_name': proposal.submitted_by.get_full_name() or proposal.submitted_by.email,
+            'email': proposal.submitted_by.email,
+            'student_id': getattr(proposal.submitted_by, 'student_id', '')
+        } if proposal.submitted_by else None,
+        'payment_type': 'event_fee',
+        'payment_type_display': 'Event Fee',
+        'amount': str(platform_fee),
+        'currency': 'USD',
+        'payment_method': proposal.payment_method or 'KHQR',
+        'payment_method_display': proposal.payment_method or 'KHQR Bakong',
+        'status': status_val,
+        'status_display': status_val.replace('_', ' ').title(),
+        'transaction_id': '',
+        'qr_code': None,
+        'event': None,
+        'club': None,
+        'paid_at': proposal.reviewed_date.isoformat() if proposal.reviewed_date else None,
+        'created_at': proposal.submitted_date.isoformat(),
+        'updated_at': proposal.updated_at.isoformat(),
+        
+        # Extra fields for the payments section
+        'event_title': proposal.title or proposal.eventTitle or 'Untitled Event',
+        'organizer_name': proposal.organizerName or (proposal.submitted_by.get_full_name() if proposal.submitted_by else 'Unknown'),
+        'organizer_email': proposal.organizerEmail or (proposal.submitted_by.email if proposal.submitted_by else ''),
+        'ticket_price': ticket_price,
+        'expected_revenue': expected_revenue,
+        'platform_fee_rate': 0.03,
+        'platform_fee': platform_fee,
+        'net_payout': net_payout,
+        'proof_url': proposal.platform_fee_receipt.url if proposal.platform_fee_receipt else None,
+        'rejection_reason': proposal.review_comments or '',
+        'is_proposal': True
+    }
+
+
 class FeeSubmissionListCreateView(generics.ListCreateAPIView):
     """
-    GET  /api/payments/fee-submissions/   — list fee submissions
+    GET  /api/payments/fee-submissions/   — list fee submissions (including EventProposals)
     POST /api/payments/fee-submissions/   — submit a new fee proof
     """
     permission_classes = [IsAuthenticated]
     serializer_class = FeeSubmissionSerializer
     pagination_class = StandardResultsSetPagination
-    ordering = ['-created_at']
 
     FEE_TYPES = ['event_fee', 'club_membership']
 
     def get_queryset(self):
+        return Payment.objects.filter(payment_type__in=self.FEE_TYPES)
+
+    def list(self, request, *args, **kwargs):
         user = self.request.user
         is_admin = user.is_staff or getattr(user, 'role', None) == 'admin'
-        qs = Payment.objects.filter(
+
+        # Query Payments
+        payments_qs = Payment.objects.filter(
             payment_type__in=self.FEE_TYPES
         ).select_related('user', 'event', 'club')
 
         if not is_admin:
-            qs = qs.filter(user=user)
+            payments_qs = payments_qs.filter(user=user)
 
         status_filter = self.request.query_params.get('status')
         if status_filter:
-            qs = qs.filter(status=status_filter)
-        return qs.order_by('-created_at')
+            if status_filter == 'pending_confirmation':
+                payments_qs = payments_qs.filter(status__in=['pending', 'processing'])
+            elif status_filter == 'confirmed':
+                payments_qs = payments_qs.filter(status='completed')
+            elif status_filter == 'rejected':
+                payments_qs = payments_qs.filter(status='failed')
+            else:
+                payments_qs = payments_qs.filter(status=status_filter)
+
+        serialized_payments = FeeSubmissionSerializer(payments_qs, many=True).data
+
+        # Query EventProposals
+        from apps.proposals.models import EventProposal
+        proposals_qs = EventProposal.objects.select_related('submitted_by').exclude(
+            platform_fee_receipt__isnull=True
+        ).exclude(
+            platform_fee_receipt=''
+        )
+
+        if not is_admin:
+            proposals_qs = proposals_qs.filter(submitted_by=user)
+
+        if status_filter:
+            if status_filter == 'pending_confirmation':
+                proposals_qs = proposals_qs.filter(payment_status='pending')
+            elif status_filter == 'confirmed':
+                proposals_qs = proposals_qs.filter(payment_status='verified')
+            elif status_filter == 'rejected':
+                proposals_qs = proposals_qs.filter(payment_status='rejected')
+            else:
+                proposals_qs = proposals_qs.none()
+
+        serialized_proposals = [serialize_proposal_as_fee(p) for p in proposals_qs]
+
+        # Combine
+        combined_list = list(serialized_payments) + serialized_proposals
+
+        # Sort
+        combined_list.sort(key=lambda x: x.get('created_at') or '', reverse=True)
+
+        # Paginate
+        page = self.paginate_queryset(combined_list)
+        if page is not None:
+            return self.get_paginated_response(page)
+        return Response(combined_list)
 
     def perform_create(self, serializer):
         data = self.request.data
@@ -161,21 +266,29 @@ class FeeSubmissionDetailView(APIView):
 
     FEE_TYPES = ['event_fee', 'club_membership']
 
-    def _get_object(self, pk, user):
+    def get(self, request, pk):
+        user = request.user
         is_admin = user.is_staff or getattr(user, 'role', None) == 'admin'
+
+        if str(pk).startswith('proposal_'):
+            proposal_id = str(pk).replace('proposal_', '')
+            from apps.proposals.models import EventProposal
+            try:
+                proposal = EventProposal.objects.get(id=proposal_id)
+                if not is_admin and proposal.submitted_by != user:
+                    return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+                return Response(serialize_proposal_as_fee(proposal))
+            except EventProposal.DoesNotExist:
+                return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
         try:
             qs = Payment.objects.filter(payment_type__in=self.FEE_TYPES)
             if not is_admin:
                 qs = qs.filter(user=user)
-            return qs.get(pk=pk)
-        except Payment.DoesNotExist:
-            return None
-
-    def get(self, request, pk):
-        obj = self._get_object(pk, request.user)
-        if obj is None:
+            obj = qs.get(pk=pk)
+            return Response(FeeSubmissionSerializer(obj).data)
+        except (Payment.DoesNotExist, ValueError, ValidationError):
             return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
-        return Response(FeeSubmissionSerializer(obj).data)
 
     def patch(self, request, pk):
         user = request.user
@@ -186,21 +299,92 @@ class FeeSubmissionDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        if str(pk).startswith('proposal_'):
+            proposal_id = str(pk).replace('proposal_', '')
+            from apps.proposals.models import EventProposal
+            try:
+                proposal = EventProposal.objects.get(id=proposal_id)
+                action = request.data.get('action')
+                note = request.data.get('note') or request.data.get('comments', '')
+
+                if action == 'confirm':
+                    proposal.payment_status = 'verified'
+                    if proposal.status in ['pending_payment', 'pending_review']:
+                        proposal.status = 'pending_review'
+                    if note:
+                        proposal.review_comments = note
+                    proposal.save()
+
+                    # Notify the owner
+                    from apps.core.utils import send_notification
+                    send_notification(
+                        proposal.submitted_by,
+                        '✅ Payment Confirmed',
+                        f'Your platform fee payment for event "{proposal.title or proposal.eventTitle}" has been confirmed.',
+                        'payment_update'
+                    )
+                    return Response({'detail': 'Payment confirmed.', 'status': 'completed'})
+
+                elif action == 'reject':
+                    proposal.payment_status = 'rejected'
+                    if proposal.status in ['pending_payment', 'pending_review']:
+                        proposal.status = 'returned_for_revision'
+                    if note:
+                        proposal.review_comments = note
+                    proposal.save()
+
+                    # Notify the owner
+                    from apps.core.utils import send_notification
+                    send_notification(
+                        proposal.submitted_by,
+                        '❌ Payment Rejected',
+                        f'Your platform fee payment for event "{proposal.title or proposal.eventTitle}" was rejected. Please upload a valid receipt.',
+                        'payment_update'
+                    )
+                    return Response({'detail': 'Payment rejected.', 'status': 'failed'})
+                else:
+                    return Response({'detail': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            except EventProposal.DoesNotExist:
+                return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
         try:
             obj = Payment.objects.filter(payment_type__in=self.FEE_TYPES).get(pk=pk)
-        except Payment.DoesNotExist:
+        except (Payment.DoesNotExist, ValueError, ValidationError):
             return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.core.utils import send_notification
 
         action = request.data.get('action')
         if action == 'confirm':
             obj.status = 'completed'
             obj.paid_at = timezone.now()
             obj.save(update_fields=['status', 'paid_at', 'updated_at'])
+
+            # Notify the payment owner
+            event_name = obj.event.title if obj.event else 'your event'
+            send_notification(
+                obj.user,
+                '✅ Payment Confirmed',
+                f'Your payment for "{event_name}" has been confirmed by an admin.',
+                'payment_update'
+            )
             return Response({'detail': 'Payment confirmed.', 'status': obj.status})
+
         elif action == 'reject':
             obj.status = 'failed'
             obj.save(update_fields=['status', 'updated_at'])
+
+            # Notify the payment owner
+            event_name = obj.event.title if obj.event else 'your event'
+            send_notification(
+                obj.user,
+                '❌ Payment Rejected',
+                f'Your payment for "{event_name}" was rejected by an admin. Please re-submit with a valid receipt.',
+                'payment_update'
+            )
             return Response({'detail': 'Payment rejected.', 'status': obj.status})
+
         else:
             # Allow general field updates
             allowed = {'status', 'transaction_id', 'paid_at'}

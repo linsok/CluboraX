@@ -10,6 +10,7 @@ import { getUnreadNotifications } from '../api/notifications'
 export const usePushNotifications = (enabled = true) => {
   const seenNotificationsRef = useRef(new Set())
   const pollingIntervalRef = useRef(null)
+  const sessionStartTimeRef = useRef(new Date())
 
   useEffect(() => {
     if (!enabled) return
@@ -28,25 +29,32 @@ export const usePushNotifications = (enabled = true) => {
           if (!seenNotificationsRef.current.has(notifId)) {
             seenNotificationsRef.current.add(notifId)
 
+            // Only show toasts for notifications created after the user session started
+            // Adds a 5-second buffer to handle minor clock differences between server/client
+            const notifTime = new Date(notif.created_at)
+            const isNewNotification = notifTime.getTime() > (sessionStartTimeRef.current.getTime() - 5000)
+
+            if (!isNewNotification) return
+
             // Determine toast style based on priority/type
             const getToastStyle = () => {
               if (notif.priority === 'high') {
                 return {
                   background: '#fee2e2',
                   border: '1px solid #fecaca',
-                  icon: '🔴'
+                  icon: ''
                 }
               } else if (notif.priority === 'medium') {
                 return {
                   background: '#fef3c7',
                   border: '1px solid #fcd34d',
-                  icon: '🟡'
+                  icon: ''
                 }
               } else {
                 return {
                   background: '#f0fdf4',
                   border: '1px solid #bbf7d0',
-                  icon: '🟢'
+                  icon: ''
                 }
               }
             }
@@ -77,7 +85,7 @@ export const usePushNotifications = (enabled = true) => {
                               rel="noopener noreferrer"
                               className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block"
                             >
-                              View Details →
+                              View Details 
                             </a>
                           )}
                         </div>
@@ -88,7 +96,7 @@ export const usePushNotifications = (enabled = true) => {
                       className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-lg leading-none"
                       aria-label="Close notification"
                     >
-                      ✕
+                      
                     </button>
                   </div>
                 </div>
@@ -107,6 +115,8 @@ export const usePushNotifications = (enabled = true) => {
             )
           }
         })
+
+
       } catch (error) {
         console.error('Error polling for push notifications:', error)
       }

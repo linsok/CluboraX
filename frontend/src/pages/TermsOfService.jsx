@@ -239,7 +239,7 @@ const TermsOfService = () => {
           <p className="mb-4 text-gray-600">
             These terms are governed by the laws of your jurisdiction. For questions about these terms, contact us at:
           </p>
-          <p className="text-gray-600 font-semibold">legal@campushub.edu</p>
+          <p className="text-gray-600 font-semibold">legal@cluborax.edu</p>
         </div>
       )
     }
@@ -354,7 +354,7 @@ const TermsOfService = () => {
           className="mt-12 max-w-4xl mx-auto bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-8 text-center text-white"
         >
           <h2 className="text-2xl font-bold mb-4">Questions About Our Terms?</h2>
-          <p className="text-purple-100 mb-6">Contact us at legal@campushub.edu</p>
+          <p className="text-purple-100 mb-6">Contact us at legal@cluborax.edu</p>
         </motion.div>
       </div>
     </div>

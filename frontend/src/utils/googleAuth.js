@@ -2,7 +2,7 @@
 
 // Google OAuth configuration - REPLACE WITH YOUR ACTUAL CREDENTIALS
 // Get these from: https://console.cloud.google.com/
-// Go to APIs & Services → Credentials → OAuth 2.0 Client ID
+// Go to APIs & Services  Credentials  OAuth 2.0 Client ID
 const GOOGLE_CLIENT_ID = 'your-actual-google-client-id.apps.googleusercontent.com' // <-- REPLACE THIS
 const GOOGLE_CLIENT_SECRET = 'your-actual-google-client-secret' // <-- REPLACE THIS
 
@@ -122,13 +122,13 @@ export const handleGoogleCallback = async (code) => {
 export const signInWithGoogle = () => {
   // Check if Google credentials are configured
   if (GOOGLE_CLIENT_ID === 'your-actual-google-client-id.apps.googleusercontent.com') {
-    alert('🔧 Google OAuth is not configured. Please set up your Google Client ID and Client Secret in googleAuth.js')
+    alert(' Google OAuth is not configured. Please set up your Google Client ID and Client Secret in googleAuth.js')
     return
   }
   
   // Check if we're in development and give a helpful message
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    console.log('🔍 Google OAuth Debug Info:')
+    console.log(' Google OAuth Debug Info:')
     console.log('Client ID:', GOOGLE_CLIENT_ID)
     console.log('Redirect URI:', REDIRECT_URI)
     console.log('Current URL:', window.location.href)
@@ -138,7 +138,7 @@ export const signInWithGoogle = () => {
       'Google OAuth requires setup in Google Cloud Console:\n\n' +
       '1. Go to: https://console.cloud.google.com/\n' +
       '2. Select your project\n' +
-      '3. Go to APIs & Services → Credentials\n' +
+      '3. Go to APIs & Services  Credentials\n' +
       '4. Make sure your OAuth 2.0 Client ID has this redirect URI:\n' +
       REDIRECT_URI + '\n\n' +
       'Click OK to continue with Google OAuth, or Cancel to skip.'

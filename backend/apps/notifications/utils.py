@@ -83,7 +83,9 @@ def send_push_notification(notification):
         # Frontend will fetch it via getUnreadNotifications() API call
         # and display it as a dismissible toast alert
         
-        logger.info(f"Push notification prepared for {notification.user.email}: {notification.title}")
+        # Filter out emojis from the title for logging purposes
+        safe_title = notification.title.replace('✅', '[SUCCESS]').replace('❌', '[FAILED]').replace('🔵', '[INFO]').replace('🔶', '[WARN]')
+        logger.info(f"Push notification prepared for {notification.user.email}: {safe_title}")
         logger.info(f"Pull from API: GET /api/notifications/?unread=true")
         
         # Push notification data available at:

@@ -4,7 +4,7 @@ After pulling code from GitHub, follow this guide to get the full project runnin
 
 ---
 
-## 📋 Prerequisites
+## - Prerequisites
 
 Before starting, make sure you have these installed:
 

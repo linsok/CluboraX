@@ -1,0 +1,132 @@
+ Register and Account
+
+Q1. How do I log in to the campus portal?
+A: Open the website, then click Login. Enter your registered account credentials. If you don’t have an account, select Create Account first.
+
+Q2. What if I forget my password?
+A: Click “Forgot Password” on the login page and follow the steps to reset your password.
+
+Q3. How do I update my profile information?
+A: Go to your Dashboard → Profile Settings, then edit your information and save changes.
+
+Q4. Can I register for events using my phone?
+A: Yes. The system is web-based, so you can access and register using your phone browser.
+
+Q5. Is online registration secure?
+A: Yes. The system includes secure login, controlled access, and verification steps (especially for payments and approvals).
+
+Q6. Can I edit my event registration details?
+A: It depends. You can edit details before final confirmation. After approval or ticket issuance, editing may not be allowed.
+
+Q7. How do I check my registered events?
+A: Go to your Dashboard, where you can view all registered events along with their status (Paid / Pending / Rejected / Completed).
+
+Q8. What happens if I miss the registration deadline?
+A: The system will not allow registration after the deadline. Late submissions are automatically rejected.
+
+Q9. Can I register on behalf of a friend?
+A: No. Each student must register using their own account for accurate tracking and QR ticket generation.
+
+Q10. How do I confirm my registration status?
+A: Check your Dashboard. Status will show as: Pending, Approved, Rejected, or Completed.
+
+Q11. Will I receive reminders before the event?
+A: Yes. The system sends notifications to remind you about upcoming events.
+
+Q12. How do I upload required documents?
+A: During registration or proposal submission, use the Upload Documents section to attach required files.
+
+Q13. Why is my registration not successful?
+A: Possible reasons include: event is full, registration deadline passed, payment not verified, or missing required information.
+
+Q14. Can I download my registration receipt?
+A: Yes. Once registration or payment is confirmed, you can download your receipt from your Dashboard.
+
+Q15. How do I delete my account?
+A: You can request account deletion through Profile Settings or contact Admin for account removal.
+
+
+
+
+
+
+
+
+Policy and Rules
+
+Q16. What is the campus event attendance policy?
+A: Students must attend events they registered for and present their QR ticket for scanning at entry. Attendance is recorded in the system.
+
+Q17. What happens if I don’t attend after registering?
+A: Your absence will be recorded. Repeated no-shows may affect your ability to register for future events.
+
+Q18. Are refunds available for paid events?
+A: Refunds depend on the event organizer’s policy. In most cases, refunds are not provided after payment is approved.
+
+Q19. Are guests allowed to attend events?
+A: It depends on the event. Some events are limited to registered students only, while others may allow guests with prior approval.
+
+Q20. Is there a code of conduct for events?
+A: Yes. All participants must follow university policies, including no harassment, discrimination, or inappropriate behavior.
+
+Q21. What are the safety guidelines during events?
+A: Events must follow safety rules such as respecting capacity limits, avoiding harmful activities, and complying with university policies.
+
+Q22. Are late arrivals allowed?
+A: Late entry depends on the event organizer. Some events may restrict entry after a certain time.
+
+Q23. Can I record events?
+A: Recording is allowed only with permission from the organizer and must follow privacy and policy guidelines.
+
+Q24. What is the disciplinary action for misconduct?
+A: Actions may include warnings, removal from the event, suspension, or being reported to Student Affairs depending on severity.
+
+Q25. Are COVID or health guidelines required?
+A: Yes, if applicable. Events must follow current health and safety regulations set by the university.
+
+Q26. Is food allowed inside event halls?
+A: This depends on venue rules and organizer policies. Some venues may restrict food and drinks.
+
+Q27. Can I transfer my event ticket to someone else?
+A: No. Tickets are linked to your account and QR code, so they are non-transferable.
+
+Q28. What is the maximum number of clubs I can join?
+A: There is no specific limit stated, but students are encouraged to join clubs responsibly based on their availability.
+
+
+
+
+
+
+
+Contact and Support 
+
+Q29. How can I contact the student affairs office?
+A: You can contact the Student Affairs Office through the system notifications, official email, or by visiting their office during working hours.
+
+Q30. Where is the campus event office located?
+A: The campus event office is located within the university administration area. You can check the system or campus map for exact details.
+
+Q31. What are the office working hours?
+A: Office working hours follow standard university hours, typically during weekdays. Exact times can be confirmed through official announcements.
+
+Q32. Who should I contact for technical issues?
+A: You should contact the system Admin or technical support team through the platform.
+
+Q33. How do I report a problem with registration?
+A: You can report issues through the system or notify Admin/Student Affairs with details of the problem.
+
+Q34. Is there a hotline for urgent event issues?
+A: Urgent issues should be reported directly to Admin or Student Affairs. 
+
+Q35. Can I email the club advisor directly?
+A: Yes, if the advisor’s contact information is provided, you may contact them directly for club-related matters.
+
+Q36. How do I submit a complaint?
+A: Complaints can be submitted through the system or reported to Student Affairs for review and action.
+
+Q37. Who do I contact for sponsorship inquiries?
+A: You should contact the event organizer or university administration for sponsorship-related inquiries.
+
+Q38. Where can I get more information about campus activities?
+A: You can find more information on the system dashboard, event listings, or through official university announcements.

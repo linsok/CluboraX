@@ -1,0 +1,103 @@
+Campus Event and Club Management System 
+Event-related - Questions and Answers   
+
+Q1: When is the next campus event?
+A: You can view the next campus event by browsing the event calendar in the system, where you can see all upcoming events with their dates, times, and details. The system allows you to browse and search for events to find the next one scheduled.
+
+Q2: What events are happening this week?
+A: To see events happening this week, browse the available events section in the system. The system publishes approved events to the event calendar where you can filter and search events by date. You can view event details including title, description, category, date, time, and venue information.
+
+Q3: Where is the Tech Club recruitment event?
+A: Event location information is displayed in the event details page including the venue and capacity. Each event proposal includes venue information.
+
+Q4: Is there any event tomorrow?
+A: Check the event calendar to see events scheduled for tomorrow.  You can browse available events and filter them to find events happening on specific dates.
+
+Q5: How can I register for an event?
+A: To register for an event, follow these steps:
+1. View available events in the system
+2. Select the event you want to attend
+3. Review the event details
+4. Click Register
+5. If the event is paid, complete the payment process via bank transfer
+6. Upload your transaction receipt
+7. Once confirmed, you will receive a QR code
+8. A confirmation email/SMS will be sent to you
+
+Q6: Is there a fee to attend the business seminar?
+A: Event fees vary by event. When you view event details, pricing information is displayed if it's a paid event and the payment amount including any fees will be calculated and displayed before you complete registration.
+
+Q7: Can I attend events without registering?
+A: No, you must register for events through the system. Registration is required as the system checks registration deadlines, available slots, and eligibility requirements. On event day, you need to show your QR code for check-in, which is generated only after successful registration.
+
+Q8: How do I cancel my event registration?
+A: The system processes event cancellations in case of emergencies or organizer-initiated cancellations. If an event is cancelled, refunds are processed if applicable, and all registered users are notified. The event status will be updated to CANCELLED and the calendar will be updated accordingly.
+
+Q9: Will I receive a confirmation email after registering?
+A: Yes, after successful registration, the system automatically sends a confirmation email/SMS to you. The confirmation includes your unique QR code for event check-in. Registration confirmations are sent via email as part of the event registration process.
+
+Q10: What should I bring to the workshop?
+A: Event requirements and materials needed are specified in the event details. When you review event details before registration, you can see registration requirements and any specific items or preparations needed. The organizer includes this information when creating the event proposal.
+
+Q11: Are events open to all students?
+A: Events have eligibility requirements that are checked during registration. The system validates eligibility requirements when you attempt to register. By default, new users are assigned a "Student" role which allows them to register for events, join clubs, view content, and receive notifications.
+
+Q12: Can alumni attend campus events?
+A: Eligibility requirements are set for each event and checked during the registration process. The system validates user eligibility based on the requirements specified by the event organizer. Check the event details for specific eligibility criteria.
+
+Q13: How do I know if an event is full?
+A: The system manages participant limits and checks available slots during registration. When you attempt to register for an event, the system automatically checks the number of available slots. If the event has reached its capacity limit, you will be notified during the registration process.
+
+Q14: Where can I see past event photos?
+A: Past event photos are available in the Gallery section. The system allows users to upload photos and videos, which are organized by events and clubs. You can search and filter media, view photo albums and galleries, and access media sharing capabilities for past events.
+
+Q15: Will I get a certificate for attending?
+A: The system tracks attendance through QR code scanning at event check-in. Attendance is recorded when you check in, and the system generates attendance reports. Certificate distribution would be managed by event organizers based on attendance records maintained by the system.
+
+Q16: How many events can I join in one week?
+A: There is no specified limit on the number of events you can register for in one week. As a student, you can browse available events and register for any event that interests you, as long as you meet the eligibility requirements and the event has available slots.
+
+Q17: Are events available during semester break?
+A: Events can be created and scheduled throughout the year. Organizers can create event proposals with any date and time. Once approved, events are published to the calendar regardless of whether it's during the semester or break period.
+
+Q18: What happens if it rains on outdoor event day?
+A: Event cancellation procedures are in place for emergencies. If an organizer needs to cancel an event due to weather or other emergencies, they can initiate cancellation through the system. The system will process the cancellation, handle refunds if applicable, notify all registered users, update the event status to CANCELLED, and update the calendar.
+
+Q19: How long does the event last?
+A: Event duration is specified in the event details. When organizers create event proposals, they include date, time, and duration information. You can view this information when browsing events and reviewing event details before registration.
+
+Q20: Can I volunteer for campus events?
+A: The system supports different user roles including Students and Organizers. To become involved in event management or volunteering, you would need appropriate role assignment. The system maintains role assignment history and provides role-based access control to features.
+
+Q21: Is food provided at the event?
+A: Food and other event-specific details are included in the event description and requirements. When you view event details, the organizer's comprehensive event information includes description, requirements, and other relevant details about what is provided at the event.
+
+Q22: Are events recorded for later viewing?
+A: The system includes a Gallery and Media Management feature where users can upload photos and videos from events. Media is organized by events and clubs, optimized for web display, and can be searched and filtered. However, live recording availability would depend on the specific event organizer's arrangements.
+
+Q23: Can I suggest a new event idea?
+A: Yes, if you have the Organizer role, you can create event proposals. The process involves:
+1. Creating an event proposal with details (title, description, category, type)
+2. Including scheduling information (date, time, duration, venue, capacity)
+3. Specifying registration requirements and pricing if applicable
+4. Submitting for approval
+5. The proposal goes through an approval workflow
+6. Once approved, the event is published and open for registration
+
+Q24: How early should I arrive at the venue?
+A: Arrival time recommendations would typically be included in the event details or communicated through event notifications. The system sends automated reminders for upcoming events, which may include such information. Check your event confirmation email and event details for specific instructions.
+
+Q25: What is the dress code for formal events?
+A: Dress code and other event requirements are specified in the event details section. When organizers create events, they include registration requirements and event-specific information. Review the event details page to see if a dress code is specified for formal events.
+
+Q26: Is there a limit on participants per event?
+A: Yes, events have participant limits. Organizers set capacity limits when creating event proposals. The system manages these limits by checking available slots during registration. When the capacity is reached, the system will prevent additional registrations.
+
+Q27: How do I give feedback after an event?
+A: The system tracks various success metrics including user satisfaction scores. While specific feedback mechanisms are not detailed in the core workflows, the system maintains comprehensive audit trails and user action logging. Event organizers and administrators can gather feedback to improve future events and measure operational efficiency.
+
+Q28: Can I edit my event proposal after submitting it?
+A: Once an event proposal is submitted, it enters the approval workflow with PENDING status. Changes to a submitted proposal would need to be coordinated with approvers. Review all details carefully before submitting to avoid issues during the approval process.
+
+Q29: What is the difference between a club event and a campus event?
+A: Club events are organized by specific clubs for their members and interested students, tied to a specific club's activities. Campus events are broader events open to all students campus-wide. Both go through the same event proposal and approval process in the system.

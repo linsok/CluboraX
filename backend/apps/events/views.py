@@ -203,6 +203,15 @@ class EventRegistrationListCreateView(generics.ListCreateAPIView):
             new_values=serializer.data
         )
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        registration = serializer.save()
+        
+        # Return fully serialized EventRegistration data instead of EventRegistrationCreateSerializer data
+        response_serializer = EventRegistrationSerializer(registration, context={'request': request})
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
 
 class EventRegistrationDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -223,6 +232,85 @@ class EventRegistrationDetailView(generics.RetrieveUpdateDestroyAPIView):
             return EventRegistration.objects.filter(event__created_by=user)
         else:
             return EventRegistration.objects.all()
+
+    def perform_update(self, serializer):
+        """
+        Update registration. If the user re-uploads a payment receipt after
+        a rejection, reset payment_status to pending and re-notify organizer + admins.
+        Also track who approved/rejected a payment.
+        """
+        old = self.get_object()
+        was_rejected = old.payment_status == 'rejected'
+        new_receipt_uploaded = 'payment_receipt' in self.request.data
+        new_payment_status = self.request.data.get('payment_status')
+
+        # If organizer is setting payment_status, record who did it
+        save_kwargs = {}
+        if new_payment_status in ('verified', 'rejected') and self.request.user != old.user:
+            save_kwargs['approved_by'] = self.request.user
+            save_kwargs['approved_by_role'] = 'organizer' if self.request.user.role == 'organizer' else 'admin'
+
+        instance = serializer.save(**save_kwargs)
+
+        # Send Telegram notification to student if payment_status changed
+        if new_payment_status in ('verified', 'rejected') and new_payment_status != old.payment_status:
+            student = instance.user
+            if getattr(student, 'telegram_chat_id', None):
+                if new_payment_status == 'verified':
+                    try:
+                        instance.send_ticket_to_telegram()
+                        logger.info(f"Student {student.email} notified via Telegram of payment status: {new_payment_status} (ticket photo sent)")
+                    except Exception as e:
+                        logger.error(f"Failed to send Telegram ticket photo: {e}")
+                else:  # rejected
+                    from apps.notifications.telegram_utils import send_telegram_message
+                    event_date_str = instance.event.start_datetime.strftime('%Y-%m-%d %H:%M') if instance.event.start_datetime else 'N/A'
+                    text = (
+                        f"❌ <b>Payment Rejected</b>\n\n"
+                        f"Your payment proof for the following event was rejected:\n\n"
+                        f"📋 <b>Event Details:</b>\n"
+                        f"• <b>Event:</b> {instance.event.title}\n"
+                        f"• <b>Date:</b> {event_date_str}\n"
+                        f"• <b>Venue:</b> {instance.event.venue or 'N/A'}\n\n"
+                        f"Please check your dashboard and re-upload a valid payment receipt to complete your registration."
+                    )
+                    try:
+                        send_telegram_message(chat_id=student.telegram_chat_id, text=text)
+                        logger.info(f"Student {student.email} notified via Telegram of payment status: {new_payment_status}")
+                    except Exception as e:
+                        logger.error(f"Failed to send Telegram notification to student: {e}")
+
+        # Re-upload after rejection: reset status and re-notify via Telegram
+        if was_rejected and new_receipt_uploaded and instance.payment_receipt:
+            instance.payment_status = 'pending'
+            instance.status = 'pending_payment'
+            # Clear previous approval tracking
+            instance.approved_by = None
+            instance.approved_by_role = None
+            instance.save(update_fields=['payment_status', 'status', 'approved_by', 'approved_by_role'])
+
+            # Re-send Telegram notifications via the same helper
+            from .serializers import EventRegistrationCreateSerializer
+            serializer_instance = EventRegistrationCreateSerializer()
+            serializer_instance._send_payment_telegram_notifications(
+                registration=instance,
+                event=instance.event,
+                user=instance.user
+            )
+
+            logger.info(
+                f"Payment re-upload by {instance.user.email} for event "
+                f"{instance.event.title} — organizer re-notified via Telegram."
+            )
+
+        log_user_action(
+            self.request,
+            'update',
+            'EventRegistration',
+            instance.id,
+            new_values=serializer.data
+        )
+
 
 
 class EventCheckInView(APIView):
@@ -507,6 +595,7 @@ class EventStatsView(APIView):
             }
             
             # Registration statistics
+            stats['my_registrations'] = 0
             if user.role == 'student':
                 stats['my_registrations'] = EventRegistration.objects.filter(
                     user=user

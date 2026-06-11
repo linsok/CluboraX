@@ -373,3 +373,37 @@ export const returnClubForRevision = async (clubId, comments = '') => {
     throw error.response?.data || error
   }
 }
+
+// Payment Verification
+export const verifyPayment = async (proposalId, action, comments = '') => {
+  try {
+    const response = await adminClient.post(`/api/admin/requests/${proposalId}/verify-payment/`, {
+      action,
+      comments
+    })
+    return response.data
+  } catch (error) {
+    throw error.response?.data || error
+  }
+}
+
+export const getAdminFeeSubmissions = async (params = {}) => {
+  try {
+    const response = await adminClient.get('/api/payments/fee-submissions/', { params })
+    return response.data?.results ?? response.data ?? []
+  } catch (error) {
+    throw error.response?.data || error
+  }
+}
+
+export const reviewAdminFeeSubmission = async (id, action, note = '') => {
+  try {
+    const response = await adminClient.patch(`/api/payments/fee-submissions/${id}/`, {
+      action,
+      note
+    })
+    return response.data
+  } catch (error) {
+    throw error.response?.data || error
+  }
+}

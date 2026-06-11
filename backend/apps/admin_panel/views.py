@@ -275,9 +275,11 @@ class AdminRequestListView(APIView):
             elif type_filter == 'club_proposal':
                 event_proposals = event_proposals.none()  # Skip event proposals if filtering for club
             
-            # Apply status filter
+            # Apply status filter (exclude pending_payment if status_filter is not explicitly provided)
             if status_filter:
                 event_proposals = event_proposals.filter(status=status_filter)
+            else:
+                event_proposals = event_proposals.exclude(status='pending_payment')
             
             for proposal in event_proposals:
                 # Apply search filter
@@ -322,7 +324,9 @@ class AdminRequestListView(APIView):
                         'organizerPhone': proposal.organizerPhone,
                         'ticketPrice': str(proposal.ticketPrice) if proposal.ticketPrice else '0',
                         'catering': proposal.catering,
-                        'sponsor': proposal.sponsor
+                        'sponsor': proposal.sponsor,
+                        'platform_fee_receipt': proposal.platform_fee_receipt.url if proposal.platform_fee_receipt else None,
+                        'payment_status': proposal.payment_status,
                     }
                 })
             
@@ -394,9 +398,9 @@ class AdminRequestListView(APIView):
             # Debug logging for club proposals
             club_reqs = [r for r in requests if r['type'] == 'club_proposal']
             if club_reqs:
-                logger.info(f"🔵 [LIST] Returning {len(club_reqs)} club proposals")
+                logger.info(f"[LIST] Returning {len(club_reqs)} club proposals")
                 for req in club_reqs[:3]:  # Log first 3
-                    logger.info(f"🔵 [LIST] Club proposal: id={req['id']} title={req['title']} status={req['status']}")
+                    logger.info(f"[LIST] Club proposal: id={req['id']} title={req['title']} status={req['status']}")
             
             return Response(requests)
             
@@ -468,9 +472,9 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
             # Try to update event proposal first (most common case)
             from apps.proposals.models import EventProposal, ClubProposal
             try:
-                logger.info(f"🟢 [EVENT] Attempting to find EventProposal with id={request_id}")
+                logger.info(f"[EVENT] Attempting to find EventProposal with id={request_id}")
                 event_proposal = EventProposal.objects.get(id=request_id)
-                logger.info(f"🟢 [EVENT] Found EventProposal: {event_proposal.title} (status: {event_proposal.status})")
+                logger.info(f"[EVENT] Found EventProposal: {event_proposal.title} (status: {event_proposal.status})")
                 event_proposal.status = new_status
                 event_proposal.reviewed_by = request.user
                 event_proposal.reviewed_date = timezone.now()
@@ -482,11 +486,11 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
                 from django.db import connection
                 connection.ensure_connection()
                 
-                logger.info(f"🟢 [EVENT] Successfully saved EventProposal with new status: {new_status}")
+                logger.info(f"[EVENT] Successfully saved EventProposal with new status: {new_status}")
                 
                 # Verify immediately that the update persisted
                 refreshed = EventProposal.objects.get(id=request_id)
-                logger.info(f"🟢 [EVENT] Verification: Status in DB is now: {refreshed.status}")
+                logger.info(f"[EVENT] Verification: Status in DB is now: {refreshed.status}")
                 
                 # If status is 'published', create an Event from the proposal
                 if new_status == 'published':
@@ -562,9 +566,9 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
             
             # Try to update club proposal
             try:
-                logger.info(f"🔶 [CLUB] Attempting to find ClubProposal with id={request_id}")
+                logger.info(f"[CLUB] Attempting to find ClubProposal with id={request_id}")
                 club_proposal = ClubProposal.objects.get(id=request_id)
-                logger.info(f"🔶 [CLUB] Found ClubProposal: {club_proposal.name} (status: {club_proposal.status})")
+                logger.info(f"[CLUB] Found ClubProposal: {club_proposal.name} (status: {club_proposal.status})")
                 
                 club_proposal.status = new_status
                 club_proposal.reviewed_by = request.user
@@ -577,23 +581,22 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
                 from django.db import connection
                 connection.ensure_connection()
                 
-                logger.info(f"🔶 [CLUB] Successfully saved ClubProposal with new status: {new_status}")
+                logger.info(f"[CLUB] Successfully saved ClubProposal with new status: {new_status}")
                 
                 # Verify immediately that the update persisted
                 refreshed = ClubProposal.objects.get(id=request_id)
-                logger.info(f"🔶 [CLUB] Verification: Status in DB is now: {refreshed.status}")
+                logger.info(f"[CLUB] Verification: Status in DB is now: {refreshed.status}")
 
                 
                 # If status is 'published', create a Club from the proposal
                 if new_status == 'published':
                     from apps.clubs.models import Club
                     
-                    logger.info(f"🔶 [CLUB] Status is 'published', attempting to create Club...")
+                    logger.info(f"[CLUB] Status is 'published', attempting to create Club...")
                     # Check if club already exists for this proposal (to avoid duplicates)
                     existing_club = Club.objects.filter(name__iexact=club_proposal.name).first()
                     if not existing_club:
-                        logger.info(f"🔶 [CLUB] Creating new Club from proposal: {club_proposal.name}")
-                        # Create Club from ClubProposal
+                        logger.info(f"[CLUB] Creating new Club from proposal: {club_proposal.name}")
                         Club.objects.create(
                             name=club_proposal.name,
                             description=club_proposal.description or '',
@@ -602,12 +605,23 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
                             status='published',
                             advisor_name=club_proposal.advisor_name or '',
                             advisor_email=club_proposal.advisor_email or '',
+                            meeting_schedule=club_proposal.meeting_time or '',
+                            location=club_proposal.meeting_location or '',
+                            president_name=club_proposal.president_name or '',
+                            president_email=club_proposal.president_email or '',
+                            president_phone=club_proposal.president_phone or '',
+                            logo=club_proposal.club_logo if club_proposal.club_logo else None,
+                            social_links={
+                                'instagram': club_proposal.instagram or '',
+                                'linkedin': club_proposal.linkedin or '',
+                                'github': club_proposal.github or ''
+                            },
                             created_by=club_proposal.submitted_by,
                             requirements=club_proposal.requirements or '',
                         )
-                        logger.info(f"🔶 [CLUB] Club created successfully")
+                        logger.info(f"[CLUB] Club created successfully")
                     else:
-                        logger.info(f"🔶 [CLUB] Club already exists, skipping creation")
+                        logger.info(f"[CLUB] Club already exists, skipping creation")
                 
                 # Log user action
                 log_user_action(
@@ -618,19 +632,19 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
                     new_values={'status': new_status}
                 )
                 
-                logger.info(f"🔶 [CLUB] Returning success response for ClubProposal update")
+                logger.info(f"[CLUB] Returning success response for ClubProposal update")
                 return Response({
                     'success': True,
                     'message': 'Club proposal status updated successfully' + (' and club published' if new_status == 'published' else ''),
                     'data': {'status': new_status}
                 })
             except ClubProposal.DoesNotExist:
-                logger.warning(f"🔶 [CLUB] ClubProposal not found with id={request_id}")
+                logger.warning(f"[CLUB] ClubProposal not found with id={request_id}")
                 pass
             except Exception as e:
-                logger.error(f"🔶 [CLUB] ERROR updating ClubProposal: {type(e).__name__}: {str(e)}")
+                logger.error(f"[CLUB] ERROR updating ClubProposal: {type(e).__name__}: {str(e)}")
                 import traceback
-                logger.error(f"🔶 [CLUB] Traceback: {traceback.format_exc()}")
+                logger.error(f"[CLUB] Traceback: {traceback.format_exc()}")
                 pass
             
             # Try to update event (for published events)
@@ -693,6 +707,84 @@ class AdminRequestDetailView(generics.RetrieveUpdateAPIView):
             return Response({
                 'error': True,
                 'message': f'Failed to update request: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminVerifyPaymentView(APIView):
+    """
+    View for admin to verify platform fee payments for event proposals.
+    """
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk):
+        try:
+            from apps.proposals.models import EventProposal
+            proposal = EventProposal.objects.get(id=pk)
+
+            action = request.data.get('action') # 'approve' or 'reject'
+            comments = request.data.get('comments', '')
+
+            if action == 'approve':
+                proposal.payment_status = 'verified'
+                # Only move to pending_review if it was pending_payment
+                if proposal.status == 'pending_payment' or proposal.status == 'pending_review':
+                    proposal.status = 'pending_review'
+
+                if comments:
+                    proposal.review_comments = comments
+
+                proposal.save()
+
+                # Log action
+                log_user_action(
+                    request,
+                    'verify_payment',
+                    'EventProposal',
+                    proposal.id,
+                    new_values={'payment_status': 'verified', 'status': proposal.status}
+                )
+
+                return Response({
+                    'success': True,
+                    'message': 'Payment proof verified. Proposal is now pending review.'
+                })
+
+            elif action == 'reject':
+                proposal.payment_status = 'rejected'
+                if comments:
+                    proposal.review_comments = comments
+
+                proposal.save()
+
+                # Log action
+                log_user_action(
+                    request,
+                    'reject_payment',
+                    'EventProposal',
+                    proposal.id,
+                    new_values={'payment_status': 'rejected'}
+                )
+
+                return Response({
+                    'success': True,
+                    'message': 'Payment proof rejected.'
+                })
+            else:
+                return Response({
+                    'error': True,
+                    'message': 'Invalid action. Use "approve" or "reject".'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except EventProposal.DoesNotExist:
+            return Response({
+                'error': True,
+                'message': 'Proposal not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Verify payment error: {e}")
+            return Response({
+                'error': True,
+                'message': f'Failed to verify payment: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

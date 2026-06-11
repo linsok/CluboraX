@@ -106,6 +106,7 @@ const AdminUI = () => {
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon },
     { id: 'users', label: 'Users', icon: UsersIcon },
     { id: 'proposals', label: 'Proposals', icon: DocumentTextIcon },
+    { id: 'payments', label: 'Payments', icon: CreditCardIcon },
     { id: 'events', label: 'Events', icon: CalendarIcon },
     { id: 'clubs', label: 'Clubs', icon: BuildingOfficeIcon },
     { id: 'analytics', label: 'Analytics', icon: ChartBarIcon },
@@ -225,12 +226,39 @@ const AdminUI = () => {
           <button className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors">
             <EyeIcon className="w-4 h-4" />
           </button>
-          {proposal.status === 'pending' && (
+          {(proposal.status === 'pending' || proposal.status === 'pending_review') && (
             <>
-              <button className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors">
+              <button
+                onClick={async () => {
+                  if (window.confirm('Approve this proposal?')) {
+                    try {
+                      const { updateRequestStatus } = await import('../../api/admin')
+                      await updateRequestStatus(proposal.id, 'approved')
+                      window.location.reload()
+                    } catch (err) {
+                      alert('Failed to approve: ' + (err.message || 'Unknown error'))
+                    }
+                  }
+                }}
+                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
+              >
                 <CheckCircleIcon className="w-4 h-4" />
               </button>
-              <button className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors">
+              <button
+                onClick={async () => {
+                  const reason = window.prompt('Enter rejection reason:')
+                  if (reason !== null) {
+                    try {
+                      const { updateRequestStatus } = await import('../../api/admin')
+                      await updateRequestStatus(proposal.id, 'rejected', reason)
+                      window.location.reload()
+                    } catch (err) {
+                      alert('Failed to reject: ' + (err.message || 'Unknown error'))
+                    }
+                  }
+                }}
+                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+              >
                 <XCircleIcon className="w-4 h-4" />
               </button>
             </>
@@ -375,6 +403,8 @@ const AdminUI = () => {
       role: r.submitted_by?.role || 'unknown',
     })).filter(p => {
       if (searchTerm && !p.title.toLowerCase().includes(searchTerm.toLowerCase())) return false
+      // Don't show proposals pending payment in the general proposals list
+      if (p.status === 'pending_payment') return false
       return true
     })
 
@@ -509,6 +539,135 @@ const AdminUI = () => {
     )
   }
 
+  const renderPayments = () => {
+    // Filter proposals that have a platform fee receipt or are pending payment
+    const paymentProposals = (Array.isArray(requestsData) ? requestsData : []).filter(r =>
+      r.status === 'pending_payment' ||
+      r.details?.payment_status === 'pending' ||
+      (r.details?.platform_fee_receipt && r.details?.payment_status !== 'verified')
+    ).map(r => ({
+      id: r.id,
+      title: r.title || r.name || 'Untitled',
+      type: r.type || 'event_proposal',
+      status: r.status,
+      paymentStatus: r.details?.payment_status || 'pending',
+      submittedBy: r.submitted_by || 'Unknown',
+      submittedAt: r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '',
+      proofImage: r.details?.platform_fee_receipt,
+      amount: r.details?.budget || '0',
+    }))
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-2xl font-bold text-gray-900">Payment Verification</h2>
+          <p className="text-gray-600">Review and approve payment proofs for event proposals</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paymentProposals.length > 0 ? (
+            paymentProposals.map((payment) => (
+              <motion.div
+                key={payment.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+              >
+                {payment.proofImage ? (
+                  <div className="h-48 overflow-hidden bg-gray-100 flex items-center justify-center relative group">
+                    <img
+                      src={payment.proofImage.startsWith('http') ? payment.proofImage : `http://localhost:8888${payment.proofImage}`}
+                      alt="Payment Proof"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
+                      <button
+                        onClick={() => window.open(payment.proofImage.startsWith('http') ? payment.proofImage : `http://localhost:8888${payment.proofImage}`, '_blank')}
+                        className="opacity-0 group-hover:opacity-100 bg-white p-2 rounded-full shadow-lg"
+                      >
+                        <MagnifyingGlassIcon className="w-5 h-5 text-gray-900" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-48 bg-gray-100 flex items-center justify-center">
+                    <div className="text-center">
+                      <ExclamationTriangleIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No proof uploaded</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-6">
+                  <h4 className="font-semibold text-gray-900 mb-2">{payment.title}</h4>
+                  <div className="space-y-2 mb-4">
+                    <p className="text-sm text-gray-600 flex justify-between">
+                      <span>Submitted By:</span>
+                      <span className="font-medium">{payment.submittedBy}</span>
+                    </p>
+                    <p className="text-sm text-gray-600 flex justify-between">
+                      <span>Amount:</span>
+                      <span className="font-medium text-green-600">${payment.amount}</span>
+                    </p>
+                    <p className="text-sm text-gray-600 flex justify-between">
+                      <span>Date:</span>
+                      <span>{payment.submittedAt}</span>
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (window.confirm('Approve this payment proof?')) {
+                          try {
+                            const { verifyPayment } = await import('../../api/admin')
+                            await verifyPayment(payment.id, 'approve')
+                            // Refresh data
+                            window.location.reload()
+                          } catch (err) {
+                            alert('Failed to approve payment: ' + (err.message || 'Unknown error'))
+                          }
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <CheckCircleIcon className="w-5 h-5" />
+                      Approve
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const reason = window.prompt('Enter reason for rejection:')
+                        if (reason !== null) {
+                          try {
+                            const { verifyPayment } = await import('../../api/admin')
+                            await verifyPayment(payment.id, 'reject', reason)
+                            // Refresh data
+                            window.location.reload()
+                          } catch (err) {
+                            alert('Failed to reject payment: ' + (err.message || 'Unknown error'))
+                          }
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <XCircleIcon className="w-5 h-5" />
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+              <CurrencyDollarIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">No pending payments found</p>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
@@ -517,6 +676,8 @@ const AdminUI = () => {
         return renderUsers()
       case 'proposals':
         return renderProposals()
+      case 'payments':
+        return renderPayments()
       default:
         return renderDashboard()
     }

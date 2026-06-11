@@ -1,0 +1,13 @@
+# Requirements for AI Chatbot with BAAI/bge-base-en-v1.5 embedding model
+
+# Core dependencies
+transformers>=4.35.0
+torch>=2.0.0
+chromadb>=0.4.0
+numpy>=1.24.0
+
+# LLM via Ollama
+ollama>=0.1.0
+
+# Optional: For GPU acceleration (uncomment if you have CUDA)
+# torch>=2.0.0+cu118  # Replace with your CUDA version

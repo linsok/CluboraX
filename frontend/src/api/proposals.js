@@ -16,14 +16,16 @@ export const getEventProposals = async () => {
 export const createEventProposal = async (proposalData) => {
   try {
     // Check if we have any file fields that require FormData
-    const hasFile = proposalData.event_poster instanceof File || proposalData.agenda_pdf instanceof File
+    const hasFile = proposalData.event_poster instanceof File || 
+                    proposalData.agenda_pdf instanceof File || 
+                    proposalData.platform_fee_receipt instanceof File
     
     if (hasFile) {
       // Use FormData for multipart/form-data when sending files
       const formData = new FormData()
       Object.entries(proposalData).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          if ((key === 'event_poster' || key === 'agenda_pdf') && value instanceof File) {
+          if ((key === 'event_poster' || key === 'agenda_pdf' || key === 'platform_fee_receipt') && value instanceof File) {
             formData.append(key, value)
           } else if (Array.isArray(value)) {
             formData.append(key, JSON.stringify(value))

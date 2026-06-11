@@ -182,6 +182,11 @@ class EventRegistration(TimeStampedModel):
         ('rejected', 'Rejected'),
     ]
     
+    APPROVED_BY_CHOICES = [
+        ('organizer', 'Organizer'),
+        ('admin', 'Admin'),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(
         Event, 
@@ -212,9 +217,35 @@ class EventRegistration(TimeStampedModel):
         null=True, 
         blank=True
     )
+    # User-provided transaction info (bank reference, amount, date, etc.)
+    transaction_info = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Transaction details provided by user (bank ref, amount, date, etc.)'
+    )
+    # Who reviewed the payment
+    approved_by_role = models.CharField(
+        max_length=20,
+        choices=APPROVED_BY_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Whether payment was approved/rejected by organizer or admin'
+    )
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_registrations',
+        help_text='The specific user (organizer/admin) who approved or rejected the payment'
+    )
     checked_in = models.BooleanField(default=False)
     checked_in_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, null=True)
+    
+    # Reminder tracking
+    reminder_2day_sent = models.BooleanField(default=False)
+    reminder_1day_sent = models.BooleanField(default=False)
     
     class Meta:
         db_table = 'event_registrations'
@@ -225,6 +256,17 @@ class EventRegistration(TimeStampedModel):
     
     def __str__(self):
         return f"{self.user.email} - {self.event.title}"
+
+    def save(self, *args, **kwargs):
+        # Auto-confirm status if payment is verified
+        if self.payment_status == 'verified' and self.status != 'confirmed':
+            self.status = 'confirmed'
+        
+        super().save(*args, **kwargs)
+        
+        # Auto-generate QR code if confirmed and not already set
+        if self.status == 'confirmed' and not self.qr_code:
+            self.generate_qr_code()
     
     def generate_qr_code(self):
         """
@@ -241,6 +283,46 @@ class EventRegistration(TimeStampedModel):
         self.save(update_fields=['qr_code', 'qr_code_image'])
         
         return self.qr_code
+
+    def send_ticket_to_telegram(self):
+        """
+        Send the generated QR code ticket to the student's Telegram if they linked their account.
+        """
+        if not self.user.telegram_chat_id or not self.qr_code_image:
+            return False
+            
+        import logging
+        from apps.notifications.telegram_utils import send_telegram_photo, send_telegram_message
+        
+        local_logger = logging.getLogger(__name__)
+        event_date_str = self.event.start_datetime.strftime('%Y-%m-%d %H:%M') if self.event.start_datetime else 'N/A'
+        
+        caption = (
+            f"🎟️ <b>Your Ticket is Ready!</b>\n\n"
+            f"Your registration for <b>{self.event.title}</b> is confirmed.\n\n"
+            f"📋 <b>Ticket Details:</b>\n"
+            f"• <b>Event:</b> {self.event.title}\n"
+            f"• <b>Date:</b> {event_date_str}\n"
+            f"• <b>Venue:</b> {self.event.venue or 'N/A'}\n"
+            f"• <b>Attendee:</b> {self.user.full_name}\n"
+            f"• <b>Ticket ID:</b> {self.id}\n\n"
+            f"Show this QR code at the venue entrance to check-in!"
+        )
+        
+        try:
+            with self.qr_code_image.open('rb') as ticket_file:
+                return send_telegram_photo(
+                    chat_id=self.user.telegram_chat_id,
+                    photo_file=ticket_file,
+                    caption=caption
+                )
+        except Exception as e:
+            local_logger.error(f"Failed to send ticket photo via Telegram: {e}")
+            # Fallback to text message
+            return send_telegram_message(
+                chat_id=self.user.telegram_chat_id,
+                text=caption
+            )
     
     @property
     def is_qr_expired(self):

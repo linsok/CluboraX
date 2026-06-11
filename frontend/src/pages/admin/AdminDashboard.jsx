@@ -23,8 +23,7 @@ import {
   RectangleStackIcon
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
-import { getAdminUsers, getAdminRequests, getAdminStats, updateUserStatus, updateRequestStatus, rejectClubProposal, getFullClubProposal, getFullEventProposal } from '../../api/admin'
-import { getFeeSubmissions, reviewFeeSubmission } from '../../api/payments'
+import { getAdminUsers, getAdminRequests, getAdminStats, updateUserStatus, updateRequestStatus, rejectClubProposal, getFullClubProposal, getFullEventProposal, verifyPayment, getAdminFeeSubmissions, reviewAdminFeeSubmission } from '../../api/admin'
 
 // Import section components
 import OverviewSection from './sections/OverviewSection'
@@ -130,13 +129,13 @@ const AdminDashboard = () => {
     queryKey: ['admin-requests'],
     queryFn: async () => {
       try {
-        console.log('📡 Fetching requests...')
+        console.log(' Fetching requests...')
         const result = await getAdminRequests()
-        console.log(`📡 Requests fetched successfully: ${result.length} proposals`)
+        console.log(` Requests fetched successfully: ${result.length} proposals`)
         // Show first club_proposal to verify status
         const firstClub = result.find(r => r.type === 'club_proposal')
         if (firstClub) {
-          console.log(`📡 First club proposal: "${firstClub.title}" id=${firstClub.id} status=${firstClub.status}`)
+          console.log(` First club proposal: "${firstClub.title}" id=${firstClub.id} status=${firstClub.status}`)
         }
         return result
       } catch (error) {
@@ -198,19 +197,19 @@ const AdminDashboard = () => {
       
       try {
         const proposalType = detailItem.type === 'club_proposal' || detailItem.type === 'club' ? 'club' : 'event'
-        console.log(`📡 Fetching full ${proposalType} proposal details for ID: ${detailItem.id}`, { detailItemType: detailItem.type })
+        console.log(` Fetching full ${proposalType} proposal details for ID: ${detailItem.id}`, { detailItemType: detailItem.type })
         
         if (proposalType === 'club') {
           const result = await getFullClubProposal(detailItem.id)
-          console.log('📡 Full club proposal data:', result)
+          console.log(' Full club proposal data:', result)
           return result
         } else {
           const result = await getFullEventProposal(detailItem.id)
-          console.log('📡 Full event proposal data:', result)
+          console.log(' Full event proposal data:', result)
           return result
         }
       } catch (error) {
-        console.error('❌ Error fetching full proposal details:', error)
+        console.error(' Error fetching full proposal details:', error)
         throw error
       }
     },
@@ -238,20 +237,20 @@ const AdminDashboard = () => {
   // Update mutation - with direct state management
   const updateRequestMutation = useMutation({
     mutationFn: ({ requestId, status, comments }) => {
-      console.log('🔴 UPDATE REQUEST: Sending PATCH to backend', { requestId, status })
+      console.log(' UPDATE REQUEST: Sending PATCH to backend', { requestId, status })
       return updateRequestStatus(requestId, status, comments)
     },
     onSuccess: async (data, variables) => {
-      console.log('🟢 UPDATE SUCCESS - Response from backend:', data)
+      console.log(' UPDATE SUCCESS - Response from backend:', data)
       
       // STRATEGY 1: Update the cache directly
       queryClient.setQueryData(['admin-requests'], (oldRequests) => {
         if (!Array.isArray(oldRequests)) return oldRequests
-        console.log('🟢 CACHE UPDATE: Found', oldRequests.length, 'requests to search')
+        console.log(' CACHE UPDATE: Found', oldRequests.length, 'requests to search')
         return oldRequests.map((req) => {
           const matches = String(req.id) === String(variables.requestId)
           if (matches) {
-            console.log(`🟢 CACHE UPDATE: Matched request ${req.id}, setting status to ${variables.status}`)
+            console.log(` CACHE UPDATE: Matched request ${req.id}, setting status to ${variables.status}`)
             return { ...req, status: variables.status }
           }
           return req
@@ -259,25 +258,25 @@ const AdminDashboard = () => {
       })
       
       // STRATEGY 2: Also force a fresh backend refetch to be absolutely sure
-      console.log('🟢 REFETCH: Waiting 200ms then refetching...')
+      console.log(' REFETCH: Waiting 200ms then refetching...')
       setTimeout(async () => {
-        console.log('🟢 REFETCH: Calling refetch now')
+        console.log(' REFETCH: Calling refetch now')
         try {
           const result = await refetchRequests()
-          console.log('🟢 REFETCH: Got', result?.data?.length, 'proposals back')
+          console.log(' REFETCH: Got', result?.data?.length, 'proposals back')
           const found = result?.data?.find(r => String(r.id) === String(variables.requestId))
-          console.log(`🟢 REFETCH: Proposal ${variables.requestId} status is now: ${found?.status}`)
+          console.log(` REFETCH: Proposal ${variables.requestId} status is now: ${found?.status}`)
         } catch (e) {
-          console.error('🟢 REFETCH ERROR:', e)
+          console.error(' REFETCH ERROR:', e)
         }
       }, 200)
       
       toast.success('Request status updated successfully')
     },
     onError: (error) => {
-      console.error('❌ UPDATE FAILED:', error?.message)
-      console.error('❌ Response data:', error?.response?.data)
-      console.error('❌ Status code:', error?.response?.status)
+      console.error(' UPDATE FAILED:', error?.message)
+      console.error(' Response data:', error?.response?.data)
+      console.error(' Status code:', error?.response?.status)
       
       let errorMsg = 'Failed to update request status'
       if (error?.response?.status === 403) {
@@ -295,13 +294,13 @@ const AdminDashboard = () => {
   const rejectClubMutation = useMutation({
     mutationFn: ({ proposalId, comments }) => rejectClubProposal(proposalId, comments),
     onSuccess: (data) => {
-      console.log('✅ Club proposal rejected:', data)
+      console.log(' Club proposal rejected:', data)
       // Refresh the proposals list
       queryClient.invalidateQueries({ queryKey: ['admin-requests'] })
       toast.success('Club proposal rejected successfully')
     },
     onError: (error) => {
-      console.error('❌ Failed to reject club proposal:', error)
+      console.error(' Failed to reject club proposal:', error)
       toast.error('Failed to reject club proposal')
     }
   })
@@ -309,7 +308,7 @@ const AdminDashboard = () => {
   // Fee submissions query
   const { data: rawFeeSubmissions = [], isLoading: feeLoading } = useQuery({
     queryKey: ['admin-fee-submissions'],
-    queryFn: getFeeSubmissions,
+    queryFn: getAdminFeeSubmissions,
     staleTime: 2 * 60 * 1000,
     retry: 1,
   })
@@ -334,25 +333,41 @@ const AdminDashboard = () => {
     status: f.status || 'pending_confirmation',
     note: f.note || '',
     rejectionReason: f.rejection_reason || '',
+    isProposal: f.is_proposal || false,
   })
 
   const feeSubmissions = feeLoading ? [] : rawFeeSubmissions.map(normalizeFee)
 
   const confirmFeePayment = async (fee) => {
     try {
-      await reviewFeeSubmission(fee.id, 'confirm')
-      queryClient.invalidateQueries(['admin-fee-submissions'])
-      toast.success(`Fee confirmed for "${fee.eventTitle}" â€” event can now go live`)
+      if (fee.isProposal) {
+        const proposalId = String(fee.id).replace('proposal_', '')
+        await verifyPayment(proposalId, 'approve')
+      } else {
+        await reviewAdminFeeSubmission(fee.id, 'confirm')
+      }
+      queryClient.invalidateQueries({ queryKey: ['admin-fee-submissions'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-requests'] })
+      toast.success(`Fee confirmed for "${fee.eventTitle}" — event can now go live`)
     } catch {
       toast.error('Failed to confirm fee payment')
     }
   }
 
   const rejectFeePayment = async (fee) => {
+    const comments = prompt('Please enter a reason for rejecting this payment proof:')
+    if (comments === null) return // cancelled
+    
     try {
-      await reviewFeeSubmission(fee.id, 'reject')
-      queryClient.invalidateQueries(['admin-fee-submissions'])
-      toast.error(`Fee rejected for "${fee.eventTitle}" â€” organizer will be notified`)
+      if (fee.isProposal) {
+        const proposalId = String(fee.id).replace('proposal_', '')
+        await verifyPayment(proposalId, 'reject', comments)
+      } else {
+        await reviewAdminFeeSubmission(fee.id, 'reject', comments)
+      }
+      queryClient.invalidateQueries({ queryKey: ['admin-fee-submissions'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-requests'] })
+      toast.error(`Fee rejected for "${fee.eventTitle}" — organizer will be notified`)
     } catch {
       toast.error('Failed to reject fee payment')
     }
@@ -774,7 +789,7 @@ const AdminDashboard = () => {
                   // EVENT PROPOSAL
                   <div className="space-y-4">
                     <div className="flex items-start space-x-4">
-                      <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                      <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-gray-600 rounded-lg flex items-center justify-center">
                         <CalendarIcon className="w-8 h-8 text-white" />
                       </div>
                       <div className="flex-1">
@@ -930,7 +945,7 @@ const AdminDashboard = () => {
             {detailType === 'club' && (
               <div className="space-y-4">
                 <div className="flex items-start space-x-4">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-gray-600 rounded-lg flex items-center justify-center">
                     <CalendarIcon className="w-8 h-8 text-white" />
                   </div>
                   <div className="flex-1">
@@ -1057,7 +1072,7 @@ const AdminDashboard = () => {
             {detailType === 'event' && (
               <div className="space-y-4">
                 <div className="flex items-start space-x-4">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-gray-600 rounded-lg flex items-center justify-center">
                     <CalendarIcon className="w-8 h-8 text-white" />
                   </div>
                   <div className="flex-1">
@@ -1272,7 +1287,7 @@ const AdminDashboard = () => {
                   if (rejectType === 'proposal') {
                     updateRequestMutation.mutate({ requestId: rejectItem.id, status: 'rejected', comments: rejectReason })
                   } else if (rejectType === 'club_proposal') {
-                    console.log('🔶 Rejecting club proposal with reason:', rejectReason)
+                    console.log(' Rejecting club proposal with reason:', rejectReason)
                     rejectClubMutation.mutate({ proposalId: rejectItem.id, comments: rejectReason })
                   }
                   setShowRejectModal(false)

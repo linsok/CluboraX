@@ -190,7 +190,7 @@ const AdminLogin = () => {
               href="/"
               className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
             >
-              ← Back to Main Site
+               Back to Main Site
             </a>
           </div>
         </motion.div>

@@ -3,6 +3,7 @@ admin@cluborax.com
 admin1234
 
 cd backend; python manage.py runserver 0.0.0.0:8888
+& 'D:\User\pp1\Club_Event\backend\venv\Scripts\python.exe' 'D:\User\pp1\Club_Event\backend\manage.py' runserver 0.0.0.0:8000
 ## Overview
 
 The Campus Hub Admin System provides comprehensive administrative control over the campus management platform. It includes user management, proposal tracking, system monitoring, and configuration management.
@@ -17,7 +18,7 @@ The Campus Hub Admin System provides comprehensive administrative control over t
 - **Activity Tracking**: Monitor user login, actions, and behavior
 - **Session Management**: Track active user sessions
 
-### 📋 Proposal Management
+### - Proposal Management
 - **Multi-Type Proposals**: Clubs, Events, Projects, Funding, Complaints, Suggestions
 - **Priority Levels**: Low, Medium, High, Urgent
 - **Status Tracking**: Pending, Under Review, Approved, Rejected, Implemented, Cancelled

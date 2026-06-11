@@ -1,0 +1,214 @@
+Campus Event and Club Management System 
+Registration, Account, Policies, Rules, Contact, &Support-related - Questions and Answers
+
+Account and Registration System
+
+Q1: How do I log in to the campus portal?
+A: To log in to the campus portal:
+1. Access the login page
+2. Enter your credentials (email and password)
+3. The system validates your credentials
+4. A JWT token is generated upon successful authentication
+5. You are logged in and redirected based on your role
+6. Your session starts
+The system uses secure authentication to protect your account.
+
+Q2: What if I forget my password?
+A: If you forget your password, the system administrator can help you reset it. Admins have user management capabilities including the ability to reset passwords. The admin accesses user management, locates your account, resets the password, and you will be notified of the password reset. Changes are logged for security purposes.
+
+Q3: How do I update my profile information?
+A: The system collects user profile information including name, phone, faculty, and department during registration. To update your profile information, access your account settings where you can modify your personal details. Any changes you make are validated by the system before being saved.
+
+Q4: Can I register for events using my phone?
+A: Yes, the system is accessible through web browsers, so you can register for events using your phone. The event registration process works the same way: view available events, select an event, review details, click register, complete any payment if required, and receive your confirmation and QR code.
+
+Q5: Is online registration secure?
+A: Yes, online registration is secure. The system implements multiple security measures:
+- Data encryption for sensitive data protection
+- Role-based access control for data access
+- JWT token authentication for secure sessions
+- All user actions are logged for audit trail
+- Payment transactions are tracked and secured
+- User consent is required for data collection
+
+Q6: Can I edit my event registration details?
+A: Once you register for an event, your registration is confirmed and a QR code is generated. If you need to make changes to your registration, you would need to contact the event organizer. The system tracks registration status and maintains registration records for each event.
+
+Q7: How do I check my registered events?
+A: You can view your registered events through the system. The system maintains records of all your event registrations, including registration status, event details, and your unique QR code for each event. You can access this information from your account dashboard.
+
+Q8: What happens if I miss the registration deadline?
+A: If you miss the registration deadline, you will not be able to register for that event. The system checks registration deadlines during the registration process and will prevent registration attempts after the deadline has passed. You can look for other upcoming events that are still open for registration.
+
+Q9: Can I register on behalf of a friend?
+A: No, registration requires individual user accounts. Each user must register using their own account credentials. The system validates user information during registration and generates unique QR codes for each registered participant, so each person needs to register themselves.
+
+Q10: How do I confirm my registration status?
+A: After successful registration, you receive:
+- A confirmation email/SMS with your registration details
+- A unique QR code for event check-in
+- In-app notification confirming your registration
+You can also check your registration status through your account where the system maintains your registration records.
+
+Q11: Will I receive reminders before the event?
+A: Yes, the system sends automated reminders for upcoming events. The reminder system:
+- Runs scheduled tasks to check for upcoming events/deadlines
+- Generates reminder notifications
+- Sends reminders to relevant users through multiple channels (in-app, email, SMS)
+- Updates the reminder log
+You can manage your notification preferences to control how you receive reminders.
+
+Q12: How do I upload required documents?
+A: The system supports file uploads for various purposes:
+- For event registration: Upload transaction receipts for paid events
+- For club proposals: Attach supporting documents
+- For media: Upload photos and videos to galleries
+The system validates file types and sizes before accepting uploads.
+
+Q13: Why is my registration not successful?
+A: Registration may fail due to several reasons:
+- Registration deadline has passed
+- Event has reached capacity (no available slots)
+- You don't meet eligibility requirements
+- Payment not completed for paid events
+- Technical issues with the system
+The system provides feedback when registration fails. Check the error message for specific details or contact technical support.
+
+Q14: Can I download my registration receipt?
+A: Yes, for paid events, the system generates payment receipts and confirmations. After completing payment, you receive a payment receipt that can be accessed from your transaction history. The system maintains payment history and records for all transactions.
+
+Q15: How do I delete my account?
+A: Account deletion would be handled through system administration. Admins have user management capabilities including the ability to deactivate accounts. You would need to contact the system administrator to request account deletion. All changes are logged for audit and compliance purposes.
+
+Policies and Guidelines
+
+Q16: What is the campus event attendance policy?
+A: The system tracks attendance through QR code check-in. On event day:
+- Participants arrive and show their QR code
+- Organizers scan the QR code
+- System validates QR code authenticity, registration status, and expiration
+- Check-in is confirmed and attendance is recorded
+- Participant status changes to CHECKED_IN
+Attendance records are maintained for all events and can be used for attendance reports.
+
+Q17: What happens if I don't attend after registering?
+A: If you register but don't attend, your attendance status will remain as registered but not checked-in. The system tracks both registration and actual attendance. For paid events, failure to attend may affect refund eligibility. It's recommended to cancel your registration if you cannot attend so others can take your spot.
+
+Q18: Are refunds available for paid events?
+A: Yes, the system handles payment refunds in certain situations. Refunds are processed if:
+- The event is cancelled by the organizer
+- Emergency situations require event cancellation
+The system processes refunds as applicable when cancellations occur. For other refund requests, you would need to contact the event organizer or check the event's refund policy.
+
+Q19: Are guests allowed to attend events?
+A: Event attendance requires registration with your account. The system validates QR codes and registration status during check-in. Each participant needs their own registration and QR code. Guest policies may vary by event, so check the specific event requirements and contact the organizer if you want to bring a guest.
+
+Q20: Is there a code of conduct for events?
+A: The system supports event-specific requirements that organizers can specify during event creation. Code of conduct, safety considerations, and behavioral expectations would be included in the event details and requirements. Review the event information before attending to understand expected conduct.
+
+Q21: What are the safety guidelines during events?
+A: Safety considerations are part of the event approval process. When approvers review event proposals, they assess safety considerations before approving events. Safety guidelines specific to each event are included in the event details and communicated to registered participants through notifications.
+
+Q22: Are late arrivals allowed?
+A: Late arrival policies depend on individual event requirements set by organizers. The system validates QR codes and registration status when you arrive and check-in. While the system supports check-in throughout the event, specific late arrival policies would be determined by event organizers and communicated in event details.
+
+Q23: Can I record events?
+A: Event recording policies vary by event and organizer. However, the system provides a Gallery and Media Management feature where authorized users can upload photos and videos from events. Media must be validated and may require approval before being published. Check with event organizers about their specific recording policies.
+
+Q24: What is the disciplinary action for misconduct?
+A: The system maintains comprehensive audit trails including:
+- All user actions recorded through action logging
+- Change tracking for data modifications
+- Compliance reporting for regular audits
+Disciplinary actions for misconduct would be handled by administrators using the user management system, which can modify user roles, deactivate accounts, and track all changes.
+
+Q25: Are there COVID or health guidelines?
+A: Health and safety guidelines are part of the safety considerations reviewed during the event approval process. Current health guidelines would be specified in event requirements and communicated through event details and notifications. Check individual event information for specific health and safety protocols.
+
+Q26: Is food allowed inside event halls?
+A: Venue rules and restrictions are typically included in event details and requirements. When organizers create events, they specify venue information and event-specific requirements. Check the event details for information about food policies, or contact the event organizer directly.
+
+Q27: Can I transfer my event ticket to someone else?
+A: No, registrations are tied to individual user accounts, and unique QR codes are generated for each registered participant. The system validates QR codes against registration information during check-in. Tickets cannot be transferred as they are linked to your account credentials and profile.
+
+Q28: What is the maximum number of clubs I can join?
+A: There is no specified maximum limit on the number of clubs you can join. As a student, you have permission to join clubs and can apply for membership to multiple clubs. The system tracks all your club memberships and maintains your membership status for each club you join.
+
+Contact and Support
+
+Q29: How can I contact the student affairs office?
+A: Contact information for campus offices is managed through the system's organizational structure. Student affairs contact details would be available through the system's help or contact section. You can also reach out through the notification system or check with system administrators.
+
+Q30: Where is the campus event office located?
+A: Location information for campus offices and event venues is stored in the system. Event organizers specify venue information when creating events, and this information is displayed in event details. Check the system's contact or help section for campus office locations.
+
+Q31: What are the office working hours?
+A: Office working hours and system availability information would be provided in the system configuration settings. The system itself operates continuously for 24/7 access, with performance monitoring and real-time system health checks to ensure availability.
+
+Q32: Who should I contact for technical issues?
+A: For technical issues, contact system administrators. Administrators have:
+- Full system access and management capabilities
+- Ability to handle system errors and issues
+- User management capabilities to resolve account problems
+- System configuration access to fix technical problems
+The system logs all errors and has error handling procedures. If unresolved automatically, admins are notified.
+
+Q33: How do I report a problem with registration?
+A: To report registration problems:
+- The system logs all errors and issues automatically
+- Contact system administrators through the support channels
+- Provide details about the registration issue you encountered
+- Admins can access error logs to diagnose the problem
+- User action logging helps trace registration issues
+The system has error detection and classification procedures to help resolve problems.
+
+Q34: Is there a hotline for urgent event issues?
+A: For urgent matters, the system provides SMS notifications. Contact information for urgent issues would be included in event confirmations and system notifications. Administrators are notified of critical system issues and can handle urgent matters related to events and registrations.
+
+Q35: Can I email the club advisor directly?
+A: Club advisor information is included in club details. When clubs are created, advisor information and contact details are provided. You can view club information to find advisor contact details, or utilize the club's communication tools and member directory to reach out to leadership.
+
+Q36: How do I submit a complaint?
+A: The system maintains comprehensive audit trails and user action logging. To submit a complaint:
+- Contact system administrators through official channels
+- Provide details about your concern
+- The system's action logging and change tracking help investigate issues
+- Admins can review audit trails and take appropriate action
+All complaints are handled through proper administrative channels.
+
+Q37: Who do I contact for sponsorship inquiries?
+A: For sponsorship inquiries related to events or clubs:
+- Contact event organizers directly for event sponsorships
+- Contact club organizers for club sponsorships
+- Budget and funding details are part of event and club proposals
+- System administrators can provide contact information for appropriate stakeholders
+
+Q38: Where can I get more information about campus activities?
+A: You can get information about campus activities through multiple channels:
+- Browse available events in the event calendar
+- Browse available clubs in the clubs section
+- Check the gallery for photos and videos from past activities
+- Receive notifications about upcoming events and club activities
+- View success metrics showing event attendance and club activity levels
+- Use search and filtering features to find activities of interest
+The system provides comprehensive information about all campus events and club activities.
+
+Q39: What membership statuses exist in the club system?
+A: The system tracks club membership status. When your application is approved, you receive ACTIVE membership status. Club organizers can manage membership status including processing terminations or withdrawals, which would change your status accordingly.
+
+Q40: How do I know what role I have in the system?
+A: You can check your current role from your account profile or dashboard. By default, new users are assigned the Student role. The system provides role-based access control, so the features visible to you reflect your assigned role. Contact an administrator if you need a role change.
+
+Q41: What happens if my payment receipt gets rejected?
+A: If your payment receipt is rejected, your registration will not be confirmed. You will need to resubmit a valid transaction receipt showing the correct payment amount. Contact the event organizer if you continue to face issues with receipt verification.
+
+Q42: How does the payment process work for paid events?
+A: For paid events: 
+1. After selecting the event, the payment amount is displayed 
+2. Complete payment via bank-to-bank transfer 
+3. Upload your transaction receipt through the system 
+4. Once the receipt is verified, your registration is confirmed 
+5. You receive your QR code and confirmation email.
+
+Q43: What is CluboraX (or Cloborax)?
+A: CluboraX (often referred to as Cloborax) is the university's campus event and club management system. It allows students to browse and register for events, join clubs, manage memberships, and obtain QR code tickets. It also provides campus administrators and club organizers with comprehensive tools to submit and approve event or club proposals, manage budgets, track attendance via QR scanners, and access dashboard analytics.
