@@ -152,8 +152,9 @@ def analyze_results(xlsx_path: str):
     plot_llm_comparison(cerebras_metrics, groq_metrics)
     plot_pass_rate(c_pass, c_total, g_pass, g_total, both_pass, both_total)
     plot_pass_rate_by_tier(tier_stats)
+    plot_refusal_chart(refuse_df)
     
-    print(f"[OK] Generated: llm_comparison.png, pass_rate_comparison.png, pass_rate_by_tier.png")
+    print(f"[OK] Generated: llm_comparison.png, pass_rate_comparison.png, pass_rate_by_tier.png, guardrail_refusal_metrics.png")
 
 
 def plot_llm_comparison(cm, gm):
@@ -238,7 +239,42 @@ def plot_pass_rate_by_tier(tier_stats):
     plt.savefig("pass_rate_by_tier.png", dpi=300, bbox_inches="tight")
     plt.close()
 
+def plot_refusal_chart(refuse_df):
+    ra_col = "Refusal Accuracy" if "Refusal Accuracy" in refuse_df.columns else "Refusal_Accuracy"
+    ta_col = "Tone Alignment" if "Tone Alignment" in refuse_df.columns else "Tone_Alignment"
 
+    ra_vals = pd.to_numeric(refuse_df[ra_col], errors="coerce").dropna()
+    ta_vals = pd.to_numeric(refuse_df[ta_col], errors="coerce").dropna()
+
+    avg_ra = ra_vals.mean() * 100 if ra_vals.mean() <= 1.0 else ra_vals.mean()
+    avg_ta = ta_vals.mean() * 100 if ta_vals.mean() <= 1.0 else ta_vals.mean()
+
+    fill_colors = ["#2563eb", "#10b981"]
+    titles = ["Refusal Accuracy", "Tone Alignment"]
+    values = [avg_ra, avg_ta]
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    for i, ax in enumerate(axes):
+        remaining = 100 - values[i]
+        wedges, _ = ax.pie(
+            [values[i], remaining],
+            colors=[fill_colors[i], "#e0e0e0"],
+            startangle=90, counterclock=False,
+        )
+        for w in wedges:
+            w.set_linewidth(2)
+        centre_circle = plt.Circle((0, 0), 0.55, fc="white", linewidth=2)
+        ax.add_artist(centre_circle)
+        ax.text(0, 0, f"{values[i]:.1f}%", ha="center", va="center",
+                fontsize=20, fontweight="bold", color=fill_colors[i])
+        ax.set_title(titles[i], fontsize=13, fontweight="bold", pad=10)
+
+    fig.suptitle("Tier 3: Guardrail & Out-of-Domain Refusal Performance",
+                 fontsize=15, fontweight="bold", y=1.02)
+    plt.tight_layout()
+    plt.savefig("guardrail_refusal_metrics.png", dpi=300, bbox_inches="tight")
+    plt.close()
+    
 if __name__ == "__main__":
     for handler in logging.root.handlers:
         if isinstance(handler, logging.StreamHandler):
