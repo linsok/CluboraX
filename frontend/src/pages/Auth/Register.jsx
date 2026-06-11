@@ -11,6 +11,7 @@ const Register = () => {
   const navigate = useNavigate()
 
   const [isLoading, setIsLoading] = useState(false)
+  const [isOcrLoading, setIsOcrLoading] = useState(false)
   const [errors, setErrors] = useState({})
 
   const [idCardFile, setIdCardFile] = useState(null)
@@ -160,6 +161,7 @@ const Register = () => {
                 <input
                   type="file"
                   accept="image/*"
+                  disabled={isOcrLoading}
                   onChange={async (e) => {
                     const file = e.target.files[0]
 
@@ -168,6 +170,7 @@ const Register = () => {
                     setIdCardFile(file)
                     setExtractedData(null)
                     setErrors({})
+                    setIsOcrLoading(true)
 
                     setFormData({
                       firstName: '',
@@ -196,22 +199,62 @@ const Register = () => {
                       } catch (error) {
                         console.error('OCR upload error:', error)
                         toast.error('Failed to process ID card')
+                      } finally {
+                        setIsOcrLoading(false)
                       }
+                    }
+
+                    reader.onerror = () => {
+                      setIsOcrLoading(false)
+                      toast.error('Failed to read file')
                     }
 
                     reader.readAsDataURL(file)
                   }}
-                  className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm"
+                  className={`w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm ${
+                    isOcrLoading ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'cursor-pointer'
+                  }`}
                 />
 
                 {errors.idCardFile && <ErrMsg msg={errors.idCardFile} />}
 
                 {idCardPreview && (
-                  <img
-                    src={idCardPreview}
-                    alt="Preview"
-                    className="mt-2 h-32 w-auto rounded-lg shadow-md"
-                  />
+                  <div className="relative mt-2 inline-block overflow-hidden rounded-lg shadow-md border border-gray-200">
+                    <img
+                      src={idCardPreview}
+                      alt="Preview"
+                      className="h-32 w-auto object-cover"
+                    />
+                    {isOcrLoading && (
+                      <>
+                        <style>{`
+                          @keyframes scan {
+                            0% { top: 0%; }
+                            50% { top: 100%; }
+                            100% { top: 0%; }
+                          }
+                        `}</style>
+                        <div
+                          className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent shadow-[0_0_8px_#8b5cf6]"
+                          style={{
+                            animation: 'scan 2s linear infinite',
+                            top: 0
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-purple-900/20 backdrop-blur-[1px] flex items-center justify-center">
+                          <div className="bg-white/90 backdrop-blur px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm border border-purple-100">
+                            <svg className="animate-spin h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            <span className="text-xs font-semibold text-purple-700 tracking-wide animate-pulse">
+                              Scanning ID...
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
 
                 {errors.extractedData && <ErrMsg msg={errors.extractedData} />}

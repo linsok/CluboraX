@@ -2,6 +2,8 @@
 admin@cluborax.com
 admin1234
 
+backend/venv/Scripts/python -m py_compile backend/apps/users/ocr_service.py
+
 cd backend; python manage.py runserver 0.0.0.0:8888
 & 'D:\User\pp1\Club_Event\backend\venv\Scripts\python.exe' 'D:\User\pp1\Club_Event\backend\manage.py' runserver 0.0.0.0:8000
 ## Overview

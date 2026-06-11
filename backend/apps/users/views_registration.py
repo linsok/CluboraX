@@ -147,7 +147,30 @@ def create_account(request):
                 'message': 'An account with this email already exists'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-       
+        # Get role and academic/org data
+        role = request.data.get('role', 'student').lower()
+        if role not in ['student', 'organizer']:
+            role = 'student'
+
+        university = request.data.get('university', '')
+        if university == 'Other':
+            university = request.data.get('customUniversity', '')
+        major = request.data.get('major', '')
+        organization_name = request.data.get('organizationName', '')
+
+        # Set role-specific fields
+        student_id = ''
+        staff_id = ''
+        faculty = ''
+        department = ''
+
+        if role == 'student':
+            student_id = extracted_data.get('id_number', '')
+            faculty = university
+            department = major
+        elif role == 'organizer':
+            staff_id = extracted_data.get('id_number', '')
+            department = organization_name
         
         # Parse date of birth
         date_of_birth = None
@@ -168,13 +191,15 @@ def create_account(request):
         # Create user
         user = User.objects.create_user(
             email=email,
+            username=email,  # Set username to email for Django compatibility and database uniqueness
             password=password,
             first_name=extracted_data.get('name', '').split()[-1] if extracted_data.get('name') else '',
             last_name=' '.join(extracted_data.get('name', '').split()[:-1]) if extracted_data.get('name') else '',
-            role='student',  # Default role for new registrations
-            id_number=extracted_data.get('id_number', ''),
-            id_card_expiry=id_card_expiry,
-            id_card_image=extracted_data.get('id_card_image_path', ''),
+            role=role,
+            student_id=student_id,
+            staff_id=staff_id,
+            faculty=faculty,
+            department=department,
             is_verified=True  # Will be verified through email/OTP
         )
         
@@ -182,7 +207,13 @@ def create_account(request):
         profile, created = UserProfile.objects.get_or_create(user=user)
         profile.date_of_birth = date_of_birth
         profile.gender = extracted_data.get('gender', '')
-        # Address field is removed as requested
+        
+        # Store full OCR data in user preferences JSON field for record keeping
+        profile.preferences = {
+            **(profile.preferences or {}),
+            'ocr_data': extracted_data,
+            'id_card_expiry': id_card_expiry.strftime('%Y-%m-%d') if id_card_expiry else None
+        }
         profile.save()
         
         # Clear session data

@@ -38,6 +38,7 @@ import AIAdvisor from './pages/AIAdvisor'
 import Landing from './pages/Landing'
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
+import RegisterStep2 from './pages/Auth/RegisterStep2'
 import ForgotPassword from './pages/Auth/ForgotPassword'
 import ResetPassword from './pages/Auth/ResetPassword'
 import GoogleCallback from './pages/Auth/GoogleCallback'
@@ -67,7 +68,7 @@ function AppContent() {
   usePushNotifications(pushNotificationsEnabled)
 
   // Check if current page is an auth page or landing page
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password' || location.pathname.startsWith('/reset-password') || location.pathname === '/auth/google/callback' || location.pathname === '/auth/google/select-account' || location.pathname === '/auth/role-selection'
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/register/step2' || location.pathname === '/forgot-password' || location.pathname.startsWith('/reset-password') || location.pathname === '/auth/google/callback' || location.pathname === '/auth/google/select-account' || location.pathname === '/auth/role-selection'
   const isLandingPage = location.pathname === '/'
   const isAdminPage = location.pathname.startsWith('/admin')
   const isSupportPage = ['/help-center', '/contact', '/privacy', '/terms'].includes(location.pathname)
@@ -277,6 +278,7 @@ function AppContent() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/register/step2" element={<RegisterStep2 />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/auth/google/callback" element={<GoogleCallback />} />

@@ -47,3 +47,10 @@ Thumbs.db
 .env.*
 !.env.example
 TELEGRAM_PAYMENTS.md
+
+# Media & model weights
+mediafiles/
+backend/mediafiles/
+ocr_models/
+backend/ocr_models/
+

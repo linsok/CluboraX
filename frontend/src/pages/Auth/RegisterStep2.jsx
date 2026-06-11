@@ -44,7 +44,7 @@ const RegisterStep2 = () => {
     if (storedData) {
       setExtractedData(JSON.parse(storedData));
     } else {
-      navigate('/register/step1');
+      navigate('/register');
     }
   }, [navigate]);
 
@@ -111,7 +111,7 @@ const RegisterStep2 = () => {
 
       if (!registrationData) {
         setErrors({ general: 'Please upload your ID card first' });
-        navigate('/register/step1');
+        navigate('/register');
         return;
       }
 
@@ -148,7 +148,7 @@ const RegisterStep2 = () => {
   };
 
   const handleBack = () => {
-    navigate('/register/step1');
+    navigate('/register');
   };
 
   const getPasswordStrength = () => {
@@ -199,54 +199,68 @@ const RegisterStep2 = () => {
   const passwordStrength = getPasswordStrength();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex">
+      {/* Left panel image */}
+      <div className="hidden lg:block lg:w-1/2 relative">
+        <img
+          src="/img/login-signup.jpg"
+          alt="Campus Events"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/40 to-indigo-900/40" />
+      </div>
 
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-indigo-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">
-            CX
+      {/* Right panel form */}
+      <div className="flex-1 flex items-start justify-center px-4 sm:px-6 lg:px-16 xl:px-20 bg-white overflow-y-auto py-8">
+        <div className="w-full max-w-xl">
+          
+          <div className="flex justify-center mb-4">
+            <img
+              src="/img/logo1.png"
+              alt="CluboraX"
+              className="h-14 w-auto drop-shadow-lg"
+            />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Campus Events
-          </h2>
-          <p className="text-gray-600 mb-8">CluboraX</p>
-          <h1 className="text-2xl font-semibold text-gray-900 mb-4">
-            Create Account
-          </h1>
-          <p className="text-gray-600 mb-8">
-            Complete your registration
-          </p>
-        </div>
 
-        {extractedData && (
-          <div className="bg-white py-4 px-6 shadow rounded-lg mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Your Information
-            </h3>
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">
+              Create Account
+            </h2>
+            <p className="text-sm text-gray-500">
+              Complete your registration details below
+            </p>
+          </div>
 
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-700">Name:</span>
-                <span className="text-gray-600">
-                  {extractedData.name || 'Not found'}
-                </span>
-              </div>
+          {extractedData && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="text-sm font-semibold text-green-800 mb-3 flex items-center gap-1.5">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                ✓ Extracted Information
+              </h3>
 
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-700">ID Number:</span>
-                <span className="text-gray-600">
-                  {extractedData.id_number || 'Not found'}
-                </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="flex flex-col">
+                  <span className="text-xs text-green-700 font-medium">Name:</span>
+                  <span className="text-green-900 font-semibold">
+                    {extractedData.name || 'Not found'}
+                  </span>
+                </div>
+
+                <div className="flex flex-col">
+                  <span className="text-xs text-green-700 font-medium">ID Number:</span>
+                  <span className="text-green-900 font-semibold">
+                    {extractedData.id_number || 'Not found'}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="bg-white py-8 px-6 shadow rounded-lg">
-          <form onSubmit={handleSubmit} className="space-y-6">
-
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email Address
               </label>
 
@@ -256,19 +270,19 @@ const RegisterStep2 = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
-                  errors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                className={`block w-full px-3 py-2 border-2 rounded-lg text-sm transition-colors focus:outline-none focus:border-purple-500 ${
+                  errors.email ? 'border-red-400 bg-red-50/10' : 'border-gray-300'
                 }`}
                 placeholder="Enter your email"
               />
 
               {errors.email && (
-                <p className="mt-2 text-sm text-red-600">{errors.email}</p>
+                <p className="mt-1 text-xs text-red-500">{errors.email}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
 
@@ -279,8 +293,8 @@ const RegisterStep2 = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`block w-full px-3 py-2 pr-16 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
-                    errors.password ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                  className={`block w-full px-3 py-2 pr-16 border-2 rounded-lg text-sm transition-colors focus:outline-none focus:border-purple-500 ${
+                    errors.password ? 'border-red-400 bg-red-50/10' : 'border-gray-300'
                   }`}
                   placeholder="Create a strong password"
                 />
@@ -288,22 +302,22 @@ const RegisterStep2 = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-purple-600 hover:text-purple-800 focus:outline-none"
                 >
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
 
               {formData.password && (
-                <div className="mt-2">
+                <div className="mt-2 bg-gray-50 p-2.5 rounded-lg border border-gray-150">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs font-medium text-gray-500">
                       Password strength:
                     </span>
 
-                    <div className="flex-1 bg-gray-200 rounded-full h-2 ml-2 overflow-hidden">
+                    <div className="flex-1 bg-gray-200 rounded-full h-1.5 ml-2 overflow-hidden">
                       <div
-                        className={`h-2 rounded-full transition-all duration-300 ${
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
                           passwordStrength.strength === 0 ? 'bg-red-500' :
                           passwordStrength.strength <= 25 ? 'bg-orange-500' :
                           passwordStrength.strength <= 50 ? 'bg-yellow-500' :
@@ -317,13 +331,13 @@ const RegisterStep2 = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
                     {passwordStrength.checks.map((check, index) => (
-                      <div key={index} className="flex items-center text-xs">
-                        <span className={check.valid ? 'text-green-600' : 'text-red-600'}>
-                          {check.valid ? '✓' : '✗'}
+                      <div key={index} className="flex items-center text-[11px]">
+                        <span className={check.valid ? 'text-green-600 font-bold' : 'text-gray-400'}>
+                          {check.valid ? '✓' : '•'}
                         </span>
-                        <span className="ml-2 text-gray-600">
+                        <span className={`ml-1 ${check.valid ? 'text-gray-700' : 'text-gray-400'}`}>
                           {check.text}
                         </span>
                       </div>
@@ -333,14 +347,14 @@ const RegisterStep2 = () => {
               )}
 
               {errors.password && (
-                <p className="mt-2 text-sm text-red-600">
+                <p className="mt-1 text-xs text-red-500">
                   {errors.password}
                 </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                 Confirm Password
               </label>
 
@@ -351,8 +365,8 @@ const RegisterStep2 = () => {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`block w-full px-3 py-2 pr-16 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
-                    errors.confirmPassword ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                  className={`block w-full px-3 py-2 pr-16 border-2 rounded-lg text-sm transition-colors focus:outline-none focus:border-purple-500 ${
+                    errors.confirmPassword ? 'border-red-400 bg-red-50/10' : 'border-gray-300'
                   }`}
                   placeholder="Confirm your password"
                 />
@@ -360,27 +374,27 @@ const RegisterStep2 = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-purple-600 hover:text-purple-800 focus:outline-none"
                 >
                   {showConfirmPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
 
               {errors.confirmPassword && (
-                <p className="mt-2 text-sm text-red-600">
+                <p className="mt-1 text-xs text-red-500">
                   {errors.confirmPassword}
                 </p>
               )}
             </div>
 
             {errors.general && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-600">{errors.general}</p>
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-xs text-red-600">{errors.general}</p>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Register As
               </label>
 
@@ -388,7 +402,7 @@ const RegisterStep2 = () => {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="block w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 transition-colors bg-white"
                 required
               >
                 <option value="">Select role</option>
@@ -400,7 +414,7 @@ const RegisterStep2 = () => {
             {formData.role === 'student' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     University
                   </label>
 
@@ -408,7 +422,7 @@ const RegisterStep2 = () => {
                     name="university"
                     value={formData.university}
                     onChange={handleChange}
-                    className="block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 transition-colors bg-white"
                     required
                   >
                     <option value="">Select university</option>
@@ -422,7 +436,7 @@ const RegisterStep2 = () => {
 
                 {formData.university === 'Other' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Your University Name
                     </label>
 
@@ -431,7 +445,7 @@ const RegisterStep2 = () => {
                       name="customUniversity"
                       value={formData.customUniversity}
                       onChange={handleChange}
-                      className="block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className="block w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 transition-colors"
                       placeholder="Enter university name"
                       required
                     />
@@ -439,7 +453,7 @@ const RegisterStep2 = () => {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Major of Study
                   </label>
 
@@ -448,7 +462,7 @@ const RegisterStep2 = () => {
                     name="major"
                     value={formData.major}
                     onChange={handleChange}
-                    className="block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 transition-colors"
                     placeholder="Example: Data Science and Engineering"
                     required
                   />
@@ -458,7 +472,7 @@ const RegisterStep2 = () => {
 
             {formData.role === 'organizer' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Organization Name
                 </label>
 
@@ -467,39 +481,39 @@ const RegisterStep2 = () => {
                   name="organizationName"
                   value={formData.organizationName}
                   onChange={handleChange}
-                  className="block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="block w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 transition-colors"
                   placeholder="Enter organization name"
                   required
                 />
               </div>
             )}
 
-            <div className="flex items-center">
+            <div className="flex items-start gap-2 pt-2">
               <input
                 id="terms"
                 name="terms"
                 type="checkbox"
                 required
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
               />
 
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
-                I agree to{' '}
-                <a href="/terms" className="text-indigo-600 hover:text-indigo-500">
+              <label htmlFor="terms" className="text-sm text-gray-600">
+                I agree to the{' '}
+                <a href="/terms" className="text-purple-600 hover:underline">
                   Terms of Service
                 </a>
                 {' '}and{' '}
-                <a href="/privacy" className="text-indigo-600 hover:text-indigo-500">
+                <a href="/privacy" className="text-purple-600 hover:underline">
                   Privacy Policy
                 </a>
               </label>
             </div>
 
-            <div className="flex space-x-4">
+            <div className="flex space-x-4 pt-4">
               <button
                 type="button"
                 onClick={handleBack}
-                className="flex-1 flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="flex-1 flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
               >
                 Back
               </button>
@@ -507,27 +521,42 @@ const RegisterStep2 = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className={`flex-1 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                className={`flex-1 flex justify-center py-2.5 px-4 border border-transparent rounded-lg text-sm font-semibold text-white transition-all ${
                   loading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                    ? 'bg-gray-400 cursor-not-allowed animate-pulse'
+                    : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 shadow-md hover:shadow-lg'
                 }`}
               >
                 {loading ? 'Creating Account...' : 'Create Account'}
               </button>
             </div>
           </form>
-        </div>
 
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-gray-500">
             Already have an account?{' '}
-            <a href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <a href="/login" className="font-semibold text-purple-600 hover:underline">
               Sign in here
             </a>
           </p>
-        </div>
 
+          <div className="mt-4 text-center">
+            <button
+              onClick={handleBack}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
+              </svg>
+              Back to Step 1
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
   );
