@@ -45,7 +45,7 @@ class RAGChatService:
 
     # Strict refusal strings for consistent tone alignment in evaluation
     _REFUSAL_OFF_TOPIC = "I can only answer questions about CluboraX — events, clubs, and campus management."
-    _REFUSAL_NO_INFO = "I don't have information about that. Please try rephrasing your question."
+    _REFUSAL_NO_INFO = "I don't have information about that. Please ask questions related to CluboraX — events, clubs, and campus management."
 
     # Immediate guardrail: catch sensitive system/data probes before embedding inference
     _SENSITIVE_KEYWORDS_RE = re.compile(
