@@ -10,6 +10,11 @@ try:
 except ImportError:
     pass
 
+# Add Django path
+#ys.path.insert(0, r'D:\nextocr-khmer-test\venv\Lib\site-packages')
+# Add mssql backend path
+#sys.path.insert(0, r'D:\nextocr-khmer-test\venv\Lib\site-packages\django_mssql_backend')
+
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'campus_management.settings')

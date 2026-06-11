@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from decouple import config
 
+FRONTEND_URL = 'http://localhost:5175'
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -89,16 +90,8 @@ WSGI_APPLICATION = 'campus_management.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.mysql'),
-        'NAME': config('DB_NAME', default='campus_management'),
-        'USER': config('DB_USER', default='root'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='3306'),
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -257,6 +250,17 @@ KHQR_API_KEY = config('KHQR_API_KEY', default='')
 # AI Settings
 AI_MODEL_PATH = config('AI_MODEL_PATH', default='models/')
 
+# AI Chatbot (Hybrid RAG) Settings
+# These are used by apps.ai_advisor.rag_service.RAGChatService.
+AI_CHAT_CHROMA_PATH = config('AI_CHAT_CHROMA_PATH', default=str((BASE_DIR.parent / 'aichatbot' / 'chroma_db')))
+AI_CHAT_COLLECTION = config('AI_CHAT_COLLECTION', default='event_qa')
+AI_CHAT_EMBED_MODEL = config('AI_CHAT_EMBED_MODEL', default='BAAI/bge-base-en-v1.5')
+AI_CHAT_DISTANCE_HIGH_CONF = config('AI_CHAT_DISTANCE_HIGH_CONF', default=0.45, cast=float)
+AI_CHAT_DISTANCE_MED_CONF = config('AI_CHAT_DISTANCE_MED_CONF', default=0.50, cast=float)
+AI_CHAT_USE_OLLAMA = config('AI_CHAT_USE_OLLAMA', default=True, cast=bool)
+AI_CHAT_OLLAMA_MODEL = config('AI_CHAT_OLLAMA_MODEL', default='gemma3:1b')
+AI_CHAT_TEMPERATURE = config('AI_CHAT_TEMPERATURE', default=0.3, cast=float)
+
 # Logging
 LOGGING = {
     'version': 1,
@@ -314,6 +318,28 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 1 week
 # Rate Limiting
 RATELIMIT_ENABLE = True
 RATELIMIT_USE_CACHE = 'default'
+
+# Khmer ID OCR Settings
+ROBOFLOW_API_KEY = config("ROBOFLOW_API_KEY", default="")
+
+ROBOFLOW_MODEL_ID = config(
+    "ROBOFLOW_MODEL_ID",
+    default="find-id_number-khmer_name-and-more-1wfdh/6"
+)
+
+KIRI_OCR_MODEL_PATH = os.path.join(
+    BASE_DIR,
+    "ocr_models",
+    "khmer_id_mixed_v11_realid_fix",
+    "model.safetensors"
+)
+
+LOCAL_FIELD_DETECTOR_MODEL_PATH = os.path.join(
+    BASE_DIR,
+    "ocr_models",
+    "id_field_detector",
+    "best.pt"
+)
 
 # Create logs directory if it doesn't exist
 import logging
