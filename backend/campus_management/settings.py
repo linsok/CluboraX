@@ -329,10 +329,30 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 1 week
 RATELIMIT_ENABLE = True
 RATELIMIT_USE_CACHE = 'default'
 
+# Khmer ID OCR Settings
+ROBOFLOW_API_KEY = config("ROBOFLOW_API_KEY", default="")
+ROBOFLOW_MODEL_ID = config(
+    "ROBOFLOW_MODEL_ID",
+    default="find-id_number-khmer_name-and-more-1wfdh/6"
+)
+KIRI_OCR_MODEL_PATH = os.path.join(
+    BASE_DIR,
+    "ocr_models",
+    "khmer_id_mixed_v11_realid_fix",
+    "model.safetensors"
+)
+LOCAL_FIELD_DETECTOR_MODEL_PATH = os.path.join(
+    BASE_DIR,
+    "ocr_models",
+    "id_field_detector",
+    "best.pt"
+)
+
 # Create logs directory if it doesn't exist
 import logging
 import os
 log_dir = BASE_DIR / 'logs'
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
+
 

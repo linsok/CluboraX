@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_registration
 
 app_name = 'users'
 
@@ -32,4 +32,11 @@ urlpatterns = [
 
     # Public stats (no auth)
     path('public-stats/', views.PublicStatsView.as_view(), name='public_stats'),
+
+    # OCR Registration endpoints
+    path('register/upload-id/', views_registration.upload_id_card, name='upload_id_card'),
+    path('register/data/', views_registration.get_registration_data, name='get_registration_data'),
+    path('register/create/', views_registration.create_account, name='create_account'),
+    path('register/clear/', views_registration.clear_registration_data, name='clear_registration_data'),
 ]
+
