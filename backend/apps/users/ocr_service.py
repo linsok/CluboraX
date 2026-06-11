@@ -9,15 +9,15 @@ class OCRService:
             from .roboflow_kiri_ocr_service import RoboflowKiriOCRService
             self.service = RoboflowKiriOCRService()
             self.available = True
-        except ImportError as e:
+        except Exception as e:
             self.available = False
-            self.import_error = str(e)
+            self.error_message = str(e)
 
     def process_id_card(self, image_file):
         if not self.available:
             return {
                 "success": False,
                 "message": "OCR service is not available on this server.",
-                "error": f"Required packages are missing: {self.import_error}. Please install 'kiri_ocr' and 'ultralytics' to use this feature."
+                "error": f"OCR Initialization failed: {self.error_message}. Please check package installations and ensure your model weights are placed under 'backend/ocr_models/'."
             }
         return self.service.process_id_card(image_file)
