@@ -54,3 +54,6 @@ backend/mediafiles/
 ocr_models/
 backend/ocr_models/
 
+# Databases
+aichatbot/database/chroma_db/
+

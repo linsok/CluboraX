@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import axios from 'axios'
+import { getBackendUrl } from '../../api/client'
 import { 
   UsersIcon,
   MagnifyingGlassIcon,
@@ -44,7 +45,7 @@ const UserManagement = () => {
         role: roleFilter,
         status: statusFilter
       })
-      const response = await axios.get(`http://localhost:8888/api/admin/users/?${params}`, {
+      const response = await axios.get(`${getBackendUrl()}/api/admin/users/?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       return response.data
@@ -55,7 +56,7 @@ const UserManagement = () => {
   const activateUserMutation = useMutation({
     mutationFn: async (userId) => {
       const token = localStorage.getItem('admin_token')
-      const response = await axios.post(`http://localhost:8888/api/admin/users/${userId}/activate/`, {}, {
+      const response = await axios.post(`${getBackendUrl()}/api/admin/users/${userId}/activate/`, {}, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       return response.data
@@ -72,7 +73,7 @@ const UserManagement = () => {
   const deactivateUserMutation = useMutation({
     mutationFn: async (userId) => {
       const token = localStorage.getItem('admin_token')
-      const response = await axios.post(`http://localhost:8888/api/admin/users/${userId}/deactivate/`, {}, {
+      const response = await axios.post(`${getBackendUrl()}/api/admin/users/${userId}/deactivate/`, {}, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       return response.data
@@ -89,7 +90,7 @@ const UserManagement = () => {
   const verifyUserMutation = useMutation({
     mutationFn: async (userId) => {
       const token = localStorage.getItem('admin_token')
-      const response = await axios.post(`http://localhost:8888/api/admin/users/${userId}/verify/`, {}, {
+      const response = await axios.post(`${getBackendUrl()}/api/admin/users/${userId}/verify/`, {}, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       return response.data
@@ -106,7 +107,7 @@ const UserManagement = () => {
   const deleteUserMutation = useMutation({
     mutationFn: async (userId) => {
       const token = localStorage.getItem('admin_token')
-      const response = await axios.delete(`http://localhost:8888/api/admin/users/${userId}/`, {
+      const response = await axios.delete(`${getBackendUrl()}/api/admin/users/${userId}/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       return response.data

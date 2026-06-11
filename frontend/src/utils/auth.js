@@ -1,4 +1,5 @@
 // Authentication utilities for API calls
+import { getBackendUrl } from '../api/client'
 
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('access_token')
@@ -35,7 +36,7 @@ export const apiRequest = async (url, options = {}) => {
 }
 
 export const getApiUrl = (endpoint) => {
-  const baseUrl = 'http://localhost:8888/api/admin/api'
+  const baseUrl = `${getBackendUrl()}/api/admin/api`
   return `${baseUrl}${endpoint}`
 }
 

@@ -1,574 +1,154 @@
-# 🚀 Deployment Guide (Production)
+Listed directory Club_Event
+Viewed DEPLOYMENT_GUIDE.md:1-575
+Viewed docker-compose.yml:1-127
 
-## Quick Summary
+To host **CluboraX** successfully on **DigitalOcean**, the best and most robust method is to use a **DigitalOcean Droplet with Docker Compose**. 
 
-This project is **production-ready**. Here's what to do:
+Since your project contains multiple services (MySQL, Redis, Celery, Django Backend, React Frontend, and Ollama AI), running them inside Docker containers on a virtual private server (Droplet) keeps everything isolated and simple.
 
 ---
 
-## 🔧 Pre-Deployment Checklist
+### Step 1: Choose the Right Droplet Size (Crucial for AI/OCR)
+Because you are running local deep learning models (YOLO field detector, Kiri OCR, and Ollama LLM), your server needs enough memory:
+* **Minimum:** **4 GB RAM / 2 CPUs** (Basic Plan, Premium Intel or AMD, $24/month).
+* **Recommended:** **8 GB RAM / 4 CPUs** (Basic Plan, $48/month) for faster AI inference times.
+> [!WARNING]
+> Do **NOT** use the cheap $4 or $6 (512MB/1GB RAM) droplets. Running Docker build, loading OCR weights, and running Ollama will instantly freeze/crash the server due to Out-Of-Memory (OOM) errors.
 
-### 1. Code Review
+---
+
+### Step 2: Create the Droplet on DigitalOcean
+1. Click **Create** (green button at top) -> **Droplets**.
+2. **Choose Region:** Pick a location closest to your users.
+3. **Choose Image:** Click the **Marketplace** tab, search for **Docker**, and select the **Docker on Ubuntu** image. This comes with `docker` and `docker-compose` pre-installed!
+4. **Choose Size:** Select **Basic** -> **Premium Intel (or AMD)** -> **$24/month (4GB RAM / 2 CPUs)**.
+5. **Authentication:** Choose **SSH Keys** (recommended) or create a strong **root password**.
+6. Click **Create Droplet** and wait for it to boot. Copy its **Public IP Address**.
+
+---
+
+### Step 3: Configure Your Domain (Optional)
+If you have a domain name (e.g., `cluborax.com`):
+* Go to your domain provider (GoDaddy, Namecheap, etc.) and add an **A Record** pointing to your **Droplet's Public IP**.
+
+---
+
+### Step 4: SSH Into Droplet & Clone Project
+Open your terminal (PowerShell, Git Bash, or Terminal) and run:
 ```bash
-# Make sure all changes are committed
-git status  # Should be clean
-git log     # Check latest commits
+# SSH into your new server
+ssh root@<your_droplet_ip>
 
-# No console.logs in production code
-grep -r "console.log" frontend/src/
-grep -r "print(" backend/apps/
+# Navigate to the web hosting directory
+cd /var/www
 
-# No TODO comments left
-grep -r "TODO\|FIXME" backend/ frontend/
-```
-
-### 2. Environment Setup
-```bash
-# Create production .env file
-cd backend
-cat > .env << EOF
-SECRET_KEY=your-strong-secret-key-here
-DEBUG=False
-ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
-
-DB_ENGINE=django.db.backends.mysql
-DB_NAME=campus_management
-DB_USER=db_user
-DB_PASSWORD=strong_password
-DB_HOST=db.example.com
-DB_PORT=3306
-EOF
-```
-
-### 3. Dependency Installation
-```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-
-# Frontend
-cd frontend
-npm install
-npm run build  # Creates optimized build
-```
-
-### 4. Database Migration
-```bash
-cd backend
-
-# Apply all migrations
-python manage.py migrate
-
-# Seed initial data (optional)
-python manage.py seed_demo_data
-
-# Create admin account
-python manage.py createsuperuser
-```
-
-### 5. Static Files
-```bash
-# Collect all static files
-cd backend
-python manage.py collectstatic --noinput
-
-# Should output location of collected files
-# Usually: backend/staticfiles/ or /var/www/static/
+# Clone your GitHub repository
+git clone https://github.com/linsok/CluboraX.git clubevent
+cd clubevent
 ```
 
 ---
 
-## 📍 Backend Deployment
+### Step 5: Adjust `docker-compose.yml` for Linux
+In your `docker-compose.yml` file, the Ollama service has a Windows path configured for its volume:
+* Line 34: ` - "C:/Users/User/.ollama:/root/.ollama"`
 
-### Option A: Gunicorn + Nginx
+You **must** change this to a Linux path, otherwise the container will fail to start.
+1. Open the file:
+   ```bash
+   nano docker-compose.yml
+   ```
+2. Locate the `ollama` service volumes block (around line 34) and change it to:
+   ```yaml
+       volumes:
+         - "/root/.ollama:/root/.ollama"
+   ```
+3. Press `CTRL+O` then `Enter` to save, and `CTRL+X` to exit.
 
-#### Install Gunicorn
-```bash
-cd backend
-pip install gunicorn
-```
+---
 
-#### Create Gunicorn service file
-```bash
-sudo nano /etc/systemd/system/clubevent.service
-```
+### Step 6: Upload the OCR Model Weights
+Since your `.pt` and `.safetensors` model weights are ignored in Git (they are too large), you must upload them from your **local machine** to the server:
 
-```ini
-[Unit]
-Description=Club Event Django Application
-After=network.target
-
-[Service]
-User=www-data
-WorkingDirectory=/var/www/club_event/backend
-ExecStart=/var/www/club_event/backend/venv/bin/gunicorn \
-    --workers 3 \
-    --worker-class sync \
-    --bind 127.0.0.1:8000 \
-    campus_management.wsgi:application
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-#### Enable and start service
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable clubevent
-sudo systemctl start clubevent
-sudo systemctl status clubevent
-```
-
-#### Configure Nginx
-```bash
-sudo nano /etc/nginx/sites-available/clubevent.conf
-```
-
-```nginx
-upstream clubevent_app {
-    server 127.0.0.1:8000;
-}
-
-server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
-
-    # Redirect HTTP to HTTPS
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name yourdomain.com www.yourdomain.com;
-
-    # SSL certificates (use Let's Encrypt)
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-
-    # Security headers
-    add_header Strict-Transport-Security "max-age=31536000" always;
-    add_header X-Frame-Options "DENY";
-    add_header X-Content-Type-Options "nosniff";
-    add_header X-XSS-Protection "1; mode=block";
-
-    # Gzip compression
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-
-    # Static files
-    location /static/ {
-        alias /var/www/club_event/backend/staticfiles/;
-    }
-
-    # Media files
-    location /media/ {
-        alias /var/www/club_event/backend/mediafiles/;
-    }
-
-    # Django app
-    location / {
-        proxy_pass http://clubevent_app;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_redirect off;
-    }
-}
-```
-
-#### Enable Nginx configuration
-```bash
-sudo ln -s /etc/nginx/sites-available/clubevent.conf /etc/nginx/sites-enabled/
-sudo nginx -t  # Test configuration
-sudo systemctl restart nginx
-```
-
-### Option B: Docker Deployment
-
-#### Docker Compose
-```bash
-# Already have docker-compose.yml in project
-docker-compose -f docker-compose.yml up -d
-```
-
-#### Or manual Docker
-```bash
-# Build image
-docker build -t clubevent:latest backend/
-
-# Run container
-docker run -d \
-    -p 8000:8000 \
-    -e DEBUG=False \
-    -e SECRET_KEY=your-key \
-    -v /var/mediafiles:/app/mediafiles \
-    clubevent:latest
+Run this command **on your local computer's terminal** (not inside SSH):
+```powershell
+# Upload the local ocr_models directory to your DigitalOcean droplet
+scp -r d:\User\pp1\Club_Event\backend\ocr_models root@<your_droplet_ip>:/var/www/clubevent/backend/
 ```
 
 ---
 
-## 🎨 Frontend Deployment
-
-### Build for Production
+### Step 7: Build and Run the App
+Inside your SSH terminal on the Droplet, run:
 ```bash
-cd frontend
-npm run build
-
-# Creates 'dist' folder with optimized build
-```
-
-### Deploy to Netlify (Easiest)
-```bash
-npm install -g netlify-cli
-
-netlify login
-netlify init  # Follow prompts
-netlify deploy --prod
-```
-
-### Deploy to Vercel
-```bash
-npm install -g vercel
-
-vercel login
-vercel  # Follow prompts
-```
-
-### Deploy to Nginx / Standalone Server
-```bash
-# Copy build folder to server
-scp -r frontend/dist/* user@server:/var/www/clubevent/
-
-# Configure Nginx to serve React (see example below)
-```
-
-#### Nginx for React SPA
-```nginx
-server {
-    listen 80;
-    server_name example.com;
-
-    root /var/www/clubevent;
-    index index.html;
-
-    location / {
-        # SPA routing
-        try_files $uri $uri/ /index.html;
-    }
-
-    # API proxy
-    location /api/ {
-        proxy_pass http://clubevent_backend:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
----
-
-## 🗄️ Database Setup
-
-### MySQL on Ubuntu
-```bash
-# Install MySQL
-sudo apt-get install mysql-server
-
-# Create database
-mysql -u root -p
-CREATE DATABASE campus_management;
-CREATE USER 'db_user'@'localhost' IDENTIFIED BY 'strong_password';
-GRANT ALL PRIVILEGES ON campus_management.* TO 'db_user'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
-
-# Test connection
-mysql -u db_user -p campus_management
-```
-
-### CloudSQL (Google Cloud)
-```sql
--- Create database
-CREATE DATABASE campus_management;
-
--- Create user
-CREATE USER 'db_user'@'%' IDENTIFIED BY 'strong_password';
-GRANT ALL ON campus_management.* TO 'db_user'@'%';
-```
-
-### AWS RDS
-1. Launch RDS MySQL instance
-2. Create security group rules
-3. Create database: `campus_management`
-4. Create user with appropriate permissions
-5. Update Django `.env` with RDS endpoint
-
----
-
-## 🔐 SSL/HTTPS Setup
-
-### Let's Encrypt (Free)
-```bash
-# Install Certbot
-sudo apt-get install certbot python3-certbot-nginx
-
-# Get certificate
-sudo certbot certonly --nginx -d yourdomain.com -d www.yourdomain.com
-
-# Auto-renew
-sudo systemctl enable certbot.timer
-```
-
-### Verify SSL
-```bash
-# Check certificate
-sudo certbot certificates
-
-# Renew manually
-sudo certbot renew --dry-run
-```
-
----
-
-## 📊 Monitoring & Logging
-
-### Django Logging
-```python
-# backend/campus_management/settings.py
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': '/var/log/clubevent/django.log',
-            'formatter': 'verbose',
-        },
-    },
-    'root': {
-        'handlers': ['file'],
-        'level': 'INFO',
-    },
-}
-```
-
-### Monitor Services
-```bash
-# Check Gunicorn status
-sudo systemctl status clubevent
-
-# Check Nginx status
-sudo systemctl status nginx
-
-# View logs
-tail -f /var/log/clubevent/django.log
-sudo tail -f /var/log/nginx/error.log
-sudo tail -f /var/log/nginx/access.log
-```
-
----
-
-## 🔄 Continuous Deployment (CI/CD)
-
-### GitHub Actions Example
-```yaml
-name: Deploy to Production
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Build backend
-      run: |
-        cd backend
-        pip install -r requirements.txt
-    
-    - name: Build frontend
-      run: |
-        cd frontend
-        npm install
-        npm run build
-    
-    - name: Deploy to server
-      env:
-        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-      run: |
-        # SSH and deploy
-        ssh -i $DEPLOY_KEY user@server "cd /var/www/clubevent && git pull && ./deploy.sh"
-```
-
----
-
-## 🚨 Post-Deployment
-
-### Verify Everything Works
-```bash
-# Backend API
-curl https://yourdomain.com/api/clubs/
-
-# Frontend
-curl https://yourdomain.com/
-
-# Admin panel
-curl https://yourdomain.com/admin/
-
-# Check logs
-sudo journalctl -u clubevent -n 50
-sudo tail -f /var/log/nginx/access.log
-```
-
-### Set Up Backups
-```bash
-# Database backup (daily)
-0 2 * * * mysqldump -u db_user -p club_event | gzip > /backup/db_$(date +\%Y\%m\%d).sql.gz
-
-# Media files backup (weekly)
-0 3 * * 0 tar czf /backup/media_$(date +\%Y\%m\%d).tar.gz /var/www/clubevent/backend/mediafiles/
-```
-
-### Health Checks
-```bash
-# Monitor uptime
-watch -n 60 'curl -s https://yourdomain.com/api/health/ || echo "DOWN"'
-
-# Alert on high memory
-free -h | grep Mem
-ps aux --sort=-%mem | head -5
-```
-
----
-
-## 🆘 Rollback Procedure
-
-### If Deployment Fails
-```bash
-# Stop current version
-sudo systemctl stop clubevent
-
-# Go back to previous commit
 cd /var/www/clubevent
-git revert HEAD
-git pull
 
-# Restart
-sudo systemctl start clubevent
-
-# Check logs
-sudo systemctl status clubevent -l
+# Build and start all Docker services in the background
+docker compose up --build -d
 ```
 
----
-
-## 📞 Support & Resources
-
-- **Documentation**: See SETUP_AND_SEED_DATA.md and QUICK_START_GUIDE.md
-- **Logs Location**: `/var/log/clubevent/`
-- **Database Backups**: `/backup/`
-- **Media Files**: `/var/www/clubevent/backend/mediafiles/`
-- **Emergency Contact**: Development team
-
----
-
-## ⚡ Performance Tuning
-
-### Database Optimization
+To verify that all services are running:
 ```bash
-# Check slow queries
-mysql -u root -p campus_management
-SET GLOBAL slow_query_log = 'ON';
-SET GLOBAL long_query_time = 2;
-SHOW VARIABLES LIKE 'slow_query%';
+docker compose ps
 ```
 
-### Caching Layer (Redis)
+---
+
+### Step 8: Initialize Database & AI Models
+Run these commands inside your SSH terminal to run migrations, create your admin account, and pull your Ollama LLM model:
+
 ```bash
-# Install Redis
-sudo apt-get install redis-server
+# 1. Run database migrations
+docker exec -it campus_backend python manage.py migrate
 
-# Configure Django
-# backend/requirements.txt
-django-redis
+# 2. Create the system admin account
+docker exec -it campus_backend python manage.py createsuperuser
 
-# settings.py
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
-    }
-}
-```
-
-### CDN for Static Files
-```
-# Use CloudFront or similar to serve:
-- /static/ files
-- /media/ files
-- Frontend dist files
+# 3. Download the Ollama model inside the Ollama container
+docker exec -it campus_ollama ollama pull gemma3:1b
 ```
 
 ---
 
-## - Deployment Checklist
+### Step 9: Configure Nginx Reverse Proxy & SSL (HTTPS)
+To access the app over standard ports `80` (HTTP) and `443` (HTTPS) with a free SSL certificate:
 
-Before going live:
-- [ ] All tests passing
-- [ ] DEBUG = False in production
-- [ ] SECRET_KEY is unique and strong
-- [ ] Database backups configured
-- [ ] SSL certificate installed
-- [ ] Error logging configured
-- [ ] Monitoring setup
-- [ ] Nginx/Gunicorn configured
-- [ ] Static files collected
-- [ ] DNS updated
-- [ ] Email notifications working
-- [ ] Admin account created
-- [ ] Initial data seeded
-- [ ] Performance tested under load
-- [ ] Security audit complete
+1. Install Nginx and Certbot on the Droplet host:
+   ```bash
+   sudo apt update
+   sudo apt install nginx certbot python3-certbot-nginx -y
+   ```
+2. Create an Nginx config file:
+   ```bash
+   sudo nano /etc/nginx/sites-available/cluborax
+   ```
+3. Paste this reverse proxy configuration (replace `yourdomain.com` with your public IP or domain name):
+   ```nginx
+   server {
+       listen 80;
+       server_name yourdomain.com;
 
----
+       location / {
+           proxy_pass http://127.0.0.1:3000; # React frontend container
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
 
-## 🎉 Post-Launch
-
-### Monitor for Issues
-1. Check error logs daily
-2. Monitor server resources
-3. Test key workflows weekly
-4. Keep backups current
-5. Update dependencies monthly
-
-### Schedule Maintenance
-- **Daily**: Check logs
-- **Weekly**: Test backups
-- **Monthly**: Update packages
-- **Quarterly**: Full security audit
-- **Yearly**: Database optimization
-
----
-
-**Status**: Ready for Production
-**Last Updated**: 2024
-**Version**: 1.0.0
-
-*For detailed setup instructions, see SETUP_AND_SEED_DATA.md*
-
+       location /api/ {
+           proxy_pass http://127.0.0.1:8000; # Django backend container
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       }
+   }
+   ```
+4. Enable the configuration and restart Nginx:
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/cluborax /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
+5. Secure it with HTTPS:
+   ```bash
+   sudo certbot --nginx -d yourdomain.com
+   ```

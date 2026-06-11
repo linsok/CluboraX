@@ -31,7 +31,7 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - "C:/Users/User/.ollama:/root/.ollama"
+      - ollama_data:/root/.ollama
     networks:
       - campus_network
 
@@ -41,7 +41,7 @@ services:
       dockerfile: Dockerfile
     container_name: campus_celery
     environment:
-      - DEBUG=1
+      - DEBUG=0
       - DJANGO_SETTINGS_MODULE=campus_management.settings
       - DB_HOST=db
       - DB_NAME=campus_management
@@ -49,8 +49,8 @@ services:
       - DB_PASSWORD=campus_password
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=your-production-secret-key-change-this
-      - ALLOWED_HOSTS=localhost,127.0.0.1
-      - CORS_ALLOWED_ORIGINS=http://localhost,http://127.0.0.1
+      - ALLOWED_HOSTS=localhost,127.0.0.1,168.144.143.156
+      - CORS_ALLOWED_ORIGINS=http://localhost,http://127.0.0.1,http://168.144.143.156,http://168.144.143.156:3000
       - AI_CHAT_CHROMA_PATH=/app/aichatbot/database/chroma_db
       - AI_CHAT_COLLECTION=event_qa
       - AI_CHAT_EMBED_MODEL=BAAI/bge-base-en-v1.5
@@ -76,7 +76,7 @@ services:
       dockerfile: Dockerfile
     container_name: campus_backend
     environment:
-      - DEBUG=1
+      - DEBUG=0
       - DJANGO_SETTINGS_MODULE=campus_management.settings
       - DB_HOST=db
       - DB_NAME=campus_management
@@ -84,8 +84,8 @@ services:
       - DB_PASSWORD=campus_password
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=your-production-secret-key-change-this
-      - ALLOWED_HOSTS=localhost,127.0.0.1
-      - CORS_ALLOWED_ORIGINS=http://localhost,http://127.0.0.1
+      - ALLOWED_HOSTS=localhost,127.0.0.1,168.144.143.156
+      - CORS_ALLOWED_ORIGINS=http://localhost,http://127.0.0.1,http://168.144.143.156,http://168.144.143.156:3000
       - AI_CHAT_CHROMA_PATH=/app/aichatbot/database/chroma_db
       - AI_CHAT_COLLECTION=event_qa
       - AI_CHAT_EMBED_MODEL=BAAI/bge-base-en-v1.5
@@ -119,6 +119,7 @@ services:
 
 volumes:
   mysql_data:
+  ollama_data:
 
 
 networks:

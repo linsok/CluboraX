@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
+import { getBackendUrl } from '../../../api/client'
 import {
   BanknotesIcon,
   CalendarIcon,
@@ -221,7 +222,7 @@ const PaymentsSection = ({ feeSubmissions = [], feeLoading, confirmFeePayment, r
                 <p className="text-sm text-gray-400">PDF receipt uploaded by organizer</p>
                 {selectedFeeProof.proofUrl ? (
                   <a 
-                    href={selectedFeeProof.proofUrl.startsWith('http') ? selectedFeeProof.proofUrl : `http://localhost:8888${selectedFeeProof.proofUrl}`}
+                    href={selectedFeeProof.proofUrl.startsWith('http') ? selectedFeeProof.proofUrl : `${getBackendUrl()}${selectedFeeProof.proofUrl}`}
                     target="_blank" 
                     rel="noreferrer" 
                     className="text-sm text-blue-400 hover:text-blue-300 underline font-semibold mt-2"
@@ -236,7 +237,7 @@ const PaymentsSection = ({ feeSubmissions = [], feeLoading, confirmFeePayment, r
               <div className="flex flex-col items-center justify-center bg-gray-700 rounded-xl p-4 gap-3">
                 {selectedFeeProof.proofUrl ? (
                   <img 
-                    src={selectedFeeProof.proofUrl.startsWith('http') ? selectedFeeProof.proofUrl : `http://localhost:8888${selectedFeeProof.proofUrl}`}
+                    src={selectedFeeProof.proofUrl.startsWith('http') ? selectedFeeProof.proofUrl : `${getBackendUrl()}${selectedFeeProof.proofUrl}`}
                     alt="Payment receipt proof" 
                     className="max-h-96 w-auto object-contain rounded-lg border border-gray-600 shadow-lg" 
                   />

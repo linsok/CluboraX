@@ -1,8 +1,19 @@
 import axios from 'axios'
 
+export const getBackendUrl = () => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:8888';
+    }
+    return `${window.location.protocol}//${host}:8000`;
+  }
+  return 'http://localhost:8888';
+};
+
 // Create axios instance with default configuration
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8888',
+  baseURL: getBackendUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

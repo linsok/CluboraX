@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { getAdminStats, getAdminUsers, getAdminRequests } from '../../api/admin'
+import { getBackendUrl } from '../../api/client'
 import { 
   UsersIcon,
   DocumentTextIcon,
@@ -576,13 +577,13 @@ const AdminUI = () => {
                 {payment.proofImage ? (
                   <div className="h-48 overflow-hidden bg-gray-100 flex items-center justify-center relative group">
                     <img
-                      src={payment.proofImage.startsWith('http') ? payment.proofImage : `http://localhost:8888${payment.proofImage}`}
+                      src={payment.proofImage.startsWith('http') ? payment.proofImage : `${getBackendUrl()}${payment.proofImage}`}
                       alt="Payment Proof"
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
                       <button
-                        onClick={() => window.open(payment.proofImage.startsWith('http') ? payment.proofImage : `http://localhost:8888${payment.proofImage}`, '_blank')}
+                        onClick={() => window.open(payment.proofImage.startsWith('http') ? payment.proofImage : `${getBackendUrl()}${payment.proofImage}`, '_blank')}
                         className="opacity-0 group-hover:opacity-100 bg-white p-2 rounded-full shadow-lg"
                       >
                         <MagnifyingGlassIcon className="w-5 h-5 text-gray-900" />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { getBackendUrl } from '../../api/client'
 import { 
   DocumentTextIcon,
   MagnifyingGlassIcon,
@@ -47,7 +48,7 @@ const ProposalManagement = () => {
         status: statusFilter,
         priority: priorityFilter
       })
-      const response = await fetch(`http://localhost:8888/api/admin/api/proposals/?${params}`, {
+      const response = await fetch(`${getBackendUrl()}/api/admin/api/proposals/?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -62,7 +63,7 @@ const ProposalManagement = () => {
   const approveProposalMutation = useMutation({
     mutationFn: async ({ proposalId, comment }) => {
       const token = localStorage.getItem('access_token')
-      const response = await fetch(`http://localhost:8888/api/admin/api/proposals/${proposalId}/approve/`, {
+      const response = await fetch(`${getBackendUrl()}/api/admin/api/proposals/${proposalId}/approve/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -85,7 +86,7 @@ const ProposalManagement = () => {
   const rejectProposalMutation = useMutation({
     mutationFn: async ({ proposalId, comment }) => {
       const token = localStorage.getItem('access_token')
-      const response = await fetch(`http://localhost:8888/api/admin/api/proposals/${proposalId}/reject/`, {
+      const response = await fetch(`${getBackendUrl()}/api/admin/api/proposals/${proposalId}/reject/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -108,7 +109,7 @@ const ProposalManagement = () => {
   const deleteProposalMutation = useMutation({
     mutationFn: async (proposalId) => {
       const token = localStorage.getItem('access_token')
-      const response = await fetch(`http://localhost:8888/api/admin/api/proposals/${proposalId}/`, {
+      const response = await fetch(`${getBackendUrl()}/api/admin/api/proposals/${proposalId}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

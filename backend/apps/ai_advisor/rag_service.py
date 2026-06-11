@@ -415,36 +415,51 @@ class RAGChatService:
 
     def answer(self, query: str, history: List[Dict[str, str]] = None) -> RAGResult:
         """Return an answer for the given query using hybrid RAG."""
+        logger.info(f"=== RAG CHAT SERVICE ENTRY ===")
+        logger.info(f"Input Query: {repr(query)}")
+        
         use_ollama = bool(self._get_setting('AI_CHAT_USE_OLLAMA', True))
 
         # 1. Sensitive keyword guardrail — fires before any embedding or LLM call
+        logger.info("Step 1: Running sensitive keyword guardrail check...")
         if self._SENSITIVE_KEYWORDS_RE.search(query):
+            logger.info(" -> Intent matched: SENSITIVE PROBE. Refusing query immediately.")
             return RAGResult(
                 answer=self._REFUSAL_OFF_TOPIC,
                 kind='refused',
             )
+        logger.info(" -> Guardrail check passed (no sensitive keywords detected).")
 
         # 2. Build live database context (used in Tier 2 and general fallback)
+        logger.info("Step 2: Fetching live database status context...")
         live_db_context = self._build_live_db_context()
+        logger.info(f" -> Live DB context summary: {len(live_db_context)} chars fetched.")
 
         # 3. RAG unavailable fallback — general Ollama response while warming up
         if not self.available:
+            logger.info("Step 3: RAG service is currently unavailable/warming up.")
             if use_ollama and self.__class__._ollama is not None:
+                logger.info(" -> Action: Routing to general Ollama generation fallback...")
                 try:
                     generated = self._ollama_generate_general(
                         query, history=history, system_context=live_db_context
                     )
                     if generated:
+                        logger.info(" -> General generation fallback completed successfully.")
                         return RAGResult(answer=generated, kind='generated')
                 except Exception as e:
-                    logger.warning(f"Ollama general fallback failed: {e}")
+                    logger.warning(f" -> Ollama general fallback failed: {e}")
+            logger.info(" -> Error: RAG service unavailable and no fallback succeeded.")
             return RAGResult(
                 answer='RAG engine is not available on this server.',
                 kind='error',
             )
+        logger.info("Step 3: RAG service is available. Continuing pipeline.")
 
         # 4. Greeting shortcut — skip RAG for pure greetings
+        logger.info("Step 4: Checking if query is a greeting...")
         if self._is_greeting(query):
+            logger.info(" -> Intent matched: GREETING. Returning shortcut answer.")
             return RAGResult(
                 answer=(
                     "Hello! I'm your CluboraX AI Advisor. How can I assist you today "
@@ -452,16 +467,21 @@ class RAGChatService:
                 ),
                 kind='generated',
             )
+        logger.info(" -> Query is not a greeting. Continuing to retrieval.")
 
         # 5. Load thresholds from settings / env
         threshold_high = float(self._get_setting('AI_CHAT_DISTANCE_HIGH_CONF', 0.55))
         threshold_medium = float(self._get_setting('AI_CHAT_DISTANCE_MED_CONF', 0.75))
         off_topic_threshold = float(self._get_setting('AI_CHAT_OFF_TOPIC_THRESHOLD', 1.2))
+        logger.info(f"Step 5: Load parameters -> high_conf={threshold_high}, med_conf={threshold_medium}, off_topic={off_topic_threshold}")
 
         try:
+            logger.info("Step 6: Generating query embedding...")
             query_emb = self._embed_query(query)
+            logger.info(" -> Query embedding generated successfully.")
 
             # ChromaDB query with one retry on failure
+            logger.info("Step 7: Querying ChromaDB collection for nearest neighbors...")
             try:
                 results = self.__class__._collection.query(
                     query_embeddings=[query_emb],
@@ -469,7 +489,7 @@ class RAGChatService:
                     include=['documents', 'distances'],
                 )
             except Exception as query_err:
-                logger.warning(f"ChromaDB query failed, refreshing collection: {query_err}")
+                logger.warning(f" -> Query failed, attempting re-initialization: {query_err}")
                 chroma_path = self._get_setting(
                     'AI_CHAT_CHROMA_PATH',
                     os.path.join(str(getattr(settings, 'BASE_DIR', '')), '..', 'aichatbot', 'database', 'chroma_db'),
@@ -486,20 +506,25 @@ class RAGChatService:
 
             docs: List[str] = (results.get('documents') or [[]])[0] or []
             dists: List[float] = (results.get('distances') or [[]])[0] or []
+            logger.info(f" -> ChromaDB returned {len(docs)} document candidate(s).")
 
             if not docs or not dists:
+                logger.info(" -> Intent matched: NO PASSAGE. Distance not available (empty index). Refusing query.")
                 return RAGResult(answer=self._REFUSAL_NO_INFO, kind='refused')
 
             distance = float(dists[0])
+            logger.info(f" -> Top candidate distance: {distance:.4f}")
 
             # 6. Hard refusal: distance too high — off-topic or no useful match
             if distance >= threshold_medium:
+                if distance > off_topic_threshold:
+                    logger.info(f" -> Intent matched: OFF-TOPIC (distance={distance:.4f} > off_topic={off_topic_threshold}). Refusing query.")
+                    ans = self._REFUSAL_OFF_TOPIC
+                else:
+                    logger.info(f" -> Intent matched: NO CONTEXT (distance={distance:.4f} >= med_conf={threshold_medium}). Refusing query.")
+                    ans = self._REFUSAL_NO_INFO
                 return RAGResult(
-                    answer=(
-                        self._REFUSAL_OFF_TOPIC
-                        if distance > off_topic_threshold
-                        else self._REFUSAL_NO_INFO
-                    ),
+                    answer=ans,
                     kind='refused',
                     distance=distance,
                     contexts=docs,
@@ -507,7 +532,10 @@ class RAGChatService:
 
             # 7. Tier 1: direct retrieval — high confidence exact match
             if distance < threshold_high:
+                logger.info(f" -> Intent matched: DIRECT RETRIEVAL (distance={distance:.4f} < high_conf={threshold_high}).")
+                logger.info(" -> Action: Extracting first answer block from top document.")
                 answer = self._extract_first_answer_block(docs[0] or '')
+                logger.info(" -> Answer extracted successfully.")
                 return RAGResult(
                     answer=answer,
                     kind='retrieved',
@@ -518,12 +546,15 @@ class RAGChatService:
             # 8. Tier 2: guided LLM generation with retrieved context
             #    Real semantic passages first, live DB appended last so it
             #    supplements rather than eclipses the retrieved documents.
+            logger.info(f" -> Intent matched: SEMANTIC MATCH (distance={distance:.4f} is between {threshold_high} and {threshold_medium}).")
             if use_ollama and self.__class__._ollama is not None:
+                logger.info(" -> Action: Routing to Tier 2 Ollama generation with retrieved context...")
                 try:
                     context_docs = docs[:2] + [live_db_context] if live_db_context else docs[:3]
                     generated = self._ollama_generate(query, context_docs, history=history)
                     if generated:
                         generated = self._clean_answer_text(generated)
+                        logger.info(" -> Tier 2 generation completed successfully.")
                         return RAGResult(
                             answer=generated,
                             kind='generated',
@@ -531,9 +562,10 @@ class RAGChatService:
                             contexts=docs,
                         )
                 except Exception as e:
-                    logger.warning(f"Ollama Tier 2 generation failed, falling back: {e}")
+                    logger.warning(f" -> Ollama Tier 2 generation failed: {e}")
 
             # 9. Tier 3: refuse — below off-topic threshold but no answer available
+            logger.info(" -> Intent matched: REFUSAL. Distance was in bounds but no generation succeeded.")
             return RAGResult(
                 answer=self._REFUSAL_NO_INFO,
                 kind='refused',
