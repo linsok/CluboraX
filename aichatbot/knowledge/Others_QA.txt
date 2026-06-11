@@ -209,3 +209,6 @@ A: For paid events:
 3. Upload your transaction receipt through the system 
 4. Once the receipt is verified, your registration is confirmed 
 5. You receive your QR code and confirmation email.
+
+Q43: What is CluboraX (or Cloborax)?
+A: CluboraX (often referred to as Cloborax) is the university's campus event and club management system. It allows students to browse and register for events, join clubs, manage memberships, and obtain QR code tickets. It also provides campus administrators and club organizers with comprehensive tools to submit and approve event or club proposals, manage budgets, track attendance via QR scanners, and access dashboard analytics.

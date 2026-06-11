@@ -454,7 +454,7 @@ class RAGChatService:
             )
 
         # 5. Load thresholds from settings / env
-        threshold_high = float(self._get_setting('AI_CHAT_DISTANCE_HIGH_CONF', 0.5))
+        threshold_high = float(self._get_setting('AI_CHAT_DISTANCE_HIGH_CONF', 0.55))
         threshold_medium = float(self._get_setting('AI_CHAT_DISTANCE_MED_CONF', 0.75))
         off_topic_threshold = float(self._get_setting('AI_CHAT_OFF_TOPIC_THRESHOLD', 1.2))
 
