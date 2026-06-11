@@ -7,9 +7,9 @@ from django.core.files.storage import default_storage
 from django.utils import timezone
 from datetime import datetime
 from .models import User, UserProfile
+from .ocr_service import OCRService
 from .serializers_registration import UserRegistrationSerializer
 import traceback
-
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -44,7 +44,6 @@ def upload_id_card(request):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Process with OCR
-        from .ocr_service import OCRService
         ocr_service = OCRService()
         ocr_result = ocr_service.process_id_card(id_card_image)
         
