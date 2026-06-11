@@ -95,3 +95,9 @@ A: Yes, events have participant limits. Organizers set capacity limits when crea
 
 Q27: How do I give feedback after an event?
 A: The system tracks various success metrics including user satisfaction scores. While specific feedback mechanisms are not detailed in the core workflows, the system maintains comprehensive audit trails and user action logging. Event organizers and administrators can gather feedback to improve future events and measure operational efficiency.
+
+Q28: Can I edit my event proposal after submitting it?
+A: Once an event proposal is submitted, it enters the approval workflow with PENDING status. Changes to a submitted proposal would need to be coordinated with approvers. Review all details carefully before submitting to avoid issues during the approval process.
+
+Q29: What is the difference between a club event and a campus event?
+A: Club events are organized by specific clubs for their members and interested students, tied to a specific club's activities. Campus events are broader events open to all students campus-wide. Both go through the same event proposal and approval process in the system.

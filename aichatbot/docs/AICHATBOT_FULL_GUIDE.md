@@ -109,11 +109,11 @@ File: `aichatbot/chatbot_terminal.py`
    - check the nearest distance
 
 ### Confidence tiers
-- **High confidence** (distance < `CONFIDENCE_THRESHOLD`, default ~0.45)
+- **High confidence** (distance < `CONFIDENCE_THRESHOLD`, default ~0.5)
   - return the retrieved answer directly
-- **Medium confidence** (distance < 0.50)
+- **Medium confidence** (distance < 0.75)
   - if Ollama enabled, generate with retrieved context (RAG)
-- **Low confidence** (>= 0.50)
+- **Low confidence** (>= 0.75)
   - refuse/ask to rephrase (anti-hallucination)
 
 ### Ollama usage

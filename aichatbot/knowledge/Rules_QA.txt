@@ -1,4 +1,4 @@
-Register and Account
+ Register and Account
 
 Q1. How do I log in to the campus portal?
 A: Open the website, then click Login. Enter your registered account credentials. If you don’t have an account, select Create Account first.
