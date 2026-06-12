@@ -189,6 +189,18 @@ jobs:
         username: root
         key: ${{ secrets.DO_SSH_KEY }}
         script: |
+          # Ensure Docker Compose v2 is installed and working
+          if ! docker compose version >/dev/null 2>&1; then
+            echo "docker compose not found or outdated. Installing v2..."
+            apt-get update
+            apt-get install -y docker-compose-plugin || apt-get install -y docker-compose-v2 || (
+              echo "Downloading standalone docker-compose binary..."
+              curl -L "https://github.com/docker/compose/releases/download/v2.26.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              chmod +x /usr/local/bin/docker-compose
+              mkdir -p ~/.docker/cli-plugins/
+              ln -sf /usr/local/bin/docker-compose ~/.docker/cli-plugins/docker-compose
+            )
+          fi
           cd /var/www/clubevent
           git pull origin master
           docker compose up -d --build
