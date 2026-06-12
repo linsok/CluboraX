@@ -56,7 +56,9 @@ jobs:
       run: |
         cd backend
         python -m pip install --upgrade pip
+        pip install torch --index-url https://download.pytorch.org/whl/cpu
         pip install -r requirements.txt
+        pip install flake8 black isort coverage
 
     - name: Run Django migrations
       run: |
@@ -73,7 +75,6 @@ jobs:
     - name: Run backend tests with coverage
       run: |
         cd backend
-        pip install coverage
         coverage run manage.py test --settings=campus_management.settings_ci --verbosity=2
         coverage xml
       env:
@@ -87,7 +88,6 @@ jobs:
     - name: Run code quality checks
       run: |
         cd backend
-        pip install flake8 black isort
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
         isort --check-only --diff . || echo "Import sorting issues found"
@@ -140,27 +140,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build backend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend
-        file: ./backend/Dockerfile
-        push: false
-        tags: cluborax-backend:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Build frontend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./frontend
-        file: ./frontend/Dockerfile
-        push: false
-        tags: cluborax-frontend:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Test Docker Compose
+    - name: Test Docker Compose (Build verification)
       run: |
         docker compose config --quiet
         docker compose build --parallel
