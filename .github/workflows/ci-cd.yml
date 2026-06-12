@@ -191,7 +191,7 @@ jobs:
         script: |
           cd /var/www/clubevent
           git pull origin master
-          docker-compose up -d --build
+          docker compose up -d --build
 
   # Performance Testing
   performance-test:
