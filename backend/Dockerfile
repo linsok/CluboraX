@@ -31,7 +31,7 @@ COPY requirements.txt /app/
 RUN grep -v "torch" /app/requirements.txt > /tmp/requirements-docker.txt
 
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir --retries 5 --timeout 120 torch --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir --retries 5 --timeout 120 torch torchvision --index-url https://download.pytorch.org/whl/cpu \
     && pip install --no-cache-dir --retries 5 --timeout 120 -r /tmp/requirements-docker.txt
 
 # Copy project
