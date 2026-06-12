@@ -4,7 +4,7 @@ import { apiClient, getBackendUrl } from './client'
 // Create separate axios instance for admin APIs
 const adminClient = axios.create({
   baseURL: getBackendUrl(),
-  timeout: 10000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },

@@ -15,7 +15,7 @@ export const getBackendUrl = () => {
 // Create axios instance with default configuration
 const apiClient = axios.create({
   baseURL: getBackendUrl(),
-  timeout: 10000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
