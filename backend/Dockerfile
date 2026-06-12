@@ -20,6 +20,10 @@ RUN apt-get update \
         default-libmysqlclient-dev \
         libmagic1 \
         libmagic-dev \
+        libgomp1 \
+        libgl1 \
+        libglib2.0-0 \
+        libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
