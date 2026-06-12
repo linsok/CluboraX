@@ -59,7 +59,7 @@ services:
       - AI_CHAT_OLLAMA_MODEL=gemma3:1b
       - OLLAMA_HOST=http://ollama:11434
     volumes:
-      - ./aichatbot/database/chroma_db:/app/aichatbot/database/chroma_db
+      - ./aichatbot:/app/aichatbot
     command: celery -A campus_management worker --loglevel=info
     depends_on:
       - db
@@ -96,7 +96,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./aichatbot/database/chroma_db:/app/aichatbot/database/chroma_db
+      - ./aichatbot:/app/aichatbot
     depends_on:
       - db
       - redis
