@@ -6,7 +6,8 @@ export const getBackendUrl = () => {
     if (host === 'localhost' || host === '127.0.0.1') {
       return 'http://localhost:8888';
     }
-    return `${window.location.protocol}//${host}:8000`;
+    // For production (behind Nginx reverse proxy on port 80/443)
+    return '';
   }
   return 'http://localhost:8888';
 };
