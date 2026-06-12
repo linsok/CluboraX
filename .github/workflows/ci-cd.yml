@@ -200,6 +200,9 @@ jobs:
           fi
           cd /var/www/clubevent
           git pull origin master
+          # Ensure ChromaDB directories exist and have correct permissions for the 'app' user (UID 1000)
+          mkdir -p aichatbot/database/chroma_db
+          chown -R 1000:1000 aichatbot
           docker compose down --remove-orphans
           docker container prune -f
           docker compose up -d --build
