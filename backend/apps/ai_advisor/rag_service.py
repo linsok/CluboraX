@@ -269,6 +269,11 @@ class RAGChatService:
         if ollama is None:
             raise RuntimeError('Ollama not available')
 
+        logger.info(f" -> Ollama Tier 2 Generation requested for query: {repr(query)}")
+        logger.info(f" -> Number of context documents passed: {len(context_docs)}")
+        for idx, doc in enumerate(context_docs):
+            logger.info(f"    - Doc {idx + 1} preview: {repr(doc[:120])}...")
+
         ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
         client = ollama.Client(host=ollama_host)
 
@@ -311,6 +316,7 @@ class RAGChatService:
             messages.extend(history)
         messages.append({'role': 'user', 'content': prompt})
 
+        logger.info(f" -> Sending chat request to Ollama model '{model_name}' (temperature={temperature})...")
         resp = client.chat(
             model=model_name,
             messages=messages,
@@ -320,7 +326,9 @@ class RAGChatService:
                 'num_predict': 250,
             },
         )
-        return (resp.get('message') or {}).get('content', '').strip()
+        content = (resp.get('message') or {}).get('content', '').strip()
+        logger.info(f" -> Ollama raw response: {repr(content)}")
+        return content
 
     @classmethod
     def _ollama_generate_general(
@@ -333,6 +341,8 @@ class RAGChatService:
         ollama = cls._ollama
         if ollama is None:
             raise RuntimeError('Ollama not available')
+
+        logger.info(f" -> Ollama General Generation requested for query: {repr(query)}")
 
         ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
         client = ollama.Client(host=ollama_host)
@@ -366,6 +376,7 @@ class RAGChatService:
             messages.extend(history)
         messages.append({'role': 'user', 'content': f"Question: {query}"})
 
+        logger.info(f" -> Sending general chat request to Ollama model '{model_name}'...")
         resp = client.chat(
             model=model_name,
             messages=messages,
@@ -375,7 +386,9 @@ class RAGChatService:
                 'num_predict': 250,
             },
         )
-        return (resp.get('message') or {}).get('content', '').strip()
+        content = (resp.get('message') or {}).get('content', '').strip()
+        logger.info(f" -> Ollama general raw response: {repr(content)}")
+        return content
 
     # -------------------------------------------------------------------------
     # Live database context builder
