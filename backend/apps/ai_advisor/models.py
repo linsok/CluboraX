@@ -268,7 +268,6 @@ class AIKnowledgeBase(TimeStampedModel):
         indexes = [
             models.Index(fields=['knowledge_type', 'category']),
             models.Index(fields=['is_active']),
-            models.Index(fields=['tags']),
         ]
     
     def __str__(self):
