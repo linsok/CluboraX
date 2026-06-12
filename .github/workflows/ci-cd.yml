@@ -204,6 +204,7 @@ jobs:
           mkdir -p aichatbot/database/chroma_db
           chown -R 1000:1000 aichatbot
           docker compose down --remove-orphans
+          docker rm -f campus_db campus_redis campus_ollama campus_celery campus_backend campus_frontend || true
           docker container prune -f
           docker compose up -d --build
 
