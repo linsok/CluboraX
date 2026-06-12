@@ -116,6 +116,21 @@ services:
     networks:
       - campus_network
 
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: campus_phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root_password
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      - campus_network
+
 volumes:
   mysql_data:
   ollama_data:
