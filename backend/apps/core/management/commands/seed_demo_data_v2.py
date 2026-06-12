@@ -1,57 +1,43 @@
-"""
-Django management command to seed the database with sample clubs and events
-Usage: python manage.py seed_demo_data
-
-Enhanced version with:
-- Better error handling and retry logic
-- Improved formatting and progress display
-- Fallback for image downloads
-- Comprehensive summary
-"""
-
+import os
+import sys
+import logging
+from decimal import Decimal
+from datetime import timedelta
+import requests
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.utils import timezone
-import logging
-from datetime import timedelta
 
 try:
     from apps.clubs.models import Club, ClubMembership
     from apps.events.models import Event
+    from apps.gallery.models import Gallery, Album, MediaFile
 except ImportError as e:
     raise ImportError(f"Required models not found: {e}")
-
-try:
-    import requests
-    REQUESTS_AVAILABLE = True
-except ImportError:
-    import urllib.request
-    REQUESTS_AVAILABLE = False
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-
 class Command(BaseCommand):
-    help = 'Seed demo data for clubs and events with robust error handling'
+    help = 'Seed comprehensive and realistic demo data including clubs, free/paid events, and gallery media with real images'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--no-images',
             action='store_true',
-            help='Skip image downloads (useful offline)'
+            help='Skip downloading images from Unsplash (for offline mode)'
         )
 
     def handle(self, *args, **options):
         no_images = options.get('no_images', False)
-        
+
         self.stdout.write("\n" + "="*60)
-        self.stdout.write(self.style.SUCCESS('🌱 Starting demo data seeding...'))
+        self.stdout.write(self.style.SUCCESS('🌱 Starting CluboraX database seeding...'))
         self.stdout.write("="*60 + "\n")
 
-        # Create demo user
-        demo_user, user_created = User.objects.get_or_create(
+        # 1. Ensure system admin and demo user exist
+        demo_user, created = User.objects.get_or_create(
             email='demo@cluborax.com',
             defaults={
                 'username': 'demo_user',
@@ -61,223 +47,396 @@ class Command(BaseCommand):
                 'role': 'student',
             }
         )
-        if user_created:
+        if created:
             demo_user.set_password('demo123')
             demo_user.save()
-            self.stdout.write(self.style.SUCCESS(f'✅ Created demo user: demo@cluborax.com / demo123'))
+            self.stdout.write(self.style.SUCCESS('✅ Created demo user: demo@cluborax.com / demo123'))
         else:
-            self.stdout.write(f'⏭️  Demo user already exists')
+            self.stdout.write('⏭️  Demo user already exists')
 
-        # Clubs data
+        admin_user = User.objects.filter(is_superuser=True).first()
+        if not admin_user:
+            admin_user = User.objects.filter(role='admin').first()
+        if not admin_user:
+            admin_user = demo_user
+
+        # 2. Clubs Data Definitions
         clubs_data = [
             {
-                'name': 'Robotics Club',
+                'name': 'Computer Science & Robotics Club',
                 'category': 'Technical',
-                'description': 'We design, build, and program robots for competitions and learning. From mechanical design to AI algorithms, join our innovative community!',
-                'mission': 'To inspire students to learn robotics and engineering',
+                'description': 'We design, build, and program robots for challenges. From mechanical design to AI neural networks, join our cutting-edge community!',
+                'mission_statement': 'To inspire students to learn robotics, electronics, and engineering through hands-on building.',
                 'advisor_name': 'Dr. John Smith',
                 'advisor_email': 'john.smith@university.edu',
-                'image_url': 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800',
+                'president_name': 'Alex Rivera',
+                'president_email': 'alex.rivera@student.university.edu',
+                'location': 'IT Building, Lab 4',
+                'meeting_schedule': 'Every Tuesday and Thursday at 5:00 PM',
+                'image_url': 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800',
             },
             {
                 'name': 'Photography Society',
                 'category': 'Arts',
-                'description': 'Capture the world through our lens! Share techniques, organize photo walks, and exhibit student work.',
-                'mission': 'To promote photography as an art form',
+                'description': 'Capture the beauty of campus life and visual storytelling! Share techniques, participate in guided photo walks, and exhibit student work.',
+                'mission_statement': 'To promote photography as a creative form of art and self-expression across campus.',
                 'advisor_name': 'Ms. Sarah Johnson',
                 'advisor_email': 'sarah.johnson@university.edu',
-                'image_url': 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800',
+                'president_name': 'Emily Chen',
+                'president_email': 'emily.chen@student.university.edu',
+                'location': 'Fine Arts Hall, Room 102',
+                'meeting_schedule': 'Wednesdays at 4:30 PM',
+                'image_url': 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800',
             },
             {
-                'name': 'Environmental Club',
-                'category': 'Cultural',
-                'description': 'Fight climate change and promote sustainability on campus. Join us for environmental advocacy and green initiatives.',
-                'mission': 'Create positive environmental impact on campus',
-                'advisor_name': 'Prof. Michael Chen',
-                'advisor_email': 'michael.chen@university.edu',
-                'image_url': 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800',
-            },
-            {
-                'name': 'Data Science Club',
-                'category': 'Technical',
-                'description': 'Explore machine learning, data analysis, and AI. Work on real-world projects and competitions.',
-                'mission': 'Develop practical data science skills for real-world applications',
-                'advisor_name': 'Dr. Emily Wong',
-                'advisor_email': 'emily.wong@university.edu',
-                'image_url': 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800',
-            },
-            {
-                'name': 'Debate Club',
+                'name': 'Debate Society',
                 'category': 'Academic',
-                'description': 'Sharpen your critical thinking and public speaking skills. Compete in debates and win recognition.',
-                'mission': 'Foster critical thinking and communication skills',
+                'description': 'Sharpen your critical thinking, argumentation, and public speaking skills. Compete in tournaments and receive mentoring.',
+                'mission_statement': 'To foster critical thinking, public speaking, and polite academic discourse.',
                 'advisor_name': 'Prof. Robert Taylor',
                 'advisor_email': 'robert.taylor@university.edu',
-                'image_url': 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800',
+                'president_name': 'Marcus Vance',
+                'president_email': 'marcus.vance@student.university.edu',
+                'location': 'Humanities Hall, Room 305',
+                'meeting_schedule': 'Mondays at 6:00 PM',
+                'image_url': 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800',
+            },
+            {
+                'name': 'Music & Band Club',
+                'category': 'Arts',
+                'description': 'Connect with fellow student musicians, practice in our studio, host live acoustic nights, and form bands.',
+                'mission_statement': 'To celebrate diverse musical styles and provide a stage for student musical performances.',
+                'advisor_name': 'Dr. Alan Walker',
+                'advisor_email': 'alan.walker@university.edu',
+                'president_name': 'Chloe Bennett',
+                'president_email': 'chloe.bennett@student.university.edu',
+                'location': 'Student Center, Music Room B',
+                'meeting_schedule': 'Thursdays at 7:00 PM',
+                'image_url': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800',
+            },
+            {
+                'name': 'Sports & Fitness Club',
+                'category': 'Sports',
+                'description': 'Promote wellness, teamwork, and active healthy lifestyles. Organize friendly campus leagues and group workouts.',
+                'mission_statement': 'To build student teamwork, health, and athletic passion through active campus sports leagues.',
+                'advisor_name': 'Coach Davis',
+                'advisor_email': 'davis.fitness@university.edu',
+                'president_name': 'Jordan Lee',
+                'president_email': 'jordan.lee@student.university.edu',
+                'location': 'University Gym & Arena',
+                'meeting_schedule': 'Fridays at 4:00 PM',
+                'image_url': 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800',
             },
         ]
 
-        # Events data
-        events_data = [
-            {
-                'title': 'Annual Robotics Competition',
-                'description': 'Compete with your robot in obstacle courses and challenges. Teams compete in robotics challenges. Registration required.',
-                'category': 'Competition',
-                'date': timezone.now() + timedelta(days=30),
-                'image_url': 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800',
-            },
-            {
-                'title': 'Photography Workshop',
-                'description': 'Professional photography training with industry experts. Learn composition, lighting, and post-processing techniques.',
-                'category': 'Workshop',
-                'date': timezone.now() + timedelta(days=14),
-                'image_url': 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800',
-            },
-            {
-                'title': 'Environmental Cleanup Drive',
-                'description': 'Help keep our campus green! Join us for a community service day focused on environmental conservation.',
-                'category': 'Service',
-                'date': timezone.now() + timedelta(days=7),
-                'image_url': 'https://images.unsplash.com/photo-1559027615-cd1628902e4a?w=800',
-            },
-            {
-                'title': 'Data Science Hackathon',
-                'description': '24-hour hackathon to solve real-world problems using data science and machine learning.',
-                'category': 'Competition',
-                'date': timezone.now() + timedelta(days=60),
-                'image_url': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
-            },
-            {
-                'title': 'Inter-Club Debate Tournament',
-                'description': 'Friendly debate competition between clubs. Improve your rhetoric and argumentation skills.',
-                'category': 'Tournament',
-                'date': timezone.now() + timedelta(days=45),
-                'image_url': 'https://images.unsplash.com/photo-1540575467063-178f50902556?w=800',
-            },
-        ]
-
-        # Create clubs
-        self.stdout.write("📍 Creating Clubs...\n")
-        clubs_created = 0
-        
+        # 3. Seed Clubs
+        self.stdout.write("\n📍 Seeding Clubs...")
+        created_clubs = {}
         for club_data in clubs_data:
             image_url = club_data.pop('image_url')
-            try:
-                club, created = Club.objects.get_or_create(
-                    name=club_data['name'],
-                    defaults={
-                        **club_data,
-                        'status': 'published',
-                        'created_by': demo_user,
-                    }
-                )
-
-                if created:
-                    if not no_images:
-                        try:
-                            img_data = self._download_image(image_url)
-                            if img_data:
-                                filename = f"{club.name.lower().replace(' ', '_')}_logo.jpg"
-                                club.logo.save(filename, ContentFile(img_data), save=True)
-                                self.stdout.write(f"  ✅ {club.name}")
-                            else:
-                                self.stdout.write(f"  ⚠️  {club.name} (no image)")
-                        except Exception as e:
-                            self.stdout.write(f"  ⚠️  {club.name} (image failed)")
-                            logger.error(f"Image download failed for {club.name}: {e}")
+            club, created = Club.objects.get_or_create(
+                name=club_data['name'],
+                defaults={
+                    **club_data,
+                    'status': 'published',
+                    'created_by': admin_user,
+                }
+            )
+            created_clubs[club.name] = club
+            if created:
+                if not no_images:
+                    img_data = self._download_image(image_url)
+                    if img_data:
+                        filename = f"{club.name.lower().replace(' ', '_')}_logo.jpg"
+                        club.logo.save(filename, ContentFile(img_data), save=True)
+                        self.stdout.write(self.style.SUCCESS(f"  ✅ Club Created (with Image): {club.name}"))
                     else:
-                        self.stdout.write(f"  ✅ {club.name} (no images mode)")
-                    
-                    clubs_created += 1
+                        self.stdout.write(self.style.WARNING(f"  ⚠️  Club Created (no Image): {club.name}"))
                 else:
-                    self.stdout.write(f"  ⏭️  {club.name} (already exists)")
-
-                # Add demo user as member
+                    self.stdout.write(self.style.SUCCESS(f"  ✅ Club Created: {club.name}"))
+                
+                # Add demo user as approved member
                 ClubMembership.objects.get_or_create(
                     club=club,
                     user=demo_user,
                     defaults={'role': 'member', 'status': 'approved'}
                 )
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f'  ❌ {club_data["name"]}: {e}'))
+            else:
+                self.stdout.write(f"  ⏭️  Club already exists: {club.name}")
 
-        self.stdout.write(f"\n✅ Processed {len(clubs_data)} clubs\n")
+        # 4. Events Data Definitions
+        events_data = [
+            # Technology Events
+            {
+                'title': 'AI & Machine Learning Bootcamp',
+                'description': 'A two-day intensive bootcamp covering the fundamentals of Artificial Intelligence and Machine Learning. Build your first neural network, receive hands-on training, and get a certificate of completion.',
+                'category': 'Technology',
+                'event_type': 'workshop',
+                'start_datetime': timezone.now() + timedelta(days=14, hours=9),
+                'end_datetime': timezone.now() + timedelta(days=15, hours=17),
+                'venue': 'IT Building, Lab 3',
+                'max_participants': 45,
+                'is_paid': True,
+                'price': Decimal('15.00'),
+                'registration_deadline': timezone.now() + timedelta(days=12),
+                'status': 'published',
+                'club': created_clubs.get('Computer Science & Robotics Club'),
+                'requirements': 'Bring your own laptop. Basic Python programming background is helpful.',
+                'agenda': 'Day 1: Intro to Machine Learning, Regression, and Data Processing.\nDay 2: Intro to Neural Networks, tensorflow labs, and project presentations.',
+                'tags': ['AI', 'Python', 'Machine Learning', 'Workshop'],
+                'image_url': 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800',
+            },
+            {
+                'title': 'Hackathon 2026: Build for Impact',
+                'description': 'A 24-hour programming hackathon where student teams build innovative software solutions to real-world campus problems. Cash prizes, sponsor swag, food, and energy drinks are provided!',
+                'category': 'Technology',
+                'event_type': 'competition',
+                'start_datetime': timezone.now() + timedelta(days=21, hours=10),
+                'end_datetime': timezone.now() + timedelta(days=22, hours=14),
+                'venue': 'Main Auditorium & Co-working Space',
+                'max_participants': 80,
+                'is_paid': True,
+                'price': Decimal('5.00'),
+                'registration_deadline': timezone.now() + timedelta(days=18),
+                'status': 'published',
+                'club': created_clubs.get('Computer Science & Robotics Club'),
+                'requirements': 'Teams of 2-4 members. Bring laptops, chargers, and sleeping bags.',
+                'agenda': '10:00 AM: Hacking Starts\n02:00 PM: Mentor Feedback Sessions\n10:00 AM (Next Day): Submissions & Presentations.',
+                'tags': ['Programming', 'Hackathon', 'Competition', 'Coding'],
+                'image_url': 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=800',
+            },
+            # Arts & Photography
+            {
+                'title': 'Campus Photography Tour',
+                'description': 'Join the Photography Society for an afternoon photo walk around the campus historic sights. Learn framing, camera settings, and golden-hour lighting tricks.',
+                'category': 'Arts',
+                'event_type': 'workshop',
+                'start_datetime': timezone.now() + timedelta(days=7, hours=15),
+                'end_datetime': timezone.now() + timedelta(days=7, hours=19),
+                'venue': 'Meet at University Main Gate',
+                'max_participants': 30,
+                'is_paid': False,
+                'price': Decimal('0.00'),
+                'registration_deadline': timezone.now() + timedelta(days=6),
+                'status': 'published',
+                'club': created_clubs.get('Photography Society'),
+                'requirements': 'Bring any digital camera or a smartphone with manual settings capabilities.',
+                'agenda': '03:00 PM: Introduction to framing & composition\n04:00 PM: Photo walk to landmarks\n06:00 PM: Group discussion and editing tips.',
+                'tags': ['Photography', 'Arts', 'Workshop', 'Outdoor'],
+                'image_url': 'https://images.unsplash.com/photo-1452780212940-6f5c0d14d848?w=800',
+            },
+            # Music Concert
+            {
+                'title': 'Annual Spring Music Concert',
+                'description': 'A spectacular evening featuring live performances by student rock bands, acoustic duos, and soloists. Entry fee covers a custom event t-shirt and snacks.',
+                'category': 'Entertainment',
+                'event_type': 'cultural',
+                'start_datetime': timezone.now() + timedelta(days=12, hours=18),
+                'end_datetime': timezone.now() + timedelta(days=12, hours=22),
+                'venue': 'University Grand Hall',
+                'max_participants': 150,
+                'is_paid': True,
+                'price': Decimal('8.00'),
+                'registration_deadline': timezone.now() + timedelta(days=10),
+                'status': 'published',
+                'club': created_clubs.get('Music & Band Club'),
+                'requirements': 'Smart-casual dress code. Bring digital QR ticket code.',
+                'agenda': '06:00 PM: Doors Open & Snacks\n07:00 PM: Acoustic and Solo Performances\n08:30 PM: Student Rock Bands.',
+                'tags': ['Concert', 'Music', 'Performance', 'Festival'],
+                'image_url': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800',
+            },
+            # Debate
+            {
+                'title': 'Debate Society Weekly Practice',
+                'description': 'Friendly debate practice session in British Parliamentary format. We will announce debate motions on the spot. Great for public speaking skills.',
+                'category': 'Academic',
+                'event_type': 'social',
+                'start_datetime': timezone.now() + timedelta(days=3, hours=17),
+                'end_datetime': timezone.now() + timedelta(days=3, hours=19),
+                'venue': 'Humanities Hall, Room 305',
+                'max_participants': 40,
+                'is_paid': False,
+                'price': Decimal('0.00'),
+                'registration_deadline': timezone.now() + timedelta(days=2),
+                'status': 'published',
+                'club': created_clubs.get('Debate Society'),
+                'requirements': 'No prior public speaking experience required.',
+                'agenda': '05:00 PM: Debate structure overview\n05:15 PM: Motions revealed & team prep\n05:30 PM: Debate rounds start.',
+                'tags': ['Debate', 'Speaking', 'Academic', 'Practice'],
+                'image_url': 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800',
+            },
+            # Sports
+            {
+                'title': 'Badminton League Open Trials',
+                'description': 'Showcase your skills at our open court tournament. Top 3 performers receive a professional badminton racket set.',
+                'category': 'Sports',
+                'event_type': 'competition',
+                'start_datetime': timezone.now() + timedelta(days=10, hours=9),
+                'end_datetime': timezone.now() + timedelta(days=10, hours=16),
+                'venue': 'Indoor Sports Complex',
+                'max_participants': 64,
+                'is_paid': False,
+                'price': Decimal('0.00'),
+                'registration_deadline': timezone.now() + timedelta(days=8),
+                'status': 'published',
+                'club': created_clubs.get('Sports & Fitness Club'),
+                'requirements': 'Bring sports clothing and non-marking indoor shoes. Badminton racket is recommended.',
+                'agenda': '09:00 AM: Group bracket stages\n01:00 PM: Knockout rounds\n03:00 PM: Finals and Prize ceremony.',
+                'tags': ['Badminton', 'Tournament', 'Sports', 'Trials'],
+                'image_url': 'https://images.unsplash.com/photo-1502224562085-639556652f33?w=800',
+            },
+        ]
 
-        # Create events
-        self.stdout.write("📍 Creating Events...\n")
-        events_created = 0
-        
+        # 5. Seed Events
+        self.stdout.write("\n📍 Seeding Events...")
         for event_data in events_data:
             image_url = event_data.pop('image_url')
-            try:
-                event, created = Event.objects.get_or_create(
-                    title=event_data['title'],
+            event, created = Event.objects.get_or_create(
+                title=event_data['title'],
+                defaults={
+                    **event_data,
+                    'created_by': admin_user,
+                }
+            )
+            if created:
+                if not no_images:
+                    img_data = self._download_image(image_url)
+                    if img_data:
+                        filename = f"{event.title.lower().replace(' ', '_')}_poster.jpg"
+                        event.poster_image.save(filename, ContentFile(img_data), save=True)
+                        self.stdout.write(self.style.SUCCESS(f"  ✅ Event Created (with Image): {event.title} (${event.price})"))
+                    else:
+                        self.stdout.write(self.style.WARNING(f"  ⚠️  Event Created (no Image): {event.title}"))
+                else:
+                    self.stdout.write(self.style.SUCCESS(f"  ✅ Event Created: {event.title}"))
+            else:
+                self.stdout.write(f"  ⏭️  Event already exists: {event.title}")
+
+        # 6. Seed Gallery, Album, and MediaFiles
+        self.stdout.write("\n📍 Seeding Gallery & Media Files...")
+        galleries_data = [
+            {
+                'title': 'Campus Life & Student Activities',
+                'description': 'Glimpses of daily university energy, study sessions, student groups, and graduation events.',
+                'gallery_type': 'campus',
+                'cover_image_url': 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800',
+                'photos': [
+                    {
+                        'title': 'Graduation Celebration',
+                        'description': 'Graduates tossing their caps after the commencement ceremony.',
+                        'url': 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800'
+                    },
+                    {
+                        'title': 'Study Group in Library',
+                        'description': 'Students working on a computer science programming project inside the main library.',
+                        'url': 'https://images.unsplash.com/photo-1498243691581-b145c3f54a91?w=800'
+                    }
+                ]
+            },
+            {
+                'title': 'Robotics Lab & Hackathons',
+                'description': 'Student builders coding microcontroller platforms and soldering robotics components.',
+                'gallery_type': 'event',
+                'cover_image_url': 'https://images.unsplash.com/photo-1561557944-6e7860d1a7eb?w=800',
+                'photos': [
+                    {
+                        'title': 'Robotics Arm Testing',
+                        'description': 'Calibrating a custom robotic arm system in the campus IT lab.',
+                        'url': 'https://images.unsplash.com/photo-1546776310-eef45dd6d63c?w=800'
+                    },
+                    {
+                        'title': 'Embedded Coding Session',
+                        'description': 'Student debugging firmware code for an autonomous obstacle-avoidance vehicle.',
+                        'url': 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800'
+                    }
+                ]
+            },
+            {
+                'title': 'Sports Leagues & Tournaments',
+                'description': 'Highlights from the annual fitness festivals, races, and badminton tournament courts.',
+                'gallery_type': 'general',
+                'cover_image_url': 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800',
+                'photos': [
+                    {
+                        'title': 'Sprint Track Finish',
+                        'description': 'Runners competing in the final stretch of the campus 5K fitness sprint.',
+                        'url': 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800'
+                    },
+                    {
+                        'title': 'Badminton Finals',
+                        'description': 'Dynamic rally during the mixed-doubles badminton finals.',
+                        'url': 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800'
+                    }
+                ]
+            }
+        ]
+
+        for gal_data in galleries_data:
+            photos = gal_data.pop('photos')
+            cover_image_url = gal_data.pop('cover_image_url')
+            
+            gallery, created = Gallery.objects.get_or_create(
+                title=gal_data['title'],
+                defaults={
+                    **gal_data,
+                    'created_by': admin_user,
+                    'is_public': True,
+                    'is_featured': True,
+                }
+            )
+            
+            if created:
+                if not no_images:
+                    cover_img = self._download_image(cover_image_url)
+                    if cover_img:
+                        filename = f"{gallery.title.lower().replace(' ', '_')}_cover.jpg"
+                        gallery.cover_image.save(filename, ContentFile(cover_img), save=True)
+                
+                self.stdout.write(self.style.SUCCESS(f"  ✅ Gallery Created: {gallery.title}"))
+
+                # Create an Album inside this gallery
+                album, album_created = Album.objects.get_or_create(
+                    gallery=gallery,
+                    name='Default Album',
                     defaults={
-                        **event_data,
-                        'status': 'active',
-                        'created_by': demo_user,
-                        'max_attendees': 100,
+                        'description': f'Media collection for {gallery.title}',
+                        'created_by': admin_user,
                     }
                 )
 
-                if created:
-                    if not no_images:
-                        try:
-                            img_data = self._download_image(image_url)
-                            if img_data:
-                                filename = f"{event.title.lower().replace(' ', '_')}_poster.jpg"
-                                # Try to save to 'image' or 'poster' field depending on model
-                                if hasattr(event, 'image'):
-                                    event.image.save(filename, ContentFile(img_data), save=True)
-                                elif hasattr(event, 'poster'):
-                                    event.poster.save(filename, ContentFile(img_data), save=True)
-                                self.stdout.write(f"  ✅ {event.title}")
-                            else:
-                                self.stdout.write(f"  ⚠️  {event.title} (no image)")
-                        except Exception as e:
-                            self.stdout.write(f"  ⚠️  {event.title} (image failed)")
-                            logger.error(f"Image download failed for {event.title}: {e}")
-                    else:
-                        self.stdout.write(f"  ✅ {event.title} (no images mode)")
-                    
-                    events_created += 1
-                else:
-                    self.stdout.write(f"  ⏭️  {event.title} (already exists)")
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f'  ❌ {event_data["title"]}: {e}'))
+                # Add Photos to the Gallery and Album
+                for photo_data in photos:
+                    img_data = self._download_image(photo_data['url'])
+                    if img_data:
+                        filename = f"{photo_data['title'].lower().replace(' ', '_')}.jpg"
+                        
+                        media_file = MediaFile.objects.create(
+                            gallery=gallery,
+                            album=album,
+                            title=photo_data['title'],
+                            description=photo_data['description'],
+                            media_type='image',
+                            file=ContentFile(img_data, name=filename),
+                            original_filename=filename,
+                            file_size=len(img_data),
+                            status='approved',
+                            is_approved=True,
+                            uploaded_by=admin_user,
+                        )
+                        self.stdout.write(f"    - Added Media Photo: {photo_data['title']}")
+            else:
+                self.stdout.write(f"  ⏭️  Gallery already exists: {gallery.title}")
 
-        self.stdout.write(f"\n✅ Processed {len(events_data)} events\n")
-
-        # Summary
         self.stdout.write("\n" + "="*60)
-        self.stdout.write(self.style.SUCCESS("✅ Demo data seeding complete!"))
-        self.stdout.write("="*60)
-        self.stdout.write("\n📊 SUMMARY:")
-        self.stdout.write(f"  • Clubs processed: {len(clubs_data)}")
-        self.stdout.write(f"  • Clubs created: {clubs_created}")
-        self.stdout.write(f"  • Events processed: {len(events_data)}")
-        self.stdout.write(f"  • Events created: {events_created}")
-        self.stdout.write(f"  • Demo user: demo@cluborax.com / demo123")
-        self.stdout.write("\n🚀 Start your servers and login to see the demo data!\n")
+        self.stdout.write(self.style.SUCCESS('🌱 Seeding process successfully completed!'))
+        self.stdout.write("="*60 + "\n")
 
-    def _download_image(self, url, timeout=10, retries=2):
-        """
-        Download image from URL with retry logic
-        Returns ContentFile or None on failure
-        """
-        for attempt in range(retries):
-            try:
-                if REQUESTS_AVAILABLE:
-                    response = requests.get(url, timeout=timeout)
-                    if response.status_code == 200:
-                        return ContentFile(response.content)
-                else:
-                    import urllib.request
-                    img_data = urllib.request.urlopen(url).read()
-                    return ContentFile(img_data)
-            except Exception as e:
-                if attempt < retries - 1:
-                    continue
-                logger.warning(f"Failed to download {url}: {e}")
-        
+    def _download_image(self, url, timeout=12):
+        """Helper to download image bytes with graceful fallback on failure"""
+        try:
+            response = requests.get(url, timeout=timeout)
+            if response.status_code == 200:
+                return response.content
+        except Exception as e:
+            logger.warning(f"Image download failed for {url}: {e}")
         return None
